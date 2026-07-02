@@ -24,6 +24,7 @@ const createProductSchema = z.object({
 });
 
 export type CreateProductInput = z.input<typeof createProductSchema>;
+export type UpdateProductInput = Partial<Omit<CreateProductInput, "id" | "businessId">>;
 
 type ProductRow = {
   id: string;
@@ -125,6 +126,70 @@ export async function createProduct(input: CreateProductInput, db?: RepositoryDa
       product.updatedAt,
       product.syncStatus,
       product.deletedAt,
+    ],
+  );
+
+  return product;
+}
+
+export async function getProductById(id: string, db?: RepositoryDatabase) {
+  const row = await getRepositoryDatabase(db).getFirstAsync<ProductRow>("SELECT * FROM products WHERE id = ? AND deleted_at IS NULL", [id]);
+  return row ? mapProduct(row) : null;
+}
+
+export async function updateProduct(id: string, input: UpdateProductInput, db?: RepositoryDatabase) {
+  const existing = await getProductById(id, db);
+  if (!existing) {
+    throw new Error("Product not found.");
+  }
+
+  const parsed = createProductSchema.partial().parse(input);
+  const database = getRepositoryDatabase(db);
+  const updatedAt = nowIso();
+  const product: Product = {
+    ...existing,
+    branchId: parsed.branchId === undefined ? existing.branchId : parsed.branchId,
+    name: parsed.name ?? existing.name,
+    category: parsed.category ?? existing.category,
+    price: parsed.price ?? existing.price,
+    cost: parsed.cost ?? existing.cost,
+    stockQty: parsed.stockQty ?? existing.stockQty,
+    unitType: (parsed.unitType as UnitType | undefined) ?? existing.unitType,
+    lowStockThreshold: parsed.lowStockThreshold ?? existing.lowStockThreshold,
+    bundleQuantity: parsed.bundleQuantity === undefined ? existing.bundleQuantity : parsed.bundleQuantity,
+    bundlePrice: parsed.bundlePrice === undefined ? existing.bundlePrice : parsed.bundlePrice,
+    bundleLabel: parsed.bundleLabel === undefined ? existing.bundleLabel : parsed.bundleLabel,
+    active: parsed.active ?? existing.active,
+    productType: (parsed.productType as ProductType | undefined) ?? existing.productType,
+    updatedAt,
+    syncStatus: "local",
+  };
+
+  await database.runAsync(
+    `
+      UPDATE products
+      SET branch_id = ?, name = ?, category = ?, price = ?, cost = ?, stock_qty = ?,
+        unit_type = ?, low_stock_threshold = ?, bundle_quantity = ?, bundle_price = ?,
+        bundle_label = ?, active = ?, product_type = ?, updated_at = ?, sync_status = ?
+      WHERE id = ? AND deleted_at IS NULL
+    `,
+    [
+      product.branchId,
+      product.name,
+      product.category,
+      product.price,
+      product.cost,
+      product.stockQty,
+      product.unitType,
+      product.lowStockThreshold,
+      product.bundleQuantity,
+      product.bundlePrice,
+      product.bundleLabel,
+      toInteger(product.active),
+      product.productType,
+      product.updatedAt,
+      product.syncStatus,
+      product.id,
     ],
   );
 

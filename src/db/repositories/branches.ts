@@ -12,9 +12,11 @@ const createBranchSchema = z.object({
   location: z.string().nullable().optional(),
   branchType: z.enum(["stall", "branch", "kiosk", "booth", "home kitchen", "pop-up"]).default("stall"),
   active: z.boolean().default(true),
+  notes: z.string().nullable().optional(),
 });
 
 export type CreateBranchInput = z.input<typeof createBranchSchema>;
+export type UpdateBranchInput = Partial<Omit<CreateBranchInput, "id" | "businessId">>;
 
 type BranchRow = {
   id: string;
@@ -23,6 +25,7 @@ type BranchRow = {
   location: string | null;
   branch_type: Branch["branchType"];
   active: number;
+  notes: string | null;
   created_at: string;
   updated_at: string;
   sync_status: SyncStatus;
@@ -37,6 +40,7 @@ function mapBranch(row: BranchRow): Branch {
     location: row.location,
     branchType: row.branch_type,
     active: toBoolean(row.active),
+    notes: row.notes ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     syncStatus: row.sync_status,
@@ -55,6 +59,7 @@ export async function createBranch(input: CreateBranchInput, db?: RepositoryData
     location: parsed.location ?? null,
     branchType: parsed.branchType,
     active: parsed.active,
+    notes: parsed.notes ?? null,
     createdAt,
     updatedAt: createdAt,
     syncStatus: "local",
@@ -65,8 +70,8 @@ export async function createBranch(input: CreateBranchInput, db?: RepositoryData
     `
       INSERT INTO branches (
         id, business_id, branch_name, location, branch_type, active,
-        created_at, updated_at, sync_status, deleted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        notes, created_at, updated_at, sync_status, deleted_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       branch.id,
@@ -75,10 +80,58 @@ export async function createBranch(input: CreateBranchInput, db?: RepositoryData
       branch.location,
       branch.branchType,
       toInteger(branch.active),
+      branch.notes,
       branch.createdAt,
       branch.updatedAt,
       branch.syncStatus,
       branch.deletedAt,
+    ],
+  );
+
+  return branch;
+}
+
+export async function getBranchById(id: string, db?: RepositoryDatabase) {
+  const row = await getRepositoryDatabase(db).getFirstAsync<BranchRow>("SELECT * FROM branches WHERE id = ? AND deleted_at IS NULL", [id]);
+  return row ? mapBranch(row) : null;
+}
+
+export async function updateBranch(id: string, input: UpdateBranchInput, db?: RepositoryDatabase) {
+  const existing = await getBranchById(id, db);
+  if (!existing) {
+    throw new Error("Stall or branch not found.");
+  }
+
+  const parsed = createBranchSchema.partial().parse(input);
+  const database = getRepositoryDatabase(db);
+  const updatedAt = nowIso();
+  const branch: Branch = {
+    ...existing,
+    branchName: parsed.branchName ?? existing.branchName,
+    location: parsed.location === undefined ? existing.location : parsed.location,
+    branchType: parsed.branchType ?? existing.branchType,
+    active: parsed.active ?? existing.active,
+    notes: parsed.notes === undefined ? existing.notes : parsed.notes,
+    updatedAt,
+    syncStatus: "local",
+  };
+
+  await database.runAsync(
+    `
+      UPDATE branches
+      SET branch_name = ?, location = ?, branch_type = ?, active = ?, notes = ?,
+        updated_at = ?, sync_status = ?
+      WHERE id = ? AND deleted_at IS NULL
+    `,
+    [
+      branch.branchName,
+      branch.location,
+      branch.branchType,
+      toInteger(branch.active),
+      branch.notes,
+      branch.updatedAt,
+      branch.syncStatus,
+      branch.id,
     ],
   );
 

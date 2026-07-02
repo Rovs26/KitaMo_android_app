@@ -3,13 +3,14 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { openKitamoDatabase } from "@/db/client";
 
 import { initialSchemaMigration } from "./001_initial_schema";
+import { ownerSetupFieldsMigration } from "./002_owner_setup_fields";
 
 export type Migration = {
   id: string;
   up: string;
 };
 
-const migrations: Migration[] = [initialSchemaMigration];
+const migrations: Migration[] = [initialSchemaMigration, ownerSetupFieldsMigration];
 
 type MigrationRow = {
   id: string;

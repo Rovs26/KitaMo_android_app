@@ -30,6 +30,7 @@ export type Business = LocalEntity & {
   ownerName: string;
   barangay: string;
   contactNumber: string | null;
+  notes: string | null;
   preferredLanguage: LanguagePreference;
   currency: "PHP";
 };
@@ -40,6 +41,7 @@ export type Branch = LocalEntity & {
   location: string | null;
   branchType: "stall" | "branch" | "kiosk" | "booth" | "home kitchen" | "pop-up";
   active: boolean;
+  notes: string | null;
 };
 
 export type Product = LocalEntity & {

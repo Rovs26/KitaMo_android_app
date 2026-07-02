@@ -12,11 +12,13 @@ const createBusinessSchema = z.object({
   ownerName: z.string().min(1),
   barangay: z.string().min(1),
   contactNumber: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   preferredLanguage: z.enum(["Taglish", "Filipino", "English"]).default("Taglish"),
   currency: z.literal("PHP").default("PHP"),
 });
 
 export type CreateBusinessInput = z.input<typeof createBusinessSchema>;
+export type UpdateBusinessInput = Partial<Omit<CreateBusinessInput, "id">>;
 
 type BusinessRow = {
   id: string;
@@ -25,6 +27,7 @@ type BusinessRow = {
   owner_name: string;
   barangay: string;
   contact_number: string | null;
+  notes: string | null;
   preferred_language: LanguagePreference;
   currency: "PHP";
   created_at: string;
@@ -41,6 +44,7 @@ function mapBusiness(row: BusinessRow): Business {
     ownerName: row.owner_name,
     barangay: row.barangay,
     contactNumber: row.contact_number,
+    notes: row.notes ?? null,
     preferredLanguage: row.preferred_language,
     currency: row.currency,
     createdAt: row.created_at,
@@ -61,6 +65,7 @@ export async function createBusiness(input: CreateBusinessInput, db?: Repository
     ownerName: parsed.ownerName,
     barangay: parsed.barangay,
     contactNumber: parsed.contactNumber ?? null,
+    notes: parsed.notes ?? null,
     preferredLanguage: parsed.preferredLanguage,
     currency: parsed.currency,
     createdAt,
@@ -73,8 +78,8 @@ export async function createBusiness(input: CreateBusinessInput, db?: Repository
     `
       INSERT INTO businesses (
         id, business_name, business_type, owner_name, barangay, contact_number,
-        preferred_language, currency, created_at, updated_at, sync_status, deleted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        notes, preferred_language, currency, created_at, updated_at, sync_status, deleted_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       business.id,
@@ -83,12 +88,62 @@ export async function createBusiness(input: CreateBusinessInput, db?: Repository
       business.ownerName,
       business.barangay,
       business.contactNumber,
+      business.notes,
       business.preferredLanguage,
       business.currency,
       business.createdAt,
       business.updatedAt,
       business.syncStatus,
       business.deletedAt,
+    ],
+  );
+
+  return business;
+}
+
+export async function updateBusiness(id: string, input: UpdateBusinessInput, db?: RepositoryDatabase) {
+  const existing = await getBusinessById(id, db);
+  if (!existing) {
+    throw new Error("Business not found.");
+  }
+
+  const parsed = createBusinessSchema.partial().parse(input);
+  const database = getRepositoryDatabase(db);
+  const updatedAt = nowIso();
+  const business: Business = {
+    ...existing,
+    businessName: parsed.businessName ?? existing.businessName,
+    businessType: (parsed.businessType as BusinessType | undefined) ?? existing.businessType,
+    ownerName: parsed.ownerName ?? existing.ownerName,
+    barangay: parsed.barangay ?? existing.barangay,
+    contactNumber: parsed.contactNumber === undefined ? existing.contactNumber : parsed.contactNumber,
+    notes: parsed.notes === undefined ? existing.notes : parsed.notes,
+    preferredLanguage: parsed.preferredLanguage ?? existing.preferredLanguage,
+    currency: parsed.currency ?? existing.currency,
+    updatedAt,
+    syncStatus: "local",
+  };
+
+  await database.runAsync(
+    `
+      UPDATE businesses
+      SET business_name = ?, business_type = ?, owner_name = ?, barangay = ?,
+        contact_number = ?, notes = ?, preferred_language = ?, currency = ?,
+        updated_at = ?, sync_status = ?
+      WHERE id = ? AND deleted_at IS NULL
+    `,
+    [
+      business.businessName,
+      business.businessType,
+      business.ownerName,
+      business.barangay,
+      business.contactNumber,
+      business.notes,
+      business.preferredLanguage,
+      business.currency,
+      business.updatedAt,
+      business.syncStatus,
+      business.id,
     ],
   );
 

@@ -1,4 +1,4 @@
-export const schemaVersion = 1;
+export const schemaVersion = 2;
 
 export const syncStatusValues = ["local", "pending", "synced", "failed"] as const;
 
