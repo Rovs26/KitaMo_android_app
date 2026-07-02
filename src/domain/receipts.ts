@@ -1,8 +1,83 @@
-export type ReceiptTextInput = {
-  businessName: string;
-  transactionNo: string;
+import type { PaymentMethod } from "./types";
+
+export type ReceiptLineItem = {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
 };
 
-export function buildPlaceholderReceiptText(input: ReceiptTextInput) {
-  return `${input.businessName}\nReceipt ${input.transactionNo}\nAndroid Phase 1 placeholder receipt.`;
+export type ReceiptTextInput = {
+  businessName: string;
+  branchName: string;
+  saleId: string;
+  transactionNo: string;
+  happenedAt: string;
+  items: ReceiptLineItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  externalReferenceNumber: string | null;
+};
+
+function formatMoney(value: number) {
+  return `PHP ${value.toFixed(2)}`;
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function paymentLabel(paymentMethod: PaymentMethod) {
+  if (paymentMethod === "GCash") {
+    return "GCash";
+  }
+
+  if (paymentMethod === "Maya") {
+    return "Maya";
+  }
+
+  if (paymentMethod === "bank transfer") {
+    return "Bank transfer";
+  }
+
+  return paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+}
+
+export function buildReceiptText(input: ReceiptTextInput) {
+  const lines = [
+    input.businessName,
+    input.branchName,
+    `Receipt: ${input.transactionNo}`,
+    `Sale ID: ${input.saleId}`,
+    `Date: ${formatDateTime(input.happenedAt)}`,
+    "",
+    "Items",
+    ...input.items.map(
+      (item) => `${item.name} x ${item.quantity} @ ${formatMoney(item.unitPrice)} = ${formatMoney(item.lineTotal)}`,
+    ),
+    "",
+    `Subtotal: ${formatMoney(input.subtotal)}`,
+  ];
+
+  if (input.discount > 0) {
+    lines.push(`Discount: ${formatMoney(input.discount)}`);
+  }
+
+  lines.push(
+    `Total: ${formatMoney(input.total)}`,
+    `Payment: ${paymentLabel(input.paymentMethod)}`,
+  );
+
+  if (input.externalReferenceNumber) {
+    lines.push(`Reference: ${input.externalReferenceNumber}`);
+  }
+
+  lines.push("", "Stored locally on this device. Sync is not connected yet.", "Salamat po!");
+
+  return lines.join("\n");
 }

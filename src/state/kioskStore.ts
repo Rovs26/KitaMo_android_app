@@ -1,23 +1,112 @@
 import { create } from "zustand";
 
-export type PlaceholderCartItem = {
-  id: string;
+import type { Product, UnitType } from "@/domain/types";
+
+export type KioskCartItem = {
+  productId: string;
+  branchId: string | null;
   name: string;
+  category: string;
+  unitType: UnitType;
+  unitPrice: number;
+  unitCost: number;
+  stockQty: number;
+  lowStockThreshold: number;
   quantity: number;
 };
 
-type KioskState = {
-  currentCart: PlaceholderCartItem[];
-  activeShiftId: string | null;
-  setCurrentCart: (cart: PlaceholderCartItem[]) => void;
-  setActiveShiftId: (shiftId: string | null) => void;
-  clearCart: () => void;
+type AddProductResult = {
+  ok: boolean;
+  reason?: string;
 };
 
-export const useKioskStore = create<KioskState>((set) => ({
-  currentCart: [],
+type KioskState = {
+  cartItems: KioskCartItem[];
+  activeShiftId: string | null;
+  lastSaleId: string | null;
+  lastReceiptText: string | null;
+  addProductToCart: (product: Product) => AddProductResult;
+  incrementCartItem: (productId: string) => AddProductResult;
+  decrementCartItem: (productId: string) => void;
+  removeCartItem: (productId: string) => void;
+  clearCart: () => void;
+  setActiveShiftId: (shiftId: string | null) => void;
+  setLastReceipt: (saleId: string | null, receiptText: string | null) => void;
+};
+
+export const useKioskStore = create<KioskState>((set, get) => ({
+  cartItems: [],
   activeShiftId: null,
-  setCurrentCart: (currentCart) => set({ currentCart }),
+  lastSaleId: null,
+  lastReceiptText: null,
+  addProductToCart: (product) => {
+    if (product.stockQty <= 0) {
+      return { ok: false, reason: `${product.name} is out of stock.` };
+    }
+
+    const currentItem = get().cartItems.find((item) => item.productId === product.id);
+    if (currentItem && currentItem.quantity >= product.stockQty) {
+      return { ok: false, reason: `Only ${product.stockQty} ${product.unitType} available.` };
+    }
+
+    if (currentItem) {
+      set((state) => ({
+        cartItems: state.cartItems.map((item) =>
+          item.productId === product.id ? { ...item, quantity: item.quantity + 1, stockQty: product.stockQty } : item,
+        ),
+      }));
+      return { ok: true };
+    }
+
+    set((state) => ({
+      cartItems: [
+        ...state.cartItems,
+        {
+          productId: product.id,
+          branchId: product.branchId,
+          name: product.name,
+          category: product.category,
+          unitType: product.unitType,
+          unitPrice: product.price,
+          unitCost: product.cost,
+          stockQty: product.stockQty,
+          lowStockThreshold: product.lowStockThreshold,
+          quantity: 1,
+        },
+      ],
+    }));
+
+    return { ok: true };
+  },
+  incrementCartItem: (productId) => {
+    const currentItem = get().cartItems.find((item) => item.productId === productId);
+    if (!currentItem) {
+      return { ok: false, reason: "Cart item not found." };
+    }
+
+    if (currentItem.quantity >= currentItem.stockQty) {
+      return { ok: false, reason: `Only ${currentItem.stockQty} ${currentItem.unitType} available.` };
+    }
+
+    set((state) => ({
+      cartItems: state.cartItems.map((item) => (item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item)),
+    }));
+
+    return { ok: true };
+  },
+  decrementCartItem: (productId) => {
+    set((state) => ({
+      cartItems: state.cartItems
+        .map((item) => (item.productId === productId ? { ...item, quantity: item.quantity - 1 } : item))
+        .filter((item) => item.quantity > 0),
+    }));
+  },
+  removeCartItem: (productId) => {
+    set((state) => ({
+      cartItems: state.cartItems.filter((item) => item.productId !== productId),
+    }));
+  },
+  clearCart: () => set({ cartItems: [] }),
   setActiveShiftId: (activeShiftId) => set({ activeShiftId }),
-  clearCart: () => set({ currentCart: [] }),
+  setLastReceipt: (lastSaleId, lastReceiptText) => set({ lastSaleId, lastReceiptText }),
 }));

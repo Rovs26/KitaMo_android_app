@@ -4,9 +4,9 @@ Expo React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 3: Owner Setup.
+Android Phase 4: Kiosk Selling.
 
-This phase contains the first real Owner setup flow on top of the local-first SQLite foundation.
+This phase contains the first working local Kiosk selling flow on top of the Owner setup and SQLite foundation.
 
 ## Run
 
@@ -32,13 +32,18 @@ npm run android
 - Owner Settings business profile form backed by SQLite.
 - Owner Settings stores/stalls form backed by SQLite branches.
 - Owner Inventory product setup and product list backed by SQLite products.
+- Kiosk entry gate for active business, active stall, and product readiness.
+- Kiosk Sell product list, stock-aware cart, and quantity controls.
+- Kiosk Checkout for cash, GCash, Maya, bank transfer, other payment methods, reference capture, and optional discount.
+- Local sale transaction with sale items, stock decrement, inventory movement, receipt record, and pending offline queue entry.
+- Receipt display with clipboard copy and native share sheet when available.
+- Kiosk Orders, Stock, and current local Shift summary screens.
 - Theme token foundation with light, dark, and system-ready mode support.
 - Zustand stores for app, kiosk, and theme state.
 - SQLite client, migration runner, and initial local schema.
 - Typed repositories for businesses, branches, products, sales, inventory movements, app settings, and local data reset.
 - Manual demo seed function.
 - Explicit Clear Local Pilot Data service function.
-- Kiosk routes remain placeholders.
 
 ## SQLite Foundation
 
@@ -93,9 +98,50 @@ Owner Settings supports creating and editing the local business profile, adding/
 
 Owner Inventory supports creating/editing local products and listing stock quantities with low-stock badges. It does not edit inventory movements yet.
 
+## Kiosk Selling
+
+Kiosk Mode requires:
+
+- an active business profile
+- an active stall/store
+- at least one local product
+
+If products are missing, Kiosk shows: “Add products in Owner Inventory first.”
+
+The Sell screen reads active-stall products from SQLite, shows stock and low-stock/out-of-stock status, and stores the cart in Zustand for simple navigation between Sell and Checkout.
+
+## Checkout And Payments
+
+Checkout supports:
+
+- cash
+- GCash
+- Maya
+- bank transfer
+- other
+
+Cash can complete without a reference number. Non-cash payments require a reference number before checkout completes. Duplicate checkout is guarded by a saving state.
+
+When checkout succeeds, one local SQLite transaction:
+
+- inserts the sale
+- inserts sale items
+- decrements product stock
+- inserts stock-out inventory movements
+- inserts the receipt record
+- inserts a pending `offline_queue` row for future sync
+
+If any part fails, the transaction rolls back.
+
+## Receipts
+
+Receipts are generated from structured local sale data and include business, stall, transaction number, sale ID, date/time, items, subtotal, discount, total, payment method, reference number when present, and a local/offline note.
+
+Receipt text can be copied to the clipboard. The app uses the native share sheet when available; Bluetooth printing is still deferred.
+
 ## Local-Only Storage
 
-All Phase 3 data is stored locally in SQLite on the device. There is no cloud sync, login, telemetry, remote AI, camera extraction, or printer integration in this phase.
+All Phase 4 data is stored locally in SQLite on the device. There is no cloud sync, login, telemetry, remote AI, camera extraction, Bluetooth printing, or production staff security in this phase.
 
 ## Clear Local Pilot Data
 
@@ -111,7 +157,9 @@ All Phase 3 data is stored locally in SQLite on the device. There is no cloud sy
 - Customer Mode.
 - LGU Mode.
 - Play Store production release work.
-- Kiosk selling, checkout, and receipt issuing.
+- Supabase sync processing for `offline_queue`.
+- Full staff permissions and shift open/close workflow.
+- Cook/Niluto recipe or batch production.
 
 ## PWA Safety
 
