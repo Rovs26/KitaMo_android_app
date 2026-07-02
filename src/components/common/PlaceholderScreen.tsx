@@ -23,7 +23,7 @@ export function PlaceholderScreen({ title, description, links = [] }: Placeholde
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <Text style={[styles.phase, { color: palette.accent }]}>Android Phase 1 Foundation</Text>
+      <Text style={[styles.phase, { color: palette.accent }]}>Android Phase 2 Local Data Foundation</Text>
       <Text style={[styles.title, { color: palette.text }]}>{title}</Text>
       <Text style={[styles.description, { color: palette.mutedText }]}>{description}</Text>
 

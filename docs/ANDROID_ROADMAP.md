@@ -8,7 +8,7 @@ The Android app is a local-first MVP, not a full clone of the PWA.
 
 ## Phase 1: Project Foundation
 
-Status: In progress.
+Status: Done.
 
 Goals:
 
@@ -21,10 +21,14 @@ Goals:
 
 ## Phase 2: Local Data Foundation
 
+Status: In progress.
+
 - SQLite migrations.
 - Local IDs and timestamps.
-- Demo seed data.
+- Fresh mode empty by default.
+- Demo seed data by explicit action only.
 - Clear Local Pilot Data.
+- Typed local repositories.
 
 ## Phase 3: Owner Setup
 

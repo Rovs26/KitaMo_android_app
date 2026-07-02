@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { useAppStore } from "@/state/appStore";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
@@ -9,12 +10,15 @@ export default function WelcomeScreen() {
   const setCurrentMode = useAppStore((state) => state.setCurrentMode);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.eyebrow}>Android Phase 1 Foundation</Text>
-      <Text style={styles.title}>KitaMo Android</Text>
-      <Text style={styles.body}>
-        Local-first Expo foundation for the pilot-safe Owner and Kiosk flows. These screens are placeholders only.
-      </Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.hero}>
+        <Text style={styles.eyebrow}>Android Phase 2 Local Data Foundation</Text>
+        <Text style={styles.title}>KitaMo Android</Text>
+        <Text style={styles.body}>
+          Local-first Expo foundation for pilot-safe Owner and Kiosk flows. Fresh mode starts empty; demo data only appears
+          after an explicit action.
+        </Text>
+      </View>
 
       <View style={styles.actions}>
         <Link href="/owner" asChild>
@@ -29,15 +33,20 @@ export default function WelcomeScreen() {
           </Pressable>
         </Link>
       </View>
-    </View>
+
+      <LocalDataVerificationPanel />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     padding: spacing.xl,
+    gap: spacing.md,
+  },
+  hero: {
     gap: spacing.md,
   },
   eyebrow: {
