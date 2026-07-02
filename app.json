@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "KitaMo Android",
+    "slug": "kitamo-android",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "kitamo",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F1E3"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
