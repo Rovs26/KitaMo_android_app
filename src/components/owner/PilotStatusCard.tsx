@@ -16,12 +16,12 @@ export function PilotStatusCard({ status }: PilotStatusCardProps) {
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
   const rows = [
-    ["Local database", status.dbReady ? "Ready" : "Checking"],
+    ["Local storage", status.dbReady ? "Ready" : "Checking"],
     ["Active business", status.activeBusiness?.businessName ?? "Not set"],
     ["Active stall", status.activeBranch?.branchName ?? "Not set"],
     ["Products", String(status.productCount)],
-    ["Pending queue", String(status.pendingQueueCount)],
-    ["Mode", status.mode === "demo" ? "Demo data" : "Fresh"],
+    ["Pending", String(status.pendingQueueCount)],
+    ["Workspace", status.mode === "demo" ? "Demo" : "Fresh"],
   ] as const;
 
   return (
@@ -44,7 +44,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     borderWidth: 1,
-    gap: spacing.md,
+    elevation: 1,
+    gap: spacing.sm,
     padding: spacing.md,
   },
   title: {

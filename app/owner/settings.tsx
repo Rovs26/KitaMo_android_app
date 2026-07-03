@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 
 import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
+import { showLocalDataVerificationPanel } from "@/config/devTools";
 import {
   createBranch,
   createBusiness,
@@ -17,6 +18,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 const businessTypes: BusinessType[] = [
   "sari-sari store",
@@ -102,8 +104,9 @@ export default function OwnerSettingsScreen() {
       let active = true;
 
       refresh().catch((error) => {
+        logDevError("OwnerSettings.refresh", error);
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Could not load settings.");
+          setMessage(getFriendlyErrorMessage("Could not load settings."));
         }
       });
 
@@ -145,7 +148,8 @@ export default function OwnerSettingsScreen() {
       await refresh();
       setMessage(status?.activeBusiness ? "Business profile updated." : "Business profile created.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save business profile.");
+      logDevError("OwnerSettings.saveBusinessProfile", error);
+      setMessage(getFriendlyErrorMessage("Could not save business profile."));
     } finally {
       setSaving(false);
     }
@@ -189,7 +193,8 @@ export default function OwnerSettingsScreen() {
       await refresh();
       setMessage(branchForm.id ? "Store or stall updated." : "Store or stall added.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save store or stall.");
+      logDevError("OwnerSettings.saveBranch", error);
+      setMessage(getFriendlyErrorMessage("Could not save store or stall."));
     } finally {
       setSaving(false);
     }
@@ -204,7 +209,8 @@ export default function OwnerSettingsScreen() {
       await refresh();
       setMessage("Active stall updated.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not select active stall.");
+      logDevError("OwnerSettings.chooseActiveBranch", error);
+      setMessage(getFriendlyErrorMessage("Could not select active stall."));
     } finally {
       setSaving(false);
     }
@@ -224,11 +230,9 @@ export default function OwnerSettingsScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Owner Settings</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Business setup</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          Save the local profile and stall records used by Owner and future Kiosk flows.
-        </Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>KitaMo</Text>
+        <Text style={[styles.title, { color: palette.text }]}>Settings</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Keep your business profile and active stall ready.</Text>
       </View>
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
@@ -359,7 +363,13 @@ export default function OwnerSettingsScreen() {
       </View>
 
       {status ? <PilotStatusCard status={status} /> : null}
-      {__DEV__ ? <LocalDataVerificationPanel /> : null}
+
+      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>Data & Privacy</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Your pilot data stays on this phone until sync is added.</Text>
+      </View>
+
+      {__DEV__ && showLocalDataVerificationPanel ? <LocalDataVerificationPanel /> : null}
     </ScrollView>
   );
 }
@@ -493,10 +503,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
   },
   eyebrow: {
     ...typography.label,
@@ -513,7 +524,8 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 8,
     borderWidth: 1,
-    gap: spacing.md,
+    elevation: 1,
+    gap: spacing.sm,
     padding: spacing.md,
   },
   sectionTitle: {
@@ -523,9 +535,9 @@ const styles = StyleSheet.create({
     ...typography.body,
   },
   subheading: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
-    lineHeight: 24,
+    lineHeight: 22,
   },
   field: {
     gap: spacing.xs,
@@ -536,10 +548,10 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 8,
     borderWidth: 1,
-    fontSize: 16,
-    lineHeight: 22,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
+    fontSize: 15,
+    lineHeight: 20,
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   multilineInput: {
@@ -554,7 +566,7 @@ const styles = StyleSheet.create({
   option: {
     borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   optionText: {
@@ -565,10 +577,10 @@ const styles = StyleSheet.create({
   actionButton: {
     alignItems: "center",
     borderRadius: 8,
-    minHeight: 48,
-    minWidth: 180,
+    minHeight: 44,
+    minWidth: 152,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   actionButtonText: {
     ...typography.button,
@@ -610,8 +622,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     borderWidth: 1,
-    minHeight: 40,
-    paddingHorizontal: spacing.md,
+    minHeight: 38,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   smallButtonText: {

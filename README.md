@@ -4,9 +4,9 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 5: Offline Proof and Data Integrity.
+Android Phase 5.5: Runtime Fix and UX Baseline.
 
-This phase hardens the local Kiosk selling flow with visible offline status, pending queue visibility, persistence checks, duplicate-checkout protection, sale integrity verification, and local reset verification.
+This phase keeps the Phase 5 local selling behavior intact, fixes the Owner Settings SQLite runtime failure path, and applies a cleaner Android UX baseline for Owner and Kiosk screens.
 
 ## Run
 
@@ -40,7 +40,7 @@ npm run android
 - Kiosk Orders, Stock, and current local Shift summary screens.
 - Online / Offline local-mode indicator using Expo Network.
 - Pending offline queue visibility in Owner and Kiosk flows.
-- Development-only local data verification panel with sale integrity checks.
+- Development-only local data verification panel hidden behind a disabled local dev flag.
 - Theme token foundation with light, dark, and system-ready mode support.
 - Zustand stores for app, kiosk, and theme state.
 - SQLite client, migration runner, and initial local schema.
@@ -97,9 +97,15 @@ Owner Home reads the local database and shows:
 - pending offline queue count
 - fresh/demo mode
 
+Phase 5.5 presents this as a seller-facing dashboard with active workspace, setup status, local mode, pending count, and action cards for Business Profile, Products, Open Kiosk, and Records.
+
 Owner Settings supports creating and editing the local business profile, adding/editing stalls or stores, and selecting the active stall through `app_settings.activeBranchId`.
 
+Owner Settings separates Business Profile, Store / Stall, Pilot App Status, and Data & Privacy. SQLite/native errors are logged in development and shown to users as short friendly messages.
+
 Owner Inventory supports creating/editing local products and listing stock quantities with low-stock badges. It does not edit inventory movements yet.
+
+Owner Inventory uses a cleaner product setup/list baseline with compact fields, product cards, stock, unit, price, and low-stock badges.
 
 ## Kiosk Selling
 
@@ -112,6 +118,8 @@ Kiosk Mode requires:
 If products are missing, Kiosk shows: “Add products in Owner Inventory first.”
 
 The Sell screen reads active-stall products from SQLite, shows stock and low-stock/out-of-stock status, and stores the cart in Zustand for simple navigation between Sell and Checkout.
+
+Phase 5.5 updates Kiosk entry and Sell screens with a clearer selling-mode header, active stall, local/pending badge, readable product cards, and a compact cart layout. Sale transaction behavior is unchanged.
 
 ## Checkout And Payments
 
@@ -171,6 +179,8 @@ Screens reload durable data from SQLite on mount/focus:
 
 Cart contents remain lightweight Zustand state and are not expected to survive a force close yet. Completed sales, stock decrements, receipts, and queue rows are durable.
 
+For SDK 54, owner status and local count reads are performed sequentially on the SQLite handle to avoid native prepared-statement lifecycle errors during settings load.
+
 ## Sale Integrity Check
 
 `verifySaleIntegrity()` in `src/services/kioskSales.ts` checks the latest or selected local sale for:
@@ -198,7 +208,7 @@ All Phase 5 data is stored locally in SQLite on the device. There is no cloud sy
 
 `clearLocalPilotData()` clears local KitaMo SQLite tables, including businesses, branches, products, sales, sale items, inventory movements, recipe batches, owner alerts, receipt records, offline queue rows, and app settings.
 
-Because `app_settings` is cleared, the first-run choice appears again when the app starts from the root. Demo data is not recreated unless Try Demo Data is selected again. In development builds, the Owner Settings dev panel can refresh counts, run the latest sale integrity check, and explicitly clear local pilot data.
+Because `app_settings` is cleared, the first-run choice appears again when the app starts from the root. Demo data is not recreated unless Try Demo Data is selected again. The local verification panel remains in code for development, but it is hidden by default with `showLocalDataVerificationPanel = false`.
 
 ## Intentionally Deferred
 

@@ -8,6 +8,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -41,8 +42,9 @@ export default function WelcomeScreen() {
 
         setMessage("Choose how to start this local pilot.");
       } catch (error) {
+        logDevError("Welcome.checkFirstRun", error);
         if (mounted) {
-          setMessage(error instanceof Error ? error.message : "Could not initialize local database.");
+          setMessage(getFriendlyErrorMessage("Could not prepare local data."));
         }
       } finally {
         if (mounted) {
@@ -68,7 +70,8 @@ export default function WelcomeScreen() {
       setCurrentMode("owner");
       router.replace("/owner");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not start fresh mode.");
+      logDevError("Welcome.startFresh", error);
+      setMessage(getFriendlyErrorMessage("Could not start fresh mode."));
     } finally {
       setBusy(null);
     }
@@ -85,7 +88,8 @@ export default function WelcomeScreen() {
       setCurrentMode("owner");
       router.replace("/owner");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not create demo data.");
+      logDevError("Welcome.tryDemoData", error);
+      setMessage(getFriendlyErrorMessage("Could not create demo data."));
     } finally {
       setBusy(null);
     }

@@ -32,7 +32,7 @@ export function NetworkStatusBadge({ pendingQueueCount }: NetworkStatusBadgeProp
       ]}
     >
       <Text style={[styles.status, { color: offline ? palette.warning : palette.text }]}>{statusLabel}</Text>
-      <Text style={[styles.pending, { color: palette.mutedText }]}>Pending queue: {pendingQueueCount}</Text>
+      <Text style={[styles.pending, { color: palette.mutedText }]}>Pending: {pendingQueueCount}</Text>
     </View>
   );
 }
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: spacing.xs,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   status: {

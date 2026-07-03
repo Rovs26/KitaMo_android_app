@@ -25,7 +25,12 @@ export async function countTable(table: CountableTable, db?: RepositoryDatabase)
 
 export async function getLocalDataCounts(db?: RepositoryDatabase): Promise<LocalDataCounts> {
   const database = getRepositoryDatabase(db);
-  const entries = await Promise.all(countableTables.map(async (table) => [table, await countTable(table, database)] as const));
+  const entries: (readonly [CountableTable, number])[] = [];
+
+  for (const table of countableTables) {
+    entries.push([table, await countTable(table, database)]);
+  }
+
   return Object.fromEntries(entries) as LocalDataCounts;
 }
 

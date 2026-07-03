@@ -70,16 +70,13 @@ export async function setActiveBranch(branchId: string, db: RepositoryDatabase =
 
 export async function loadOwnerSetupStatus(db: RepositoryDatabase = openKitamoDatabase()): Promise<OwnerSetupStatus> {
   const migrationResult = await runMigrations(db);
-  const [firstRunComplete, hasSeededDemoData, activeBusinessSetting, activeBranchSetting, businesses, counts, pendingQueueCount] =
-    await Promise.all([
-      getBooleanAppSetting("hasCompletedFirstRun", db),
-      getBooleanAppSetting("hasSeededDemoData", db),
-      getAppSetting("activeBusinessId", db),
-      getAppSetting("activeBranchId", db),
-      listBusinesses(db),
-      getLocalDataCounts(db),
-      countPendingQueue(db),
-    ]);
+  const firstRunComplete = await getBooleanAppSetting("hasCompletedFirstRun", db);
+  const hasSeededDemoData = await getBooleanAppSetting("hasSeededDemoData", db);
+  const activeBusinessSetting = await getAppSetting("activeBusinessId", db);
+  const activeBranchSetting = await getAppSetting("activeBranchId", db);
+  const businesses = await listBusinesses(db);
+  const counts = await getLocalDataCounts(db);
+  const pendingQueueCount = await countPendingQueue(db);
 
   const activeBusiness =
     businesses.find((business) => business.id === activeBusinessSetting?.value) ?? businesses[0] ?? null;

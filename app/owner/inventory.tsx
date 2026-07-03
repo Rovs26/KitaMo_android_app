@@ -9,6 +9,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 const productTypes: ProductType[] = ["retail item", "cooked food", "ingredient-based item", "service/other"];
 const unitTypes: UnitType[] = ["piece", "bottle", "pack", "sachet", "kilo", "serving", "case", "tray", "other"];
@@ -61,8 +62,9 @@ export default function OwnerInventoryScreen() {
       let active = true;
 
       refresh().catch((error) => {
+        logDevError("OwnerInventory.refresh", error);
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Could not load inventory.");
+          setMessage(getFriendlyErrorMessage("Could not load inventory."));
         }
       });
 
@@ -138,7 +140,8 @@ export default function OwnerInventoryScreen() {
       await refresh();
       setMessage(productForm.id ? "Product updated." : "Product added.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save product.");
+      logDevError("OwnerInventory.saveProduct", error);
+      setMessage(getFriendlyErrorMessage("Could not save product."));
     } finally {
       setSaving(false);
     }
@@ -166,11 +169,9 @@ export default function OwnerInventoryScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Owner Inventory</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Products and stock</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          Add products locally first. Kiosk selling and stock movement tools come later.
-        </Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>Owner</Text>
+        <Text style={[styles.title, { color: palette.text }]}>Inventory</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Manage paninda, stock, and prices for the active stall.</Text>
       </View>
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
@@ -281,7 +282,7 @@ export default function OwnerInventoryScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Inventory List</Text>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>Product List</Text>
         {status && status.products.length === 0 ? (
           <Text style={[styles.empty, { color: palette.mutedText }]}>Add your first paninda</Text>
         ) : null}
@@ -289,7 +290,7 @@ export default function OwnerInventoryScreen() {
         {status?.products.map((product) => {
           const lowStock = product.stockQty <= product.lowStockThreshold;
           return (
-            <View key={product.id} style={[styles.productRow, { borderColor: palette.border }]}>
+            <View key={product.id} style={[styles.productRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
               <View style={styles.productHeader}>
                 <View style={styles.productText}>
                   <Text style={[styles.productName, { color: palette.text }]}>{product.name}</Text>
@@ -452,10 +453,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
   },
   eyebrow: {
     ...typography.label,
@@ -472,7 +474,8 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 8,
     borderWidth: 1,
-    gap: spacing.md,
+    elevation: 1,
+    gap: spacing.sm,
     padding: spacing.md,
   },
   sectionTitle: {
@@ -492,10 +495,10 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 8,
     borderWidth: 1,
-    fontSize: 16,
-    lineHeight: 22,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
+    fontSize: 15,
+    lineHeight: 20,
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   optionWrap: {
@@ -506,7 +509,7 @@ const styles = StyleSheet.create({
   option: {
     borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   optionText: {
@@ -528,10 +531,10 @@ const styles = StyleSheet.create({
   actionButton: {
     alignItems: "center",
     borderRadius: 8,
-    minHeight: 48,
+    minHeight: 44,
     minWidth: 160,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   actionButtonText: {
     ...typography.button,
@@ -541,8 +544,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     borderRadius: 8,
     borderWidth: 1,
-    minHeight: 40,
-    paddingHorizontal: spacing.md,
+    minHeight: 38,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   smallButtonText: {
@@ -551,9 +554,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   productRow: {
-    borderTopWidth: 1,
+    borderRadius: 8,
+    borderWidth: 1,
     gap: spacing.sm,
-    paddingTop: spacing.md,
+    padding: spacing.md,
   },
   productHeader: {
     alignItems: "flex-start",

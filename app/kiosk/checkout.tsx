@@ -10,6 +10,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getUserSafeErrorMessage, logDevError } from "@/utils/errors";
 
 const paymentMethods: PaymentMethod[] = ["cash", "GCash", "Maya", "bank transfer", "other"];
 
@@ -79,7 +80,8 @@ export default function KioskCheckoutScreen() {
       clearCart();
       setMessage("Sale completed locally.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not complete checkout.");
+      logDevError("KioskCheckout.confirmCheckout", error);
+      setMessage(getUserSafeErrorMessage(error, "Could not complete checkout."));
       savingRef.current = false;
     } finally {
       setSaving(false);
@@ -107,11 +109,9 @@ export default function KioskCheckoutScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Checkout</Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
         <Text style={[styles.title, { color: palette.text }]}>Complete sale</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          Sale, stock, receipt, and sync queue are saved together in one local transaction.
-        </Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Review payment and save the receipt.</Text>
       </View>
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") || message.includes("cannot") ? palette.danger : palette.text }]}>{message}</Text> : null}

@@ -11,6 +11,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 function formatMoney(value: number) {
   return `PHP ${value.toFixed(2)}`;
@@ -37,8 +38,9 @@ export default function KioskSellScreen() {
     useCallback(() => {
       let active = true;
       refresh().catch((error) => {
+        logDevError("KioskSell.refresh", error);
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Could not load products.");
+          setMessage(getFriendlyErrorMessage("Could not load products."));
         }
       });
 
@@ -65,11 +67,9 @@ export default function KioskSellScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Sell</Text>
-        <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Selling counter"}</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          Tap products to add them to the cart. Stock is checked again during checkout.
-        </Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
+        <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Sell"}</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Tap a product to add it to the cart.</Text>
       </View>
 
       {context?.setupMessage ? (
@@ -114,7 +114,7 @@ export default function KioskSellScreen() {
         {cartItems.length === 0 ? <Text style={[styles.body, { color: palette.mutedText }]}>Cart is empty.</Text> : null}
 
         {cartItems.map((item) => (
-          <View key={item.productId} style={[styles.cartItem, { borderColor: palette.border }]}>
+          <View key={item.productId} style={[styles.cartItem, { backgroundColor: palette.background, borderColor: palette.border }]}>
             <View style={styles.cartItemHeader}>
               <View style={styles.cartText}>
                 <Text style={[styles.itemTitle, { color: palette.text }]}>{item.name}</Text>
@@ -173,6 +173,7 @@ function ProductRow({ product, onAdd }: ProductRowProps) {
       style={[
         styles.productRow,
         {
+          backgroundColor: palette.background,
           borderColor: palette.border,
           opacity: outOfStock ? 0.55 : 1,
         },
@@ -199,10 +200,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
   },
   eyebrow: {
     ...typography.label,
@@ -219,7 +221,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     borderWidth: 1,
-    gap: spacing.md,
+    elevation: 1,
+    gap: spacing.sm,
     padding: spacing.md,
   },
   sectionTitle: {
@@ -227,11 +230,12 @@ const styles = StyleSheet.create({
   },
   productRow: {
     alignItems: "center",
-    borderTopWidth: 1,
+    borderRadius: 8,
+    borderWidth: 1,
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
-    paddingTop: spacing.md,
+    padding: spacing.md,
   },
   productText: {
     flex: 1,
@@ -267,9 +271,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   cartItem: {
-    borderTopWidth: 1,
+    borderRadius: 8,
+    borderWidth: 1,
     gap: spacing.sm,
-    paddingTop: spacing.md,
+    padding: spacing.md,
   },
   cartItemHeader: {
     alignItems: "flex-start",
@@ -320,8 +325,10 @@ const styles = StyleSheet.create({
   primaryAction: {
     alignItems: "center",
     borderRadius: 8,
+    minHeight: 48,
+    justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   primaryActionText: {
     ...typography.button,
@@ -331,8 +338,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     marginTop: spacing.sm,
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   secondaryActionText: {
     ...typography.button,

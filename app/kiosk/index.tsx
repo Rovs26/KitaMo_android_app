@@ -9,6 +9,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 export default function KioskHomeScreen() {
   const [context, setContext] = useState<KioskContext | null>(null);
@@ -30,8 +31,9 @@ export default function KioskHomeScreen() {
             setError(null);
           }
         } catch (loadError) {
+          logDevError("KioskHome.refresh", loadError);
           if (active) {
-            setError(loadError instanceof Error ? loadError.message : "Could not load Kiosk.");
+            setError(getFriendlyErrorMessage("Could not load Kiosk."));
           }
         }
       }
@@ -48,22 +50,19 @@ export default function KioskHomeScreen() {
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
         <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Selling counter</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          Local-only selling for the active business and stall. Staff security is pilot preview only.
-        </Text>
+        <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Selling counter"}</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Fast local selling for the active stall.</Text>
       </View>
 
       {error ? <Text style={[styles.body, { color: palette.danger }]}>{error}</Text> : null}
 
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Kiosk readiness</Text>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>Ready to sell</Text>
         <NetworkStatusBadge pendingQueueCount={context?.pendingQueueCount ?? 0} />
         <StatusRow label="Business" value={context?.activeBusiness?.businessName ?? "Missing"} />
         <StatusRow label="Active stall" value={context?.activeBranch?.branchName ?? "Missing"} />
-        <StatusRow label="Products ready" value={context ? String(context.products.length) : "Loading"} />
-        <StatusRow label="Pending sync queue" value={context ? String(context.pendingQueueCount) : "Loading"} />
-        <StatusRow label="Mode" value={context?.mode === "demo" ? "Demo data" : "Fresh"} />
+        <StatusRow label="Products" value={context ? String(context.products.length) : "Loading"} />
+        <StatusRow label="Pending" value={context ? String(context.pendingQueueCount) : "Loading"} />
         {context?.setupMessage ? <Text style={[styles.notice, { color: palette.warning }]}>{context.setupMessage}</Text> : null}
       </View>
 
@@ -71,7 +70,7 @@ export default function KioskHomeScreen() {
         {context?.canOpenKiosk ? (
           <Link href="/kiosk/sell" asChild>
             <Pressable style={[styles.primaryAction, { backgroundColor: palette.primary }]}>
-              <Text style={[styles.primaryActionText, { color: palette.kioskHeaderText }]}>Open Sell Screen</Text>
+              <Text style={[styles.primaryActionText, { color: palette.kioskHeaderText }]}>Start selling</Text>
             </Pressable>
           </Link>
         ) : null}
@@ -87,7 +86,7 @@ export default function KioskHomeScreen() {
         {context && context.activeBusiness && context.activeBranch && context.products.length === 0 ? (
           <Link href="/owner/inventory" asChild>
             <Pressable style={[styles.secondaryAction, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Add Products in Owner Inventory</Text>
+              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Add products in Owner Inventory</Text>
             </Pressable>
           </Link>
         ) : null}
@@ -133,10 +132,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
   },
   eyebrow: {
     ...typography.label,
@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     borderWidth: 1,
+    elevation: 1,
     gap: spacing.sm,
     padding: spacing.md,
   },
@@ -182,8 +183,10 @@ const styles = StyleSheet.create({
   primaryAction: {
     alignItems: "center",
     borderRadius: 8,
+    minHeight: 48,
+    justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   primaryActionText: {
     ...typography.button,
@@ -192,8 +195,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     borderWidth: 1,
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   secondaryActionText: {
     ...typography.button,

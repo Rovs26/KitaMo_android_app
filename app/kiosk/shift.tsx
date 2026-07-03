@@ -7,6 +7,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 function formatMoney(value: number) {
   return `PHP ${value.toFixed(2)}`;
@@ -20,7 +21,8 @@ export default function KioskShiftScreen() {
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
   const refresh = useCallback(async () => {
-    const [nextContext, nextSummary] = await Promise.all([loadKioskContext(), getKioskShiftSummary()]);
+    const nextContext = await loadKioskContext();
+    const nextSummary = await getKioskShiftSummary();
     setContext(nextContext);
     setSummary(nextSummary);
   }, []);
@@ -29,8 +31,9 @@ export default function KioskShiftScreen() {
     useCallback(() => {
       let active = true;
       refresh().catch((error) => {
+        logDevError("KioskShift.refresh", error);
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Could not load shift summary.");
+          setMessage(getFriendlyErrorMessage("Could not load shift summary."));
         }
       });
 
@@ -43,9 +46,9 @@ export default function KioskShiftScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Shift</Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
         <Text style={[styles.title, { color: palette.text }]}>Current local summary</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>No open/close workflow yet. This is a running local total.</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Running totals for sales saved on this phone.</Text>
       </View>
 
       {message ? <Text style={[styles.body, { color: palette.danger }]}>{message}</Text> : null}
@@ -66,7 +69,7 @@ export default function KioskShiftScreen() {
         <SummaryRow label="Maya" value={summary ? formatMoney(summary.mayaTotal) : "Loading"} />
         <SummaryRow label="Bank transfer" value={summary ? formatMoney(summary.bankTransferTotal) : "Loading"} />
         <SummaryRow label="Other" value={summary ? formatMoney(summary.otherTotal) : "Loading"} />
-        <SummaryRow label="Pending sync queue" value={summary ? String(summary.pendingQueueCount) : "Loading"} />
+        <SummaryRow label="Pending" value={summary ? String(summary.pendingQueueCount) : "Loading"} />
       </View>
     </ScrollView>
   );
@@ -93,10 +96,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
   },
   eyebrow: {
     ...typography.label,
@@ -110,6 +114,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     borderWidth: 1,
+    elevation: 1,
     gap: spacing.sm,
     padding: spacing.md,
   },

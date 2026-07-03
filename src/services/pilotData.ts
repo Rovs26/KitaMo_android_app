@@ -67,8 +67,8 @@ export async function seedDemoData(db: RepositoryDatabase = openKitamoDatabase()
     db,
   );
 
-  const products = await Promise.all([
-    createProduct(
+  const products = [
+    await createProduct(
       {
         businessId: business.id,
         branchId: branch.id,
@@ -83,7 +83,7 @@ export async function seedDemoData(db: RepositoryDatabase = openKitamoDatabase()
       },
       db,
     ),
-    createProduct(
+    await createProduct(
       {
         businessId: business.id,
         branchId: branch.id,
@@ -98,7 +98,7 @@ export async function seedDemoData(db: RepositoryDatabase = openKitamoDatabase()
       },
       db,
     ),
-    createProduct(
+    await createProduct(
       {
         businessId: business.id,
         branchId: branch.id,
@@ -116,7 +116,7 @@ export async function seedDemoData(db: RepositoryDatabase = openKitamoDatabase()
       },
       db,
     ),
-  ]);
+  ];
 
   for (const product of products) {
     await createInventoryMovement(

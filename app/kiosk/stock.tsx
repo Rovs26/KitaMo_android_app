@@ -9,6 +9,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 export default function KioskStockScreen() {
   const [context, setContext] = useState<KioskContext | null>(null);
@@ -25,8 +26,9 @@ export default function KioskStockScreen() {
     useCallback(() => {
       let active = true;
       refresh().catch((error) => {
+        logDevError("KioskStock.refresh", error);
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Could not load stock.");
+          setMessage(getFriendlyErrorMessage("Could not load stock."));
         }
       });
 
@@ -41,7 +43,7 @@ export default function KioskStockScreen() {
       <View style={styles.header}>
         <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Stock</Text>
         <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Stock check"}</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Read-only stock view for selling. Cook/Niluto is deferred.</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Quick stock view for the selling counter.</Text>
       </View>
 
       {message ? <Text style={[styles.body, { color: palette.danger }]}>{message}</Text> : null}
@@ -52,7 +54,7 @@ export default function KioskStockScreen() {
         {context && context.products.length === 0 ? (
           <Link href="/owner/inventory" asChild>
             <Pressable style={[styles.secondaryAction, { borderColor: palette.border }]}>
-              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Add Products in Owner Inventory</Text>
+              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Add products in Owner Inventory</Text>
             </Pressable>
           </Link>
         ) : null}
@@ -76,7 +78,7 @@ function StockRow({ product }: StockRowProps) {
   const lowStock = !outOfStock && isLowStock(product.stockQty, product.lowStockThreshold);
 
   return (
-    <View style={[styles.stockRow, { borderColor: palette.border }]}>
+    <View style={[styles.stockRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
       <View style={styles.stockText}>
         <Text style={[styles.itemTitle, { color: palette.text }]}>{product.name}</Text>
         <Text style={[styles.body, { color: palette.mutedText }]}>
@@ -95,10 +97,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
   },
   eyebrow: {
     ...typography.label,
@@ -112,7 +115,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     borderWidth: 1,
-    gap: spacing.md,
+    elevation: 1,
+    gap: spacing.sm,
     padding: spacing.md,
   },
   sectionTitle: {
@@ -120,11 +124,12 @@ const styles = StyleSheet.create({
   },
   stockRow: {
     alignItems: "center",
-    borderTopWidth: 1,
+    borderRadius: 8,
+    borderWidth: 1,
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
-    paddingTop: spacing.md,
+    padding: spacing.md,
   },
   stockText: {
     flex: 1,

@@ -1,23 +1,23 @@
 export const typography = {
   display: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "800" as const,
-    lineHeight: 40,
+    lineHeight: 36,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800" as const,
-    lineHeight: 34,
+    lineHeight: 30,
   },
   heading: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "700" as const,
-    lineHeight: 28,
+    lineHeight: 24,
   },
   body: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "400" as const,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   label: {
     fontSize: 12,
@@ -27,8 +27,8 @@ export const typography = {
     textTransform: "uppercase" as const,
   },
   button: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700" as const,
-    lineHeight: 20,
+    lineHeight: 19,
   },
 } as const;

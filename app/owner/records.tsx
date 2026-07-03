@@ -4,7 +4,7 @@ export default function OwnerRecordsScreen() {
   return (
     <PlaceholderScreen
       title="Records"
-      description="No sales, receipts, inventory movements, or batch logs yet. Kiosk selling is deferred for this phase."
+      description="Owner records will collect sales and inventory history here. For now, recent sales are available in Kiosk Orders."
     />
   );
 }

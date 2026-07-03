@@ -9,6 +9,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 function formatMoney(value: number) {
   return `PHP ${value.toFixed(2)}`;
@@ -41,8 +42,9 @@ export default function KioskOrdersScreen() {
     useCallback(() => {
       let active = true;
       refresh().catch((error) => {
+        logDevError("KioskOrders.refresh", error);
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Could not load orders.");
+          setMessage(getFriendlyErrorMessage("Could not load orders."));
         }
       });
 
@@ -73,9 +75,9 @@ export default function KioskOrdersScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Orders</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Recent local sales</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Sales saved on this device appear here immediately.</Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
+        <Text style={[styles.title, { color: palette.text }]}>Orders</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Recent sales and receipts.</Text>
       </View>
 
       {message ? <Text style={[styles.body, { color: palette.text }]}>{message}</Text> : null}
@@ -88,7 +90,7 @@ export default function KioskOrdersScreen() {
           <Pressable
             key={order.id}
             onPress={() => setSelectedOrder(order)}
-            style={[styles.orderRow, { borderColor: palette.border }]}
+            style={[styles.orderRow, { backgroundColor: palette.background, borderColor: palette.border }]}
           >
             <View style={styles.orderText}>
               <Text style={[styles.orderTitle, { color: palette.text }]}>{order.transactionNo}</Text>

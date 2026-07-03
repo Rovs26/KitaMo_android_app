@@ -23,7 +23,7 @@ export function PlaceholderScreen({ title, description, links = [] }: Placeholde
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <Text style={[styles.phase, { color: palette.accent }]}>Android Phase 3 Owner Setup</Text>
+      <Text style={[styles.phase, { color: palette.accent }]}>KitaMo</Text>
       <Text style={[styles.title, { color: palette.text }]}>{title}</Text>
       <Text style={[styles.description, { color: palette.mutedText }]}>{description}</Text>
 
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   linkButton: {
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
