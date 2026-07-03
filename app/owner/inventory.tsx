@@ -1,7 +1,8 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { AppTopBar, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { createProduct, updateProduct } from "@/db/repositories";
 import type { Product, ProductType, UnitType } from "@/domain/types";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
@@ -165,16 +166,21 @@ export default function OwnerInventoryScreen() {
   }
 
   const canEditProducts = Boolean(status?.activeBusiness);
+  const products = status?.products ?? [];
+  const lowStockCount = products.filter((product) => product.stockQty <= product.lowStockThreshold).length;
+  const stockValue = products.reduce((total, product) => total + product.stockQty * product.cost, 0);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Owner</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Inventory</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Manage paninda, stock, and prices for the active stall.</Text>
-      </View>
+    <ScreenScroll bottomNav>
+      <AppTopBar subtitle="Paninda at sangkap" title="Inventory" />
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
+
+      <View style={styles.summaryGrid}>
+        <MetricCard detail="Total items" icon="I" label="Products" tone="primary" value={String(products.length)} />
+        <MetricCard detail="Need review" icon="!" label="Low Stock" tone={lowStockCount > 0 ? "warning" : "success"} value={`${lowStockCount} items`} />
+        <MetricCard detail="Cost basis" icon="P" label="Stock Value" tone="success" value={formatPeso(stockValue)} />
+      </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>{productForm.id ? "Edit Product" : "Product Setup"}</Text>
@@ -298,12 +304,10 @@ export default function OwnerInventoryScreen() {
                     {product.stockQty} {product.unitType} | PHP {product.price.toFixed(2)}
                   </Text>
                 </View>
-                {lowStock ? (
-                  <Text style={[styles.badge, { backgroundColor: palette.warning, color: palette.kioskHeaderText }]}>Low stock</Text>
-                ) : null}
+                <Pill label={product.stockQty <= 0 ? "Out" : lowStock ? "Low stock" : "Good"} tone={product.stockQty <= 0 ? "danger" : lowStock ? "warning" : "success"} />
               </View>
               <Text style={[styles.body, { color: palette.mutedText }]}>
-                Category: {product.category} | Threshold: {product.lowStockThreshold}
+                Category: {product.category} | Reorder level: {product.lowStockThreshold}
               </Text>
               {product.bundleLabel ? <Text style={[styles.body, { color: palette.mutedText }]}>Bundle: {product.bundleLabel}</Text> : null}
               <SmallButton disabled={saving} label="Edit" onPress={() => editProduct(product)} />
@@ -311,7 +315,7 @@ export default function OwnerInventoryScreen() {
           );
         })}
       </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
@@ -454,6 +458,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: spacing.md,
     padding: spacing.md,
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
   header: {
     gap: spacing.xs,

@@ -1,9 +1,10 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
+import { AppTopBar, Card, IconBadge, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { showLocalDataVerificationPanel } from "@/config/devTools";
 import {
   createBranch,
@@ -228,14 +229,30 @@ export default function OwnerSettingsScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>KitaMo</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Settings</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Keep your business profile and active stall ready.</Text>
-      </View>
+    <ScreenScroll bottomNav>
+      <AppTopBar subtitle="Settings at access" title="Business Profile" />
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
+
+      <Card>
+        <View style={styles.summaryCard}>
+          <IconBadge label="S" tone="primary" size="lg" />
+          <View style={styles.summaryText}>
+            <Text style={[styles.summaryTitle, { color: palette.text }]}>
+              {status?.activeBusiness?.businessName ?? "No business profile yet"}
+            </Text>
+            <Text style={[styles.body, { color: palette.mutedText }]}>
+              {status?.activeBusiness
+                ? `${status.activeBusiness.businessType} · ${status.activeBranch?.branchName ?? "No active stall"}`
+                : "Create your local business profile to start selling."}
+            </Text>
+            <Text style={[styles.body, { color: palette.mutedText }]}>
+              {status?.activeBusiness?.barangay ?? "Location will appear here."}
+            </Text>
+          </View>
+          <Pill label="Owner mode" tone="accent" />
+        </View>
+      </Card>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Business Profile</Text>
@@ -370,7 +387,7 @@ export default function OwnerSettingsScreen() {
       </View>
 
       {__DEV__ && showLocalDataVerificationPanel ? <LocalDataVerificationPanel /> : null}
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
@@ -504,6 +521,20 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: spacing.md,
     padding: spacing.md,
+  },
+  summaryCard: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  summaryText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  summaryTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 25,
   },
   header: {
     gap: spacing.xs,

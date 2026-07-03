@@ -1,7 +1,8 @@
 import { Link } from "expo-router";
 import { useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { AppTopBar, Card, formatPeso, IconBadge, Pill, PrimaryButton, ScreenScroll } from "@/components/ui/KitaMoUI";
 import type { PaymentMethod } from "@/domain/types";
 import { completeKioskSale, type CompletedKioskSale } from "@/services/kioskSales";
 import { copyReceiptText, shareReceiptText } from "@/services/shareReceipt";
@@ -15,7 +16,7 @@ import { getUserSafeErrorMessage, logDevError } from "@/utils/errors";
 const paymentMethods: PaymentMethod[] = ["cash", "GCash", "Maya", "bank transfer", "other"];
 
 function formatMoney(value: number) {
-  return `PHP ${value.toFixed(2)}`;
+  return formatPeso(value);
 }
 
 function paymentLabel(method: PaymentMethod) {
@@ -107,18 +108,25 @@ export default function KioskCheckoutScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Complete sale</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Review payment and save the receipt.</Text>
-      </View>
+    <ScreenScroll>
+      <AppTopBar subtitle="Review payment and save the receipt." title="Complete sale" />
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") || message.includes("cannot") ? palette.danger : palette.text }]}>{message}</Text> : null}
 
       {completedSale ? (
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt</Text>
+        <Card>
+          <View style={styles.receiptHeader}>
+            <IconBadge label="R" tone="success" />
+            <View style={styles.receiptTitleWrap}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt</Text>
+              <Text style={[styles.body, { color: palette.mutedText }]}>{completedSale.transactionNo}</Text>
+            </View>
+            <Pill label="Local" tone="success" />
+          </View>
+          <View style={[styles.totalCard, { backgroundColor: palette.softPrimary, borderColor: palette.border }]}>
+            <Text style={[styles.body, { color: palette.mutedText }]}>Total paid</Text>
+            <Text style={[styles.totalAmount, { color: palette.primary }]}>{formatMoney(completedSale.total)}</Text>
+          </View>
           <Text style={[styles.receiptText, { color: palette.text }]}>{completedSale.receiptText}</Text>
           <View style={styles.inlineActions}>
             <SmallButton disabled={saving} label="Copy receipt" onPress={copyReceipt} />
@@ -136,10 +144,10 @@ export default function KioskCheckoutScreen() {
               </Pressable>
             </Link>
           </View>
-        </View>
+        </Card>
       ) : (
         <>
-          <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Card>
             <Text style={[styles.sectionTitle, { color: palette.text }]}>Cart Review</Text>
             {cartItems.length === 0 ? (
               <Text style={[styles.body, { color: palette.mutedText }]}>Cart is empty. Add products before checkout.</Text>
@@ -160,9 +168,9 @@ export default function KioskCheckoutScreen() {
             <AmountRow label="Subtotal" value={subtotal} />
             <AmountRow label="Discount" value={discount} />
             <AmountRow strong label="Total" value={total} />
-          </View>
+          </Card>
 
-          <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Card>
             <Text style={[styles.sectionTitle, { color: palette.text }]}>Payment</Text>
             <View style={styles.optionWrap}>
               {paymentMethods.map((method) => {
@@ -206,19 +214,11 @@ export default function KioskCheckoutScreen() {
               value={discountAmount}
             />
 
-            <Pressable
-              disabled={saving || cartItems.length === 0}
-              onPress={confirmCheckout}
-              style={[styles.primaryAction, { backgroundColor: palette.primary, opacity: saving || cartItems.length === 0 ? 0.6 : 1 }]}
-            >
-              <Text style={[styles.primaryActionText, { color: palette.kioskHeaderText }]}>
-                {saving ? "Saving..." : "Confirm Checkout"}
-              </Text>
-            </Pressable>
-          </View>
+            <PrimaryButton disabled={saving || cartItems.length === 0} label={saving ? "Saving..." : "Confirm Checkout"} onPress={confirmCheckout} />
+          </Card>
         </>
       )}
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
@@ -408,6 +408,26 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     fontSize: 14,
     lineHeight: 20,
+  },
+  receiptHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  receiptTitleWrap: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  totalCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: spacing.xs,
+    padding: spacing.md,
+  },
+  totalAmount: {
+    fontSize: 34,
+    fontWeight: "900",
+    lineHeight: 40,
   },
   inlineActions: {
     flexDirection: "row",

@@ -1,8 +1,9 @@
-import { Link, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
+import { AppTopBar, Card, EmptyState, formatPeso, Pill, PrimaryButton, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { isLowStock } from "@/domain/inventory";
 import type { Product } from "@/domain/types";
 import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
@@ -14,7 +15,7 @@ import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 function formatMoney(value: number) {
-  return `PHP ${value.toFixed(2)}`;
+  return formatPeso(value);
 }
 
 export default function KioskSellScreen() {
@@ -65,43 +66,35 @@ export default function KioskSellScreen() {
   const total = cartItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
-        <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Sell"}</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Tap a product to add it to the cart.</Text>
-      </View>
+    <ScreenScroll>
+      <AppTopBar subtitle="Tap a product to add it to the cart." title={context?.activeBranch?.branchName ?? "Sell"} />
 
       {context?.setupMessage ? (
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Card>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>Setup needed</Text>
           <Text style={[styles.body, { color: palette.warning }]}>{context.setupMessage}</Text>
           {context.setupMessage === "Add products in Owner Inventory first." ? (
-            <Link href="/owner/inventory" asChild>
-              <Pressable style={[styles.secondaryAction, { borderColor: palette.border }]}>
-                <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Open Owner Inventory</Text>
-              </Pressable>
-            </Link>
+            <SecondaryButton href="/owner/inventory" label="Open Owner Inventory" />
           ) : null}
-        </View>
+        </Card>
       ) : null}
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
 
-      <NetworkStatusBadge pendingQueueCount={context?.pendingQueueCount ?? 0} />
+      <NetworkStatusBadge compact pendingQueueCount={context?.pendingQueueCount ?? 0} />
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Products</Text>
         {context && context.products.length === 0 ? (
-          <Text style={[styles.body, { color: palette.mutedText }]}>Add products in Owner Inventory first.</Text>
+          <EmptyState description="Add products in Owner Inventory first." title="No paninda yet" />
         ) : null}
 
         {context?.products.map((product) => (
           <ProductRow key={product.id} product={product} onAdd={() => addToCart(product)} />
         ))}
-      </View>
+      </Card>
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Card>
         <View style={styles.cartHeader}>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>Cart</Text>
           {cartItems.length > 0 ? (
@@ -111,7 +104,7 @@ export default function KioskSellScreen() {
           ) : null}
         </View>
 
-        {cartItems.length === 0 ? <Text style={[styles.body, { color: palette.mutedText }]}>Cart is empty.</Text> : null}
+        {cartItems.length === 0 ? <EmptyState description="Tap a product above to start a sale." title="Cart is empty" /> : null}
 
         {cartItems.map((item) => (
           <View key={item.productId} style={[styles.cartItem, { backgroundColor: palette.background, borderColor: palette.border }]}>
@@ -144,14 +137,10 @@ export default function KioskSellScreen() {
         </View>
 
         {cartItems.length > 0 ? (
-          <Link href="/kiosk/checkout" asChild>
-            <Pressable style={[styles.primaryAction, { backgroundColor: palette.primary }]}>
-              <Text style={[styles.primaryActionText, { color: palette.kioskHeaderText }]}>Checkout</Text>
-            </Pressable>
-          </Link>
+          <PrimaryButton href="/kiosk/checkout" label="Checkout" />
         ) : null}
-      </View>
-    </ScrollView>
+      </Card>
+    </ScreenScroll>
   );
 }
 
@@ -186,10 +175,8 @@ function ProductRow({ product, onAdd }: ProductRowProps) {
         </Text>
       </View>
       <View style={styles.badges}>
-        {outOfStock ? <Text style={[styles.badge, { backgroundColor: palette.danger, color: palette.kioskHeaderText }]}>Out</Text> : null}
-        {!outOfStock && lowStock ? (
-          <Text style={[styles.badge, { backgroundColor: palette.warning, color: palette.kioskHeaderText }]}>Low</Text>
-        ) : null}
+        {outOfStock ? <Pill label="Out" tone="danger" /> : null}
+        {!outOfStock && lowStock ? <Pill label="Low" tone="warning" /> : null}
         {!outOfStock ? <Text style={[styles.addText, { color: palette.primary }]}>Add</Text> : null}
       </View>
     </Pressable>

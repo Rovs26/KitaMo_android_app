@@ -1,8 +1,24 @@
-import { Link, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
+import {
+  AppTopBar,
+  Card,
+  EmptyState,
+  formatPeso,
+  HeroCard,
+  IconBadge,
+  ListRow,
+  MetricCard,
+  Pill,
+  PrimaryButton,
+  ScreenScroll,
+  SectionHeader,
+  SecondaryButton,
+} from "@/components/ui/KitaMoUI";
+import { getKioskShiftSummary, listRecentKioskOrders, type KioskOrderSummary, type KioskShiftSummary } from "@/services/kioskSales";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
@@ -11,10 +27,10 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
-type OwnerActionHref = "/owner/settings" | "/owner/inventory" | "/owner/records" | "/kiosk";
-
 export default function OwnerHomeScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
+  const [summary, setSummary] = useState<KioskShiftSummary | null>(null);
+  const [recentOrders, setRecentOrders] = useState<KioskOrderSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const setCurrentMode = useAppStore((state) => state.setCurrentMode);
   const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
@@ -29,11 +45,15 @@ export default function OwnerHomeScreen() {
       async function loadStatus() {
         try {
           const nextStatus = await loadOwnerSetupStatus();
+          const nextSummary = await getKioskShiftSummary();
+          const orders = await listRecentKioskOrders(2);
           if (!active) {
             return;
           }
 
           setStatus(nextStatus);
+          setSummary(nextSummary);
+          setRecentOrders(orders);
           setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
           setActiveBranchId(nextStatus.activeBranch?.id ?? null);
           setCurrentMode("owner");
@@ -55,76 +75,99 @@ export default function OwnerHomeScreen() {
   );
 
   const setupComplete = Boolean(status?.activeBusiness && status.activeBranch && status.productCount > 0);
-  const activeBusiness = status?.activeBusiness?.businessName ?? "No business profile yet";
+  const activeBusiness = status?.activeBusiness?.businessName ?? "Set up your business";
   const activeBranch = status?.activeBranch?.branchName ?? "No active stall yet";
+  const salesTotal = summary?.grossSales ?? 0;
+  const pendingCount = status?.pendingQueueCount ?? 0;
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.brand, { color: palette.primary }]}>KitaMo</Text>
-          <Text style={[styles.greeting, { color: palette.text }]}>Magandang araw</Text>
-        </View>
-        <Text style={[styles.subtle, { color: palette.mutedText }]}>Owner dashboard</Text>
-      </View>
+    <ScreenScroll bottomNav>
+      <AppTopBar
+        right={<Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />}
+        subtitle="Magandang araw!"
+        title="Home"
+      />
 
       {error ? <Text style={[styles.error, { color: palette.danger }]}>{error}</Text> : null}
 
-      <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <View style={[styles.businessPill, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <IconBadge label="S" tone="primary" size="sm" />
+        <Text style={[styles.businessPillText, { color: palette.text }]} numberOfLines={1}>
+          {activeBusiness}
+        </Text>
+        <Text style={[styles.businessPillCaret, { color: palette.mutedText }]}>v</Text>
+      </View>
+
+      <HeroCard>
         <View style={styles.heroTop}>
-          <View style={styles.heroText}>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>Active workspace</Text>
-            <Text style={[styles.businessName, { color: palette.text }]}>{activeBusiness}</Text>
-            <Text style={[styles.subtle, { color: palette.mutedText }]}>{activeBranch}</Text>
+          <View style={styles.heroCopy}>
+            <Text style={[styles.heroLabel, { color: palette.kioskHeaderText }]}>{"Today's Kita"}</Text>
+            <Text style={[styles.heroValue, { color: palette.kioskHeaderText }]}>{formatPeso(salesTotal)}</Text>
+            <Text style={[styles.heroSubcopy, { color: palette.softAccent }]}>
+              {salesTotal > 0 ? "Local sales saved today" : "No local sales yet today"}
+            </Text>
           </View>
-          <View style={[styles.queuePill, { backgroundColor: palette.background, borderColor: palette.border }]}>
-            <Text style={[styles.queueValue, { color: palette.primary }]}>{status?.pendingQueueCount ?? 0}</Text>
-            <Text style={[styles.queueLabel, { color: palette.mutedText }]}>pending</Text>
+          <View style={[styles.heroBadge, { backgroundColor: palette.softAccent }]}>
+            <Text style={[styles.heroBadgeText, { color: palette.primary }]}>K</Text>
           </View>
         </View>
-        <NetworkStatusBadge pendingQueueCount={status?.pendingQueueCount ?? 0} />
+        <NetworkStatusBadge pendingQueueCount={pendingCount} compact />
+      </HeroCard>
+
+      <View style={styles.metricGrid}>
+        <MetricCard detail={`${summary?.salesCount ?? 0} transactions`} icon="B" label="Benta" tone="primary" value={formatPeso(salesTotal)} />
+        <MetricCard detail="No expenses yet" icon="G" label="Gastos" tone="danger" value={formatPeso(0)} />
+        <MetricCard detail="Local gross view" icon="T" label="Tubo" tone="success" value={formatPeso(salesTotal)} />
+        <MetricCard detail="Pending saves" icon="P" label="Pending" tone="accent" value={String(pendingCount)} />
       </View>
 
       {!status ? (
-        <View style={[styles.setupCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Loading</Text>
-          <Text style={[styles.subtle, { color: palette.mutedText }]}>Checking your local workspace.</Text>
-        </View>
+        <Card>
+          <SectionHeader title="Loading" />
+          <Text style={[styles.body, { color: palette.mutedText }]}>Checking your local workspace.</Text>
+        </Card>
       ) : !setupComplete ? (
-        <View style={[styles.setupCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Finish setup</Text>
+        <Card>
+          <SectionHeader title="Finish setup" />
           <View style={styles.setupRows}>
             <SetupRow label="Business profile" ready={Boolean(status.activeBusiness)} />
             <SetupRow label="Store or stall" ready={status.stallCount > 0} />
             <SetupRow label="Products" ready={status.productCount > 0} value={`${status.productCount} saved`} />
           </View>
-        </View>
-      ) : (
-        <View style={[styles.setupCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Today</Text>
-          <View style={styles.summaryGrid}>
-            <SummaryTile label="Products" value={status ? String(status.productCount) : "..."} />
-            <SummaryTile label="Stalls" value={status ? String(status.stallCount) : "..."} />
-            <SummaryTile label="Mode" value={status?.mode === "demo" ? "Demo" : "Fresh"} />
-          </View>
-        </View>
-      )}
+        </Card>
+      ) : null}
 
-      <View style={styles.actions}>
-        <OwnerActionCard
-          href="/owner/settings"
-          title="Business Profile"
-          description={status?.activeBusiness ? "Edit business and stall details." : "Add business and stall details."}
-        />
-        <OwnerActionCard
-          href="/owner/inventory"
-          title="Products"
-          description={status && status.productCount > 0 ? `${status.productCount} products ready.` : "Add your first paninda."}
-        />
-        <OwnerActionCard href="/kiosk" title="Open Kiosk" description="Start selling in Kiosk Mode." highlight />
-        <OwnerActionCard href="/owner/records" title="Records" description="Review local sales records." />
-      </View>
-    </ScrollView>
+      <Card>
+        <SectionHeader title="Quick actions" />
+        <View style={styles.actionGrid}>
+          <SecondaryButton href="/owner/inventory" label="Add Product" />
+          <PrimaryButton href="/kiosk" label="Open Kiosk" />
+          <SecondaryButton href="/owner/records" label="Records" />
+          <SecondaryButton href="/owner/settings" label="Settings" />
+        </View>
+      </Card>
+
+      <Card>
+        <SectionHeader action={<SecondaryButton href="/kiosk/orders" label="See all" />} title="Recent Transaction" />
+        {recentOrders.length === 0 ? (
+          <EmptyState description={`Sales from ${activeBranch} will appear here after checkout.`} title="No local sales yet" />
+        ) : (
+          <View style={styles.recentList}>
+            {recentOrders.map((order) => (
+              <ListRow
+                amount={formatPeso(order.amount)}
+                badge={order.paymentMethod === "cash" ? "Paid" : order.paymentMethod}
+                badgeTone="success"
+                icon="B"
+                key={order.id}
+                subtitle={`${order.transactionNo} · ${order.itemCount} item(s)`}
+                title="Kiosk sale"
+              />
+            ))}
+          </View>
+        )}
+      </Card>
+    </ScreenScroll>
   );
 }
 
@@ -140,7 +183,10 @@ function SetupRow({ label, ready, value }: SetupRowProps) {
 
   return (
     <View style={styles.setupRow}>
-      <Text style={[styles.setupLabel, { color: palette.text }]}>{label}</Text>
+      <View style={styles.setupLabelWrap}>
+        <IconBadge label={ready ? "OK" : "!"} tone={ready ? "success" : "warning"} size="sm" />
+        <Text style={[styles.setupLabel, { color: palette.text }]}>{label}</Text>
+      </View>
       <Text style={[styles.setupValue, { color: ready ? palette.success : palette.warning }]}>
         {value ?? (ready ? "Ready" : "Needed")}
       </Text>
@@ -148,134 +194,69 @@ function SetupRow({ label, ready, value }: SetupRowProps) {
   );
 }
 
-type SummaryTileProps = {
-  label: string;
-  value: string;
-};
-
-function SummaryTile({ label, value }: SummaryTileProps) {
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-
-  return (
-    <View style={[styles.summaryTile, { backgroundColor: palette.background, borderColor: palette.border }]}>
-      <Text style={[styles.summaryValue, { color: palette.primary }]}>{value}</Text>
-      <Text style={[styles.summaryLabel, { color: palette.mutedText }]}>{label}</Text>
-    </View>
-  );
-}
-
-type OwnerActionCardProps = {
-  href: OwnerActionHref;
-  title: string;
-  description: string;
-  highlight?: boolean;
-};
-
-function OwnerActionCard({ href, title, description, highlight = false }: OwnerActionCardProps) {
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-
-  return (
-    <Link href={href} asChild>
-      <Pressable
-        style={[
-          styles.actionCard,
-          {
-            backgroundColor: highlight ? palette.primary : palette.surface,
-            borderColor: highlight ? palette.primary : palette.border,
-          },
-        ]}
-      >
-        <Text style={[styles.actionTitle, { color: highlight ? palette.kioskHeaderText : palette.text }]}>{title}</Text>
-        <Text style={[styles.actionDescription, { color: highlight ? palette.kioskHeaderText : palette.mutedText }]}>
-          {description}
-        </Text>
-      </Pressable>
-    </Link>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  header: {
-    alignItems: "flex-end",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  brand: {
-    fontSize: 22,
-    fontWeight: "800",
-    lineHeight: 28,
-  },
-  greeting: {
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 24,
-  },
-  subtle: {
-    ...typography.body,
-  },
   error: {
     ...typography.body,
   },
-  heroCard: {
+  businessPill: {
+    alignItems: "center",
+    alignSelf: "flex-start",
     borderRadius: 8,
     borderWidth: 1,
-    elevation: 1,
-    gap: spacing.md,
-    padding: spacing.md,
+    flexDirection: "row",
+    gap: spacing.sm,
+    maxWidth: "100%",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  businessPillText: {
+    ...typography.button,
+    maxWidth: 250,
+  },
+  businessPillCaret: {
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 18,
   },
   heroTop: {
-    alignItems: "flex-start",
+    alignItems: "center",
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
   },
-  heroText: {
+  heroCopy: {
     flex: 1,
     gap: spacing.xs,
   },
-  cardLabel: {
-    ...typography.label,
-  },
-  businessName: {
-    fontSize: 20,
+  heroLabel: {
+    fontSize: 17,
     fontWeight: "800",
-    lineHeight: 26,
+    lineHeight: 23,
   },
-  queuePill: {
+  heroValue: {
+    fontSize: 42,
+    fontWeight: "900",
+    lineHeight: 48,
+  },
+  heroSubcopy: {
+    ...typography.button,
+  },
+  heroBadge: {
     alignItems: "center",
     borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 72,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    height: 64,
+    justifyContent: "center",
+    width: 64,
   },
-  queueValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 24,
+  heroBadgeText: {
+    fontSize: 32,
+    fontWeight: "900",
+    lineHeight: 38,
   },
-  queueLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  setupCard: {
-    borderRadius: 8,
-    borderWidth: 1,
-    elevation: 1,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.heading,
+  metricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
   setupRows: {
     gap: spacing.sm,
@@ -286,53 +267,27 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     justifyContent: "space-between",
   },
+  setupLabelWrap: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
   setupLabel: {
     ...typography.body,
-    flex: 1,
   },
   setupValue: {
     ...typography.button,
   },
-  summaryGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  summaryTile: {
-    borderRadius: 8,
-    borderWidth: 1,
-    flex: 1,
-    gap: spacing.xs,
-    minHeight: 68,
-    padding: spacing.sm,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    lineHeight: 22,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  actions: {
+  actionGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
   },
-  actionCard: {
-    borderRadius: 8,
-    borderWidth: 1,
-    elevation: 1,
-    flexBasis: "48%",
-    flexGrow: 1,
-    gap: spacing.xs,
-    minHeight: 104,
-    padding: spacing.md,
+  recentList: {
+    gap: spacing.sm,
   },
-  actionTitle: {
-    ...typography.button,
-  },
-  actionDescription: {
+  body: {
     ...typography.body,
   },
 });

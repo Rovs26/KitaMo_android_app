@@ -11,6 +11,7 @@ export default function KioskLayout() {
     <Stack
       screenOptions={{
         contentStyle: { backgroundColor: palette.background },
+        headerShown: false,
         headerStyle: { backgroundColor: palette.kioskHeader },
         headerTintColor: palette.kioskHeaderText,
         headerTitleStyle: { fontWeight: "700" },

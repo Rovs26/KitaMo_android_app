@@ -1,7 +1,8 @@
-import { Link, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
+import { AppTopBar, Card, EmptyState, formatPeso, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { isLowStock } from "@/domain/inventory";
 import type { Product } from "@/domain/types";
 import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
@@ -39,31 +40,26 @@ export default function KioskStockScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Stock</Text>
-        <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Stock check"}</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Quick stock view for the selling counter.</Text>
-      </View>
+    <ScreenScroll>
+      <AppTopBar subtitle="Quick stock view for the selling counter." title={context?.activeBranch?.branchName ?? "Stock check"} />
 
       {message ? <Text style={[styles.body, { color: palette.danger }]}>{message}</Text> : null}
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Products</Text>
         {context?.setupMessage ? <Text style={[styles.body, { color: palette.warning }]}>{context.setupMessage}</Text> : null}
         {context && context.products.length === 0 ? (
-          <Link href="/owner/inventory" asChild>
-            <Pressable style={[styles.secondaryAction, { borderColor: palette.border }]}>
-              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Add products in Owner Inventory</Text>
-            </Pressable>
-          </Link>
+          <>
+            <EmptyState description="Add products in Owner Inventory first." title="No products to sell" />
+            <SecondaryButton href="/owner/inventory" label="Add products in Owner Inventory" />
+          </>
         ) : null}
 
         {context?.products.map((product) => (
           <StockRow key={product.id} product={product} />
         ))}
-      </View>
-    </ScrollView>
+      </Card>
+    </ScreenScroll>
   );
 }
 
@@ -86,8 +82,8 @@ function StockRow({ product }: StockRowProps) {
         </Text>
       </View>
       <View style={styles.badges}>
-        {outOfStock ? <Text style={[styles.badge, { backgroundColor: palette.danger, color: palette.kioskHeaderText }]}>Out of stock</Text> : null}
-        {lowStock ? <Text style={[styles.badge, { backgroundColor: palette.warning, color: palette.kioskHeaderText }]}>Low stock</Text> : null}
+        <Pill label={outOfStock ? "Out of stock" : lowStock ? "Low stock" : "Good"} tone={outOfStock ? "danger" : lowStock ? "warning" : "success"} />
+        <Text style={[styles.price, { color: palette.text }]}>{formatPeso(product.price)}</Text>
       </View>
     </View>
   );
@@ -141,6 +137,9 @@ const styles = StyleSheet.create({
   badges: {
     alignItems: "flex-end",
     gap: spacing.xs,
+  },
+  price: {
+    ...typography.button,
   },
   badge: {
     borderRadius: 8,

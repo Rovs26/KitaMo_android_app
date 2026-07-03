@@ -20,7 +20,7 @@ export default function RootLayout() {
           headerTitleStyle: { fontWeight: "700" },
         }}
       >
-        <Stack.Screen name="index" options={{ title: "KitaMo Android" }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="owner" options={{ headerShown: false }} />
         <Stack.Screen name="kiosk" options={{ headerShown: false }} />
       </Stack>

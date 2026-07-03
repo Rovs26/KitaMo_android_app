@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Card, IconBadge, KitaMoBrand, PrimaryButton, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { completeDemoFirstRun, completeFreshFirstRun, loadOwnerSetupStatus } from "@/services/ownerSetup";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
@@ -19,7 +20,7 @@ export default function WelcomeScreen() {
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState<"fresh" | "demo" | null>(null);
-  const [message, setMessage] = useState("Preparing local database.");
+  const [message, setMessage] = useState("Preparing local data.");
 
   useEffect(() => {
     let mounted = true;
@@ -40,7 +41,7 @@ export default function WelcomeScreen() {
           return;
         }
 
-        setMessage("Choose how to start this local pilot.");
+        setMessage("Fresh mode starts empty. Demo mode uses sample data.");
       } catch (error) {
         logDevError("Welcome.checkFirstRun", error);
         if (mounted) {
@@ -98,101 +99,123 @@ export default function WelcomeScreen() {
   const disabled = checking || busy !== null;
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
+    <ScreenScroll>
       <View style={styles.hero}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>KitaMo Android</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Start your local pilot</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          Fresh mode starts empty. Demo data is only added when you choose it here.
+        <KitaMoBrand centered />
+        <Text style={[styles.title, { color: palette.text }]}>Kita mo agad ang negosyo mo</Text>
+        <Text style={[styles.subtitle, { color: palette.mutedText }]}>
+          Kita mo agad ang benta, gastos, paninda, at resibo.
         </Text>
       </View>
 
-      <View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.panelTitle, { color: palette.text }]}>First-run choice</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>{message}</Text>
+      <Card style={styles.choiceCard}>
+        <View style={styles.choiceHeader}>
+          <IconBadge label="K" tone="primary" size="lg" />
+          <View style={styles.choiceText}>
+            <Text style={[styles.choiceTitle, { color: palette.text }]}>Start local-first</Text>
+            <Text style={[styles.body, { color: palette.mutedText }]}>{message}</Text>
+          </View>
+        </View>
 
-        <Pressable
+        <PrimaryButton disabled={disabled} label={busy === "fresh" ? "Starting..." : "Start Fresh Business"} onPress={startFresh} />
+        <SecondaryButton disabled={disabled} label={busy === "demo" ? "Creating demo..." : "Try Demo Data"} onPress={tryDemoData} />
+      </Card>
+
+      <View style={styles.infoGrid}>
+        <ModeTile
+          description="No sample products, sales, or records."
           disabled={disabled}
+          label="Fresh"
           onPress={startFresh}
-          style={[
-            styles.primaryAction,
-            {
-              backgroundColor: palette.primary,
-              opacity: disabled ? 0.65 : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.primaryActionText, { color: palette.kioskHeaderText }]}>
-            {busy === "fresh" ? "Starting..." : "Start Fresh Business"}
-          </Text>
-        </Pressable>
-
-        <Pressable
+          toneColor={palette.primary}
+        />
+        <ModeTile
+          description="One sample business, stall, and products."
           disabled={disabled}
+          label="Demo"
           onPress={tryDemoData}
-          style={[
-            styles.secondaryAction,
-            {
-              backgroundColor: palette.background,
-              borderColor: palette.border,
-              opacity: disabled ? 0.65 : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.secondaryActionText, { color: palette.primary }]}>
-            {busy === "demo" ? "Creating demo..." : "Try Demo Data"}
-          </Text>
-        </Pressable>
+          toneColor={palette.accent}
+        />
       </View>
-    </ScrollView>
+    </ScreenScroll>
+  );
+}
+
+type ModeTileProps = {
+  label: string;
+  description: string;
+  toneColor: string;
+  disabled: boolean;
+  onPress: () => void;
+};
+
+function ModeTile({ label, description, toneColor, disabled, onPress }: ModeTileProps) {
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.modeTile, { backgroundColor: palette.surface, borderColor: palette.border, opacity: disabled ? 0.68 : 1 }]}
+    >
+      <Text style={[styles.modeLabel, { color: toneColor }]}>{label}</Text>
+      <Text style={[styles.modeDescription, { color: palette.mutedText }]}>{description}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
   hero: {
-    gap: spacing.md,
-  },
-  eyebrow: {
-    ...typography.label,
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingTop: spacing.xxl,
   },
   title: {
-    ...typography.display,
+    fontSize: 30,
+    fontWeight: "900",
+    lineHeight: 36,
+    textAlign: "center",
+  },
+  subtitle: {
+    ...typography.body,
+    textAlign: "center",
+  },
+  choiceCard: {
+    marginTop: spacing.md,
+  },
+  choiceHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  choiceText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  choiceTitle: {
+    ...typography.heading,
   },
   body: {
     ...typography.body,
   },
-  panel: {
+  infoGrid: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  modeTile: {
     borderRadius: 8,
     borderWidth: 1,
-    gap: spacing.md,
+    elevation: 1,
+    flex: 1,
+    gap: spacing.xs,
     padding: spacing.md,
   },
-  panelTitle: {
-    ...typography.heading,
-  },
-  primaryAction: {
-    alignItems: "center",
-    borderRadius: 8,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  primaryActionText: {
+  modeLabel: {
     ...typography.button,
   },
-  secondaryAction: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  secondaryActionText: {
-    ...typography.button,
+  modeDescription: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

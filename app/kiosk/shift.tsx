@@ -1,7 +1,8 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
+import { AppTopBar, Card, formatPeso, MetricCard, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { getKioskShiftSummary, loadKioskContext, type KioskContext, type KioskShiftSummary } from "@/services/kioskSales";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
@@ -10,7 +11,7 @@ import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 function formatMoney(value: number) {
-  return `PHP ${value.toFixed(2)}`;
+  return formatPeso(value);
 }
 
 export default function KioskShiftScreen() {
@@ -44,12 +45,8 @@ export default function KioskShiftScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Current local summary</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Running totals for sales saved on this phone.</Text>
-      </View>
+    <ScreenScroll>
+      <AppTopBar subtitle="Running totals for sales saved on this phone." title="Shift Summary" />
 
       {message ? <Text style={[styles.body, { color: palette.danger }]}>{message}</Text> : null}
 
@@ -60,7 +57,14 @@ export default function KioskShiftScreen() {
         </View>
       ) : null}
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <View style={styles.metricGrid}>
+        <MetricCard detail={`${summary?.salesCount ?? 0} sales`} icon="B" label="Total Sales" tone="primary" value={summary ? formatMoney(summary.grossSales) : "..."} />
+        <MetricCard detail="Cash payments" icon="C" label="Cash" tone="success" value={summary ? formatMoney(summary.cashTotal) : "..."} />
+        <MetricCard detail="GCash and Maya" icon="G" label="E-wallet" tone="accent" value={summary ? formatMoney((summary.gcashTotal + summary.mayaTotal)) : "..."} />
+        <MetricCard detail="Local queue" icon="P" label="Pending" tone="warning" value={summary ? String(summary.pendingQueueCount) : "..."} />
+      </View>
+
+      <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Totals</Text>
         <SummaryRow label="Sales count" value={summary ? String(summary.salesCount) : "Loading"} />
         <SummaryRow label="Gross sales" value={summary ? formatMoney(summary.grossSales) : "Loading"} />
@@ -70,8 +74,8 @@ export default function KioskShiftScreen() {
         <SummaryRow label="Bank transfer" value={summary ? formatMoney(summary.bankTransferTotal) : "Loading"} />
         <SummaryRow label="Other" value={summary ? formatMoney(summary.otherTotal) : "Loading"} />
         <SummaryRow label="Pending" value={summary ? String(summary.pendingQueueCount) : "Loading"} />
-      </View>
-    </ScrollView>
+      </Card>
+    </ScreenScroll>
   );
 }
 
@@ -117,6 +121,11 @@ const styles = StyleSheet.create({
     elevation: 1,
     gap: spacing.sm,
     padding: spacing.md,
+  },
+  metricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
   sectionTitle: {
     ...typography.heading,

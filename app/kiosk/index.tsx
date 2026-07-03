@@ -1,8 +1,9 @@
-import { Link, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
+import { AppTopBar, Card, EmptyState, HeroCard, IconBadge, PrimaryButton, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
@@ -47,160 +48,98 @@ export default function KioskHomeScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
-        <Text style={[styles.title, { color: palette.text }]}>{context?.activeBranch?.branchName ?? "Selling counter"}</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Fast local selling for the active stall.</Text>
-      </View>
+    <ScreenScroll>
+      <AppTopBar subtitle="Fast local selling" title="Kiosk Mode" />
 
       {error ? <Text style={[styles.body, { color: palette.danger }]}>{error}</Text> : null}
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Ready to sell</Text>
-        <NetworkStatusBadge pendingQueueCount={context?.pendingQueueCount ?? 0} />
-        <StatusRow label="Business" value={context?.activeBusiness?.businessName ?? "Missing"} />
-        <StatusRow label="Active stall" value={context?.activeBranch?.branchName ?? "Missing"} />
-        <StatusRow label="Products" value={context ? String(context.products.length) : "Loading"} />
-        <StatusRow label="Pending" value={context ? String(context.pendingQueueCount) : "Loading"} />
-        {context?.setupMessage ? <Text style={[styles.notice, { color: palette.warning }]}>{context.setupMessage}</Text> : null}
+      <HeroCard>
+        <View style={styles.heroRow}>
+          <View style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: palette.kioskHeaderText }]}>Active stall</Text>
+            <Text style={[styles.heroTitle, { color: palette.kioskHeaderText }]}>
+              {context?.activeBranch?.branchName ?? "No stall selected"}
+            </Text>
+            <Text style={[styles.heroMeta, { color: palette.softAccent }]}>
+              {context?.activeBusiness?.businessName ?? "Set up Owner profile first"}
+            </Text>
+          </View>
+          <IconBadge label="K" tone="accent" size="lg" />
+        </View>
+        <NetworkStatusBadge compact pendingQueueCount={context?.pendingQueueCount ?? 0} />
+      </HeroCard>
+
+      {context?.setupMessage ? (
+        <Card>
+          <EmptyState description={context.setupMessage} title="Setup needed" />
+          {!context.activeBusiness || !context.activeBranch ? (
+            <SecondaryButton href="/owner/settings" label="Open Owner Settings" />
+          ) : (
+            <SecondaryButton href="/owner/inventory" label="Add products in Owner Inventory" />
+          )}
+        </Card>
+      ) : (
+        <Card>
+          <View style={styles.readyRow}>
+            <IconBadge label="B" tone="success" />
+            <View style={styles.readyText}>
+              <Text style={[styles.readyTitle, { color: palette.text }]}>Ready to sell</Text>
+              <Text style={[styles.body, { color: palette.mutedText }]}>{context?.products.length ?? 0} products available</Text>
+            </View>
+          </View>
+          <PrimaryButton href="/kiosk/sell" label="Start selling" />
+        </Card>
+      )}
+
+      <View style={styles.actionGrid}>
+        <SecondaryButton href="/kiosk/orders" label="Orders" />
+        <SecondaryButton href="/kiosk/stock" label="Stock" />
+        <SecondaryButton href="/kiosk/shift" label="Shift Summary" />
       </View>
-
-      <View style={styles.actions}>
-        {context?.canOpenKiosk ? (
-          <Link href="/kiosk/sell" asChild>
-            <Pressable style={[styles.primaryAction, { backgroundColor: palette.primary }]}>
-              <Text style={[styles.primaryActionText, { color: palette.kioskHeaderText }]}>Start selling</Text>
-            </Pressable>
-          </Link>
-        ) : null}
-
-        {!context?.activeBusiness || !context.activeBranch ? (
-          <Link href="/owner/settings" asChild>
-            <Pressable style={[styles.secondaryAction, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Open Owner Settings</Text>
-            </Pressable>
-          </Link>
-        ) : null}
-
-        {context && context.activeBusiness && context.activeBranch && context.products.length === 0 ? (
-          <Link href="/owner/inventory" asChild>
-            <Pressable style={[styles.secondaryAction, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Add products in Owner Inventory</Text>
-            </Pressable>
-          </Link>
-        ) : null}
-
-        <Link href="/kiosk/orders" asChild>
-          <Pressable style={[styles.secondaryAction, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-            <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Recent Orders</Text>
-          </Pressable>
-        </Link>
-        <Link href="/kiosk/stock" asChild>
-          <Pressable style={[styles.secondaryAction, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-            <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Stock Check</Text>
-          </Pressable>
-        </Link>
-        <Link href="/kiosk/shift" asChild>
-          <Pressable style={[styles.secondaryAction, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-            <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Shift Summary</Text>
-          </Pressable>
-        </Link>
-      </View>
-    </ScrollView>
-  );
-}
-
-type StatusRowProps = {
-  label: string;
-  value: string;
-};
-
-function StatusRow({ label, value }: StatusRowProps) {
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-
-  return (
-    <View style={styles.statusRow}>
-      <Text style={[styles.statusLabel, { color: palette.mutedText }]}>{label}</Text>
-      <Text style={[styles.statusValue, { color: palette.text }]}>{value}</Text>
-    </View>
+    </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  header: {
-    gap: spacing.xs,
-    paddingTop: spacing.sm,
-  },
-  eyebrow: {
-    ...typography.label,
-  },
-  title: {
-    ...typography.title,
-  },
   body: {
     ...typography.body,
   },
-  card: {
-    borderRadius: 8,
-    borderWidth: 1,
-    elevation: 1,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.heading,
-    marginBottom: spacing.xs,
-  },
-  statusRow: {
+  heroRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
   },
-  statusLabel: {
-    ...typography.body,
+  heroText: {
     flex: 1,
+    gap: spacing.xs,
   },
-  statusValue: {
+  heroLabel: {
     ...typography.button,
-    flex: 1,
-    textAlign: "right",
   },
-  notice: {
+  heroTitle: {
+    fontSize: 30,
+    fontWeight: "900",
+    lineHeight: 36,
+  },
+  heroMeta: {
     ...typography.body,
-    marginTop: spacing.sm,
   },
-  actions: {
+  readyRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  readyText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  readyTitle: {
+    ...typography.heading,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
-  },
-  primaryAction: {
-    alignItems: "center",
-    borderRadius: 8,
-    minHeight: 48,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  primaryActionText: {
-    ...typography.button,
-  },
-  secondaryAction: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  secondaryActionText: {
-    ...typography.button,
   },
 });

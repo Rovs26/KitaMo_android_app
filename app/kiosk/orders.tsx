@@ -1,7 +1,8 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { AppTopBar, Card, EmptyState, formatPeso, ListRow, ScreenScroll } from "@/components/ui/KitaMoUI";
 import type { PaymentMethod } from "@/domain/types";
 import { listRecentKioskOrders, type KioskOrderSummary } from "@/services/kioskSales";
 import { copyReceiptText, shareReceiptText } from "@/services/shareReceipt";
@@ -12,7 +13,7 @@ import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 function formatMoney(value: number) {
-  return `PHP ${value.toFixed(2)}`;
+  return formatPeso(value);
 }
 
 function formatDateTime(value: string) {
@@ -73,42 +74,33 @@ export default function KioskOrdersScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>Kiosk Mode</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Orders</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Recent sales and receipts.</Text>
-      </View>
+    <ScreenScroll>
+      <AppTopBar subtitle="Recent sales and receipts." title="Orders" />
 
       {message ? <Text style={[styles.body, { color: palette.text }]}>{message}</Text> : null}
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Orders</Text>
-        {orders.length === 0 ? <Text style={[styles.body, { color: palette.mutedText }]}>No local sales yet.</Text> : null}
+        {orders.length === 0 ? <EmptyState description="Kiosk sales will appear here after checkout." title="No local sales yet" /> : null}
 
         {orders.map((order) => (
-          <Pressable
+          <ListRow
+            amount={formatMoney(order.amount)}
+            badge={paymentLabel(order.paymentMethod)}
+            badgeTone="success"
+            icon="B"
             key={order.id}
             onPress={() => setSelectedOrder(order)}
-            style={[styles.orderRow, { backgroundColor: palette.background, borderColor: palette.border }]}
-          >
-            <View style={styles.orderText}>
-              <Text style={[styles.orderTitle, { color: palette.text }]}>{order.transactionNo}</Text>
-              <Text style={[styles.body, { color: palette.mutedText }]}>
-                {formatDateTime(order.happenedAt)} | {order.itemCount} item(s)
-              </Text>
-              <Text style={[styles.body, { color: palette.mutedText }]}>
-                {paymentLabel(order.paymentMethod)}
-                {order.externalReferenceNumber ? ` | Ref ${order.externalReferenceNumber}` : ""}
-              </Text>
-            </View>
-            <Text style={[styles.orderAmount, { color: palette.text }]}>{formatMoney(order.amount)}</Text>
-          </Pressable>
+            subtitle={`${formatDateTime(order.happenedAt)} · ${order.itemCount} item(s)${
+              order.externalReferenceNumber ? ` · Ref ${order.externalReferenceNumber}` : ""
+            }`}
+            title={order.transactionNo}
+          />
         ))}
-      </View>
+      </Card>
 
       {selectedOrder ? (
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Card>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt Details</Text>
           <Text style={[styles.body, { color: palette.mutedText }]}>{selectedOrder.transactionNo}</Text>
           {selectedOrder.receiptText ? (
@@ -122,9 +114,9 @@ export default function KioskOrdersScreen() {
           ) : (
             <Text style={[styles.body, { color: palette.mutedText }]}>No receipt text saved for this order.</Text>
           )}
-        </View>
+        </Card>
       ) : null}
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 

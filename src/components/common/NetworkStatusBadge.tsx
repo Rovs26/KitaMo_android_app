@@ -8,9 +8,10 @@ import { typography } from "@/theme/typography";
 
 type NetworkStatusBadgeProps = {
   pendingQueueCount: number;
+  compact?: boolean;
 };
 
-export function NetworkStatusBadge({ pendingQueueCount }: NetworkStatusBadgeProps) {
+export function NetworkStatusBadge({ pendingQueueCount, compact = false }: NetworkStatusBadgeProps) {
   const networkState = useNetworkState();
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
@@ -25,6 +26,7 @@ export function NetworkStatusBadge({ pendingQueueCount }: NetworkStatusBadgeProp
     <View
       style={[
         styles.container,
+        compact ? styles.compactContainer : null,
         {
           backgroundColor: offline ? palette.background : palette.surface,
           borderColor: offline ? palette.warning : palette.border,
@@ -32,18 +34,23 @@ export function NetworkStatusBadge({ pendingQueueCount }: NetworkStatusBadgeProp
       ]}
     >
       <Text style={[styles.status, { color: offline ? palette.warning : palette.text }]}>{statusLabel}</Text>
-      <Text style={[styles.pending, { color: palette.mutedText }]}>Pending: {pendingQueueCount}</Text>
+      <Text style={[styles.pending, { color: palette.mutedText }]}>{compact ? `${pendingQueueCount} pending` : `Pending: ${pendingQueueCount}`}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    alignSelf: "flex-start",
     borderRadius: 8,
     borderWidth: 1,
+    flexDirection: "row",
     gap: spacing.xs,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
+  },
+  compactContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
   },
   status: {
     ...typography.button,

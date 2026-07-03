@@ -11,6 +11,7 @@ export default function OwnerLayout() {
     <Stack
       screenOptions={{
         contentStyle: { backgroundColor: palette.background },
+        headerShown: false,
         headerStyle: { backgroundColor: palette.surface },
         headerTintColor: palette.text,
         headerTitleStyle: { fontWeight: "700" },

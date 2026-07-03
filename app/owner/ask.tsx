@@ -1,5 +1,5 @@
 import { PlaceholderScreen } from "@/components/common/PlaceholderScreen";
 
 export default function OwnerAskScreen() {
-  return <PlaceholderScreen title="Ask" description="Local helper placeholder only. No Lis API or live AI is connected in this build." />;
+  return <PlaceholderScreen title="Ask" description="Ask KitaMo will help review drafts and records after the local pilot basics are solid." />;
 }

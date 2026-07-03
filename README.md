@@ -4,9 +4,9 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 5.5: Runtime Fix and UX Baseline.
+Android Phase 5.7: Mockup-Guided Visual Redesign.
 
-This phase keeps the Phase 5 local selling behavior intact, fixes the Owner Settings SQLite runtime failure path, and applies a cleaner Android UX baseline for Owner and Kiosk screens.
+This phase keeps the Phase 5 local selling behavior intact and applies the visual language from the KitaMo mockups and Android PWA reference: cream app background, large forest-green hierarchy, warm gold accents, white pilot-safe cards, letter badges, and clearer Kiosk selling surfaces.
 
 ## Run
 
@@ -41,6 +41,7 @@ npm run android
 - Online / Offline local-mode indicator using Expo Network.
 - Pending offline queue visibility in Owner and Kiosk flows.
 - Development-only local data verification panel hidden behind a disabled local dev flag.
+- Shared KitaMo UI primitives for screen shells, cards, metric cards, pills, buttons, empty states, list rows, and bottom navigation.
 - Theme token foundation with light, dark, and system-ready mode support.
 - Zustand stores for app, kiosk, and theme state.
 - SQLite client, migration runner, and initial local schema.
@@ -97,15 +98,19 @@ Owner Home reads the local database and shows:
 - pending offline queue count
 - fresh/demo mode
 
-Phase 5.5 presents this as a seller-facing dashboard with active workspace, setup status, local mode, pending count, and action cards for Business Profile, Products, Open Kiosk, and Records.
+Phase 5.7 presents this as a mockup-guided seller dashboard with a KitaMo top bar, active business context, Today's Kita hero card, metric cards for Benta/Gastos/Tubo/Pending, setup status, quick actions, and recent sales when local records exist.
 
 Owner Settings supports creating and editing the local business profile, adding/editing stalls or stores, and selecting the active stall through `app_settings.activeBranchId`.
 
 Owner Settings separates Business Profile, Store / Stall, Pilot App Status, and Data & Privacy. SQLite/native errors are logged in development and shown to users as short friendly messages.
 
+Phase 5.7 adds a Business Profile-style summary card while preserving the same local create/edit flows.
+
 Owner Inventory supports creating/editing local products and listing stock quantities with low-stock badges. It does not edit inventory movements yet.
 
 Owner Inventory uses a cleaner product setup/list baseline with compact fields, product cards, stock, unit, price, and low-stock badges.
+
+Phase 5.7 adds Inventory summary cards for Products, Low Stock, and Stock Value, following the visual direction of the Inventory mockup without adding recipe/batch cooking.
 
 ## Kiosk Selling
 
@@ -119,7 +124,7 @@ If products are missing, Kiosk shows: â€œAdd products in Owner Inventory first.â
 
 The Sell screen reads active-stall products from SQLite, shows stock and low-stock/out-of-stock status, and stores the cart in Zustand for simple navigation between Sell and Checkout.
 
-Phase 5.5 updates Kiosk entry and Sell screens with a clearer selling-mode header, active stall, local/pending badge, readable product cards, and a compact cart layout. Sale transaction behavior is unchanged.
+Phase 5.7 updates Kiosk entry and Sell screens with a stronger selling-mode hero, active stall context, local/pending badge, readable product cards, status pills, and a clearer cart/checkout card. Sale transaction behavior is unchanged.
 
 ## Checkout And Payments
 
@@ -143,6 +148,8 @@ When checkout succeeds, one local SQLite transaction:
 - inserts a pending `offline_queue` row for future sync
 
 If any part fails, the transaction rolls back.
+
+Phase 5.7 restyles checkout and receipt surfaces with payment options, a clearer total card, receipt summary, and copy/share actions. It does not change duplicate checkout protection or receipt generation.
 
 ## Offline Proof
 
@@ -203,6 +210,8 @@ Receipt text can be copied to the clipboard. The app uses the native share sheet
 ## Local-Only Storage
 
 All Phase 5 data is stored locally in SQLite on the device. There is no cloud sync, login, telemetry, remote AI, camera extraction, Bluetooth printing, or production staff security in this phase.
+
+The visual redesign is UI-only. It does not change the SQLite schema, add cloud services, enable AI, add camera/OCR, or start release work.
 
 ## Clear Local Pilot Data
 
