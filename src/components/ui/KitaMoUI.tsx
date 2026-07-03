@@ -1,5 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Link, type Href, usePathname } from "expo-router";
-import type { PropsWithChildren, ReactNode } from "react";
+import type { ComponentProps, PropsWithChildren, ReactNode } from "react";
 import {
   Pressable,
   ScrollView,
@@ -17,6 +18,7 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 
 type Tone = "primary" | "accent" | "success" | "warning" | "danger" | "neutral";
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 const toneStyles = {
   primary: (palette: ThemePalette) => ({ backgroundColor: palette.softPrimary, color: palette.primary, borderColor: palette.border }),
@@ -119,7 +121,7 @@ export function Pill({ label, tone = "neutral" }: { label: string; tone?: Tone }
 export function IconBadge({ label, tone = "primary", size = "md" }: { label: string; tone?: Tone; size?: "sm" | "md" | "lg" }) {
   const palette = usePalette();
   const toneStyle = toneStyles[tone](palette);
-  const dimension = size === "lg" ? 58 : size === "sm" ? 34 : 44;
+  const dimension = size === "lg" ? 50 : size === "sm" ? 32 : 40;
   return (
     <View
       style={[
@@ -132,7 +134,7 @@ export function IconBadge({ label, tone = "primary", size = "md" }: { label: str
         },
       ]}
     >
-      <Text style={[styles.iconBadgeText, { color: toneStyle.color, fontSize: size === "lg" ? 24 : 17 }]}>{label}</Text>
+      <Text style={[styles.iconBadgeText, { color: toneStyle.color, fontSize: size === "lg" ? 22 : 16 }]}>{label}</Text>
     </View>
   );
 }
@@ -281,12 +283,12 @@ export function EmptyState({ title, description }: { title: string; description?
 function OwnerBottomNav() {
   const pathname = usePathname();
   const palette = usePalette();
-  const tabs: { href: Href; label: string; icon: string; active: boolean }[] = [
-    { href: "/owner", label: "Home", icon: "H", active: pathname === "/owner" },
-    { href: "/owner/ask", label: "Ask", icon: "A", active: pathname.includes("/owner/ask") },
-    { href: "/owner/records", label: "Records", icon: "R", active: pathname.includes("/owner/records") },
-    { href: "/owner/inventory", label: "Inventory", icon: "I", active: pathname.includes("/owner/inventory") },
-    { href: "/owner/insights", label: "Insights", icon: "S", active: pathname.includes("/owner/insights") },
+  const tabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
+    { href: "/owner", label: "Home", icon: "home-outline", activeIcon: "home", active: pathname === "/owner" },
+    { href: "/owner/ask", label: "Ask", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", active: pathname.includes("/owner/ask") },
+    { href: "/owner/records", label: "Records", icon: "document-text-outline", activeIcon: "document-text", active: pathname.includes("/owner/records") },
+    { href: "/owner/inventory", label: "Inventory", icon: "cube-outline", activeIcon: "cube", active: pathname.includes("/owner/inventory") },
+    { href: "/owner/insights", label: "Insights", icon: "bar-chart-outline", activeIcon: "bar-chart", active: pathname.includes("/owner/insights") },
   ];
 
   return (
@@ -294,7 +296,7 @@ function OwnerBottomNav() {
       {tabs.map((tab) => (
         <Link key={tab.label} href={tab.href} asChild>
           <Pressable style={styles.bottomNavItem}>
-            <Text style={[styles.bottomNavIcon, { color: tab.active ? palette.primary : palette.mutedText }]}>{tab.icon}</Text>
+            <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={22} />
             <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText }]}>{tab.label}</Text>
             {tab.active ? <View style={[styles.bottomNavIndicator, { backgroundColor: palette.primary }]} /> : null}
           </Pressable>
@@ -310,28 +312,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    gap: spacing.md,
-    padding: 20,
-    paddingBottom: spacing.xl,
+    gap: 12,
+    paddingHorizontal: spacing.md,
+    paddingTop: 10,
+    paddingBottom: spacing.lg,
   },
   scrollWithNav: {
-    paddingBottom: 112,
+    paddingBottom: 92,
   },
   brand: {
-    fontSize: 40,
+    fontSize: 32,
     fontWeight: "900",
-    lineHeight: 44,
+    lineHeight: 36,
   },
   topBar: {
     alignItems: "flex-start",
     flexDirection: "row",
-    gap: spacing.md,
+    gap: 12,
     justifyContent: "space-between",
-    paddingTop: spacing.sm,
+    paddingTop: 2,
   },
   topText: {
     flex: 1,
-    gap: 6,
+    gap: 3,
   },
   topRight: {
     alignItems: "flex-end",
@@ -341,33 +344,33 @@ const styles = StyleSheet.create({
     ...typography.label,
   },
   pageTitle: {
-    fontSize: 52,
+    fontSize: 38,
     fontWeight: "900",
-    lineHeight: 58,
+    lineHeight: 44,
   },
   pageTitleCompact: {
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: "900",
-    lineHeight: 46,
+    lineHeight: 40,
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "500",
-    lineHeight: 28,
+    lineHeight: 22,
   },
   card: {
     borderRadius: 8,
     borderWidth: 1,
     elevation: 1,
-    gap: spacing.md,
-    padding: 18,
+    gap: 12,
+    padding: 14,
   },
   heroCard: {
     borderRadius: 8,
     elevation: 2,
     gap: spacing.sm,
     overflow: "hidden",
-    padding: 22,
+    padding: spacing.md,
   },
   sectionHeader: {
     alignItems: "center",
@@ -382,13 +385,13 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   pillText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "800",
-    lineHeight: 18,
+    lineHeight: 16,
   },
   iconBadge: {
     alignItems: "center",
@@ -403,7 +406,8 @@ const styles = StyleSheet.create({
   metricCard: {
     flexBasis: "48%",
     flexGrow: 1,
-    minHeight: 154,
+    minHeight: 118,
+    justifyContent: "space-between",
   },
   metricHeader: {
     alignItems: "center",
@@ -415,19 +419,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   metricValue: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "900",
-    lineHeight: 36,
+    lineHeight: 31,
   },
   metricDetail: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 18,
   },
   primaryButton: {
     alignItems: "center",
     borderRadius: 8,
     justifyContent: "center",
-    minHeight: 48,
+    minHeight: 44,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
@@ -439,7 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 46,
+    minHeight: 42,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
@@ -459,7 +463,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 15,
     lineHeight: 20,
-    minHeight: 46,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
@@ -469,8 +473,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     elevation: 1,
     flexDirection: "row",
-    gap: spacing.md,
-    padding: spacing.md,
+    gap: 12,
+    padding: 12,
   },
   listText: {
     flex: 1,
@@ -498,7 +502,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: spacing.md,
-    padding: spacing.md,
+    padding: 12,
   },
   emptyText: {
     flex: 1,
@@ -516,31 +520,26 @@ const styles = StyleSheet.create({
     elevation: 8,
     flexDirection: "row",
     left: 0,
-    paddingBottom: spacing.md,
+    paddingBottom: 12,
     paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
+    paddingTop: 8,
     position: "absolute",
     right: 0,
   },
   bottomNavItem: {
     alignItems: "center",
     flex: 1,
-    gap: spacing.xs,
-    minHeight: 58,
-  },
-  bottomNavIcon: {
-    fontSize: 22,
-    fontWeight: "900",
-    lineHeight: 26,
+    gap: 3,
+    minHeight: 54,
   },
   bottomNavText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "800",
-    lineHeight: 17,
+    lineHeight: 14,
   },
   bottomNavIndicator: {
     borderRadius: 2,
     height: 3,
-    width: 32,
+    width: 28,
   },
 });

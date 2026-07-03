@@ -48,6 +48,7 @@ const emptyProductForm: ProductForm = {
 export default function OwnerInventoryScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
+  const [showProductForm, setShowProductForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -138,6 +139,7 @@ export default function OwnerInventoryScreen() {
       }
 
       setProductForm(emptyProductForm);
+      setShowProductForm(false);
       await refresh();
       setMessage(productForm.id ? "Product updated." : "Product added.");
     } catch (error) {
@@ -149,6 +151,7 @@ export default function OwnerInventoryScreen() {
   }
 
   function editProduct(product: Product) {
+    setShowProductForm(true);
     setProductForm({
       id: product.id,
       name: product.name,
@@ -169,6 +172,7 @@ export default function OwnerInventoryScreen() {
   const products = status?.products ?? [];
   const lowStockCount = products.filter((product) => product.stockQty <= product.lowStockThreshold).length;
   const stockValue = products.reduce((total, product) => total + product.stockQty * product.cost, 0);
+  const productFormVisible = products.length === 0 || showProductForm || Boolean(productForm.id);
 
   return (
     <ScreenScroll bottomNav>
@@ -183,112 +187,19 @@ export default function OwnerInventoryScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>{productForm.id ? "Edit Product" : "Product Setup"}</Text>
-        {!status?.activeBusiness ? (
-          <Text style={[styles.empty, { color: palette.mutedText }]}>Create a business profile before adding products.</Text>
-        ) : null}
-
-        <FormField
-          editable={canEditProducts}
-          label="Product name"
-          onChangeText={(name) => setProductForm((form) => ({ ...form, name }))}
-          placeholder="Example: Bottled water"
-          value={productForm.name}
-        />
-        <FormField
-          editable={canEditProducts}
-          label="Category/type"
-          onChangeText={(category) => setProductForm((form) => ({ ...form, category }))}
-          placeholder="Drinks, meals, snacks"
-          value={productForm.category}
-        />
-        <OptionGroup
-          disabled={!canEditProducts}
-          label="Product kind"
-          onSelect={(productType) => setProductForm((form) => ({ ...form, productType }))}
-          options={productTypes}
-          selected={productForm.productType}
-        />
-        <OptionGroup
-          disabled={!canEditProducts}
-          label="Unit"
-          onSelect={(unitType) => setProductForm((form) => ({ ...form, unitType }))}
-          options={unitTypes}
-          selected={productForm.unitType}
-        />
-
-        <View style={styles.twoColumn}>
-          <FormField
-            editable={canEditProducts}
-            keyboardType="decimal-pad"
-            label="Stock qty"
-            onChangeText={(stockQty) => setProductForm((form) => ({ ...form, stockQty }))}
-            placeholder="0"
-            value={productForm.stockQty}
-          />
-          <FormField
-            editable={canEditProducts}
-            keyboardType="decimal-pad"
-            label="Low-stock threshold"
-            onChangeText={(lowStockThreshold) => setProductForm((form) => ({ ...form, lowStockThreshold }))}
-            placeholder="0"
-            value={productForm.lowStockThreshold}
-          />
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Product List</Text>
+          {products.length > 0 ? (
+            <SmallButton
+              disabled={saving || !canEditProducts}
+              label="Add Product"
+              onPress={() => {
+                setProductForm(emptyProductForm);
+                setShowProductForm(true);
+              }}
+            />
+          ) : null}
         </View>
-
-        <View style={styles.twoColumn}>
-          <FormField
-            editable={canEditProducts}
-            keyboardType="decimal-pad"
-            label="Selling price"
-            onChangeText={(price) => setProductForm((form) => ({ ...form, price }))}
-            placeholder="0"
-            value={productForm.price}
-          />
-          <FormField
-            editable={canEditProducts}
-            keyboardType="decimal-pad"
-            label="Unit cost"
-            onChangeText={(cost) => setProductForm((form) => ({ ...form, cost }))}
-            placeholder="0"
-            value={productForm.cost}
-          />
-        </View>
-
-        <View style={styles.twoColumn}>
-          <FormField
-            editable={canEditProducts}
-            keyboardType="decimal-pad"
-            label="Bundle quantity"
-            onChangeText={(bundleQuantity) => setProductForm((form) => ({ ...form, bundleQuantity }))}
-            placeholder="Optional"
-            value={productForm.bundleQuantity}
-          />
-          <FormField
-            editable={canEditProducts}
-            keyboardType="decimal-pad"
-            label="Bundle price"
-            onChangeText={(bundlePrice) => setProductForm((form) => ({ ...form, bundlePrice }))}
-            placeholder="Optional"
-            value={productForm.bundlePrice}
-          />
-        </View>
-        <FormField
-          editable={canEditProducts}
-          label="Bundle label"
-          onChangeText={(bundleLabel) => setProductForm((form) => ({ ...form, bundleLabel }))}
-          placeholder="Example: 3 for PHP 100"
-          value={productForm.bundleLabel}
-        />
-
-        <View style={styles.inlineActions}>
-          <ActionButton disabled={saving || !canEditProducts} label={productForm.id ? "Save Product" : "Add Product"} onPress={saveProduct} />
-          {productForm.id ? <SmallButton disabled={saving} label="Cancel edit" onPress={() => setProductForm(emptyProductForm)} /> : null}
-        </View>
-      </View>
-
-      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Product List</Text>
         {status && status.products.length === 0 ? (
           <Text style={[styles.empty, { color: palette.mutedText }]}>Add your first paninda</Text>
         ) : null}
@@ -301,20 +212,150 @@ export default function OwnerInventoryScreen() {
                 <View style={styles.productText}>
                   <Text style={[styles.productName, { color: palette.text }]}>{product.name}</Text>
                   <Text style={[styles.body, { color: palette.mutedText }]}>
-                    {product.stockQty} {product.unitType} | PHP {product.price.toFixed(2)}
+                    Stock: {product.stockQty} {product.unitType} · Price: {formatPeso(product.price)}
                   </Text>
                 </View>
                 <Pill label={product.stockQty <= 0 ? "Out" : lowStock ? "Low stock" : "Good"} tone={product.stockQty <= 0 ? "danger" : lowStock ? "warning" : "success"} />
               </View>
-              <Text style={[styles.body, { color: palette.mutedText }]}>
-                Category: {product.category} | Reorder level: {product.lowStockThreshold}
-              </Text>
+              <View style={styles.productMetaGrid}>
+                <Text style={[styles.productMeta, { color: palette.mutedText }]}>Cost {formatPeso(product.cost)}</Text>
+                <Text style={[styles.productMeta, { color: palette.mutedText }]}>Reorder {product.lowStockThreshold}</Text>
+                <Text style={[styles.productMeta, { color: palette.mutedText }]}>{product.category}</Text>
+              </View>
               {product.bundleLabel ? <Text style={[styles.body, { color: palette.mutedText }]}>Bundle: {product.bundleLabel}</Text> : null}
               <SmallButton disabled={saving} label="Edit" onPress={() => editProduct(product)} />
             </View>
           );
         })}
       </View>
+
+      {productFormVisible ? (
+        <View style={[styles.section, styles.formSection, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>{productForm.id ? "Edit Product" : "Add Product"}</Text>
+            {products.length > 0 ? (
+              <SmallButton
+                disabled={saving}
+                label="Close"
+                onPress={() => {
+                  setProductForm(emptyProductForm);
+                  setShowProductForm(false);
+                }}
+              />
+            ) : null}
+          </View>
+          {!status?.activeBusiness ? (
+            <Text style={[styles.empty, { color: palette.mutedText }]}>Create a business profile before adding products.</Text>
+          ) : null}
+
+          <FormField
+            editable={canEditProducts}
+            label="Product name"
+            onChangeText={(name) => setProductForm((form) => ({ ...form, name }))}
+            placeholder="Example: Bottled water"
+            value={productForm.name}
+          />
+          <FormField
+            editable={canEditProducts}
+            label="Category/type"
+            onChangeText={(category) => setProductForm((form) => ({ ...form, category }))}
+            placeholder="Drinks, meals, snacks"
+            value={productForm.category}
+          />
+          <OptionGroup
+            disabled={!canEditProducts}
+            label="Product kind"
+            onSelect={(productType) => setProductForm((form) => ({ ...form, productType }))}
+            options={productTypes}
+            selected={productForm.productType}
+          />
+          <OptionGroup
+            disabled={!canEditProducts}
+            label="Unit"
+            onSelect={(unitType) => setProductForm((form) => ({ ...form, unitType }))}
+            options={unitTypes}
+            selected={productForm.unitType}
+          />
+
+          <View style={styles.twoColumn}>
+            <FormField
+              editable={canEditProducts}
+              keyboardType="decimal-pad"
+              label="Stock qty"
+              onChangeText={(stockQty) => setProductForm((form) => ({ ...form, stockQty }))}
+              placeholder="0"
+              value={productForm.stockQty}
+            />
+            <FormField
+              editable={canEditProducts}
+              keyboardType="decimal-pad"
+              label="Low-stock threshold"
+              onChangeText={(lowStockThreshold) => setProductForm((form) => ({ ...form, lowStockThreshold }))}
+              placeholder="0"
+              value={productForm.lowStockThreshold}
+            />
+          </View>
+
+          <View style={styles.twoColumn}>
+            <FormField
+              editable={canEditProducts}
+              keyboardType="decimal-pad"
+              label="Selling price"
+              onChangeText={(price) => setProductForm((form) => ({ ...form, price }))}
+              placeholder="0"
+              value={productForm.price}
+            />
+            <FormField
+              editable={canEditProducts}
+              keyboardType="decimal-pad"
+              label="Unit cost"
+              onChangeText={(cost) => setProductForm((form) => ({ ...form, cost }))}
+              placeholder="0"
+              value={productForm.cost}
+            />
+          </View>
+
+          <View style={styles.twoColumn}>
+            <FormField
+              editable={canEditProducts}
+              keyboardType="decimal-pad"
+              label="Bundle quantity"
+              onChangeText={(bundleQuantity) => setProductForm((form) => ({ ...form, bundleQuantity }))}
+              placeholder="Optional"
+              value={productForm.bundleQuantity}
+            />
+            <FormField
+              editable={canEditProducts}
+              keyboardType="decimal-pad"
+              label="Bundle price"
+              onChangeText={(bundlePrice) => setProductForm((form) => ({ ...form, bundlePrice }))}
+              placeholder="Optional"
+              value={productForm.bundlePrice}
+            />
+          </View>
+          <FormField
+            editable={canEditProducts}
+            label="Bundle label"
+            onChangeText={(bundleLabel) => setProductForm((form) => ({ ...form, bundleLabel }))}
+            placeholder="Example: 3 for PHP 100"
+            value={productForm.bundleLabel}
+          />
+
+          <View style={styles.inlineActions}>
+            <ActionButton disabled={saving || !canEditProducts} label={productForm.id ? "Save Product" : "Add Product"} onPress={saveProduct} />
+            {productForm.id ? (
+              <SmallButton
+                disabled={saving}
+                label="Cancel edit"
+                onPress={() => {
+                  setProductForm(emptyProductForm);
+                  setShowProductForm(false);
+                }}
+              />
+            ) : null}
+          </View>
+        </View>
+      ) : null}
     </ScreenScroll>
   );
 }
@@ -485,7 +526,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     elevation: 1,
     gap: spacing.sm,
-    padding: spacing.md,
+    padding: 14,
+  },
+  formSection: {
+    opacity: 0.98,
+  },
+  sectionHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
   },
   sectionTitle: {
     ...typography.heading,
@@ -506,7 +556,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 15,
     lineHeight: 20,
-    minHeight: 44,
+    minHeight: 42,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
@@ -566,7 +616,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: spacing.sm,
-    padding: spacing.md,
+    padding: 12,
   },
   productHeader: {
     alignItems: "flex-start",
@@ -580,6 +630,16 @@ const styles = StyleSheet.create({
   },
   productName: {
     ...typography.button,
+  },
+  productMetaGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  productMeta: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
   },
   badge: {
     borderRadius: 8,

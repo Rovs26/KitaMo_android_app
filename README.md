@@ -4,9 +4,9 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 5.7: Mockup-Guided Visual Redesign.
+Android Phase 5.8: Mobile UI Polish and Navigation Refinement.
 
-This phase keeps the Phase 5 local selling behavior intact and applies the visual language from the KitaMo mockups and Android PWA reference: cream app background, large forest-green hierarchy, warm gold accents, white pilot-safe cards, letter badges, and clearer Kiosk selling surfaces.
+This phase keeps the Phase 5 local selling behavior intact and polishes the Phase 5.7 visual redesign for real Android phone use: smaller typography, tighter spacing, denser cards, proper bottom navigation icons, and more intentional Owner/Kiosk placeholder states.
 
 ## Run
 
@@ -41,7 +41,7 @@ npm run android
 - Online / Offline local-mode indicator using Expo Network.
 - Pending offline queue visibility in Owner and Kiosk flows.
 - Development-only local data verification panel hidden behind a disabled local dev flag.
-- Shared KitaMo UI primitives for screen shells, cards, metric cards, pills, buttons, empty states, list rows, and bottom navigation.
+- Shared KitaMo UI primitives for screen shells, cards, metric cards, pills, buttons, empty states, list rows, and icon-based bottom navigation.
 - Theme token foundation with light, dark, and system-ready mode support.
 - Zustand stores for app, kiosk, and theme state.
 - SQLite client, migration runner, and initial local schema.
@@ -98,7 +98,7 @@ Owner Home reads the local database and shows:
 - pending offline queue count
 - fresh/demo mode
 
-Phase 5.7 presents this as a mockup-guided seller dashboard with a KitaMo top bar, active business context, Today's Kita hero card, metric cards for Benta/Gastos/Tubo/Pending, setup status, quick actions, and recent sales when local records exist.
+Phase 5.8 presents this as a more compact seller dashboard with a smaller KitaMo top bar, active business context, Today's Kita hero card, controlled metric sizing, setup status, quick actions, and a polished empty state when no local sales exist.
 
 Owner Settings supports creating and editing the local business profile, adding/editing stalls or stores, and selecting the active stall through `app_settings.activeBranchId`.
 
@@ -110,7 +110,7 @@ Owner Inventory supports creating/editing local products and listing stock quant
 
 Owner Inventory uses a cleaner product setup/list baseline with compact fields, product cards, stock, unit, price, and low-stock badges.
 
-Phase 5.7 adds Inventory summary cards for Products, Low Stock, and Stock Value, following the visual direction of the Inventory mockup without adding recipe/batch cooking.
+Phase 5.8 keeps Inventory summary cards for Products, Low Stock, and Stock Value, then prioritizes the product list before the Add Product form. The form expands when adding/editing products so saved products stay easier to scan. Recipe/batch cooking remains deferred.
 
 ## Kiosk Selling
 
@@ -124,7 +124,7 @@ If products are missing, Kiosk shows: â€œAdd products in Owner Inventory first.â
 
 The Sell screen reads active-stall products from SQLite, shows stock and low-stock/out-of-stock status, and stores the cart in Zustand for simple navigation between Sell and Checkout.
 
-Phase 5.7 updates Kiosk entry and Sell screens with a stronger selling-mode hero, active stall context, local/pending badge, readable product cards, status pills, and a clearer cart/checkout card. Sale transaction behavior is unchanged.
+Phase 5.8 tightens Kiosk entry, Sell, and cart surfaces with smaller headers, compact product rows, clearer totals, and easier checkout scanning. Sale transaction behavior is unchanged.
 
 ## Checkout And Payments
 
@@ -149,7 +149,7 @@ When checkout succeeds, one local SQLite transaction:
 
 If any part fails, the transaction rolls back.
 
-Phase 5.7 restyles checkout and receipt surfaces with payment options, a clearer total card, receipt summary, and copy/share actions. It does not change duplicate checkout protection or receipt generation.
+Phase 5.8 keeps the checkout/receipt layout compact with clean payment options, a controlled total card, receipt summary, and copy/share actions. It does not change duplicate checkout protection or receipt generation.
 
 ## Offline Proof
 
@@ -211,7 +211,7 @@ Receipt text can be copied to the clipboard. The app uses the native share sheet
 
 All Phase 5 data is stored locally in SQLite on the device. There is no cloud sync, login, telemetry, remote AI, camera extraction, Bluetooth printing, or production staff security in this phase.
 
-The visual redesign is UI-only. It does not change the SQLite schema, add cloud services, enable AI, add camera/OCR, or start release work.
+The Phase 5.8 polish is UI-only. It does not change business logic, the SQLite schema, cloud services, AI, camera/OCR, Bluetooth printing, Customer/LGU modes, or release work.
 
 ## Clear Local Pilot Data
 

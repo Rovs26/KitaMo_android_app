@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
-    gap: spacing.md,
+    gap: 12,
     justifyContent: "space-between",
-    padding: spacing.md,
+    padding: 12,
   },
   productText: {
     flex: 1,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: spacing.sm,
-    padding: spacing.md,
+    padding: 12,
   },
   cartItemHeader: {
     alignItems: "flex-start",
@@ -282,14 +282,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     borderWidth: 1,
-    height: 40,
+    height: 36,
     justifyContent: "center",
-    width: 48,
+    width: 44,
   },
   quantityText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "800",
-    lineHeight: 26,
+    lineHeight: 24,
   },
   quantityValue: {
     fontSize: 18,
@@ -307,7 +307,9 @@ const styles = StyleSheet.create({
     ...typography.heading,
   },
   totalValue: {
-    ...typography.heading,
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 25,
   },
   primaryAction: {
     alignItems: "center",

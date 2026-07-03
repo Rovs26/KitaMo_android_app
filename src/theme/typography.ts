@@ -1,23 +1,23 @@
 export const typography = {
   display: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "800" as const,
-    lineHeight: 36,
+    lineHeight: 34,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800" as const,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   heading: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700" as const,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   body: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "400" as const,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   label: {
     fontSize: 12,

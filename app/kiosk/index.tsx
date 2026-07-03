@@ -118,9 +118,9 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   heroTitle: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: "900",
-    lineHeight: 36,
+    lineHeight: 30,
   },
   heroMeta: {
     ...typography.body,

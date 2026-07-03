@@ -150,7 +150,7 @@ export default function OwnerHomeScreen() {
       <Card>
         <SectionHeader action={<SecondaryButton href="/kiosk/orders" label="See all" />} title="Recent Transaction" />
         {recentOrders.length === 0 ? (
-          <EmptyState description={`Sales from ${activeBranch} will appear here after checkout.`} title="No local sales yet" />
+          <EmptyState description={`Sales from ${activeBranch} will appear here after checkout.`} title="Wala pang benta today. Start selling in Kiosk." />
         ) : (
           <View style={styles.recentList}>
             {recentOrders.map((order) => (
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     maxWidth: "100%",
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 7,
   },
   businessPillText: {
     ...typography.button,
@@ -229,14 +229,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   heroLabel: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
-    lineHeight: 23,
+    lineHeight: 20,
   },
   heroValue: {
-    fontSize: 42,
+    fontSize: 34,
     fontWeight: "900",
-    lineHeight: 48,
+    lineHeight: 39,
   },
   heroSubcopy: {
     ...typography.button,
@@ -244,14 +244,14 @@ const styles = StyleSheet.create({
   heroBadge: {
     alignItems: "center",
     borderRadius: 8,
-    height: 64,
+    height: 52,
     justifyContent: "center",
-    width: 64,
+    width: 52,
   },
   heroBadgeText: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: "900",
-    lineHeight: 38,
+    lineHeight: 31,
   },
   metricGrid: {
     flexDirection: "row",

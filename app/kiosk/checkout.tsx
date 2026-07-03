@@ -342,9 +342,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderTopWidth: 1,
     flexDirection: "row",
-    gap: spacing.md,
+    gap: 12,
     justifyContent: "space-between",
-    paddingTop: spacing.md,
+    paddingTop: 10,
   },
   cartText: {
     flex: 1,
@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
   option: {
     borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   optionText: {
     fontSize: 14,
@@ -389,9 +389,9 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 8,
     borderWidth: 1,
-    fontSize: 16,
-    lineHeight: 22,
-    minHeight: 48,
+    fontSize: 15,
+    lineHeight: 20,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
@@ -406,8 +406,8 @@ const styles = StyleSheet.create({
   },
   receiptText: {
     fontFamily: "monospace",
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
   receiptHeader: {
     alignItems: "center",
@@ -422,12 +422,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: spacing.xs,
-    padding: spacing.md,
+    padding: 12,
   },
   totalAmount: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: "900",
-    lineHeight: 40,
+    lineHeight: 34,
   },
   inlineActions: {
     flexDirection: "row",
