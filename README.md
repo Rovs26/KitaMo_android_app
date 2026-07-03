@@ -1,6 +1,6 @@
 # KitaMo Android
 
-Expo React Native foundation for the local-first KitaMo Android MVP.
+Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
@@ -25,7 +25,7 @@ npm run android
 
 ## Included
 
-- Expo React Native with TypeScript.
+- Expo SDK 54 React Native with TypeScript.
 - Expo Router route structure for Owner and Kiosk areas.
 - First-run choice for Fresh Business or explicit Demo Data.
 - Owner Home setup guidance and pilot status.
