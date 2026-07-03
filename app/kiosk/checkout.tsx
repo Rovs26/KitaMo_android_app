@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type { PaymentMethod } from "@/domain/types";
@@ -33,6 +33,7 @@ export default function KioskCheckoutScreen() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
   const [completedSale, setCompletedSale] = useState<CompletedKioskSale | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -44,7 +45,7 @@ export default function KioskCheckoutScreen() {
   const referenceRequired = paymentMethod !== "cash";
 
   async function confirmCheckout() {
-    if (saving) {
+    if (savingRef.current || saving || completedSale) {
       return;
     }
 
@@ -63,6 +64,7 @@ export default function KioskCheckoutScreen() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     setMessage("Saving local sale...");
     try {
@@ -78,6 +80,7 @@ export default function KioskCheckoutScreen() {
       setMessage("Sale completed locally.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not complete checkout.");
+      savingRef.current = false;
     } finally {
       setSaving(false);
     }

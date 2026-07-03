@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { LocalDataCounts } from "@/db/schema";
 import { getAppliedMigrations } from "@/db/migrations";
+import { verifySaleIntegrity, type SaleIntegrityCheckResult } from "@/services/kioskSales";
 import { clearLocalPilotData, getLocalDataSnapshot, initializeLocalDataFoundation, seedDemoData } from "@/services/pilotData";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
@@ -13,6 +14,7 @@ type VerificationState = {
   status: string;
   migrations: string[];
   counts: LocalDataCounts | null;
+  integrity: SaleIntegrityCheckResult | null;
   error: string | null;
 };
 
@@ -20,6 +22,7 @@ const initialState: VerificationState = {
   status: "Not initialized in this session.",
   migrations: [],
   counts: null,
+  integrity: null,
   error: null,
 };
 
@@ -47,10 +50,12 @@ export function LocalDataVerificationPanel() {
   async function initializeDb() {
     await runAction(async () => {
       const snapshot = await initializeLocalDataFoundation();
+      const integrity = await verifySaleIntegrity();
       return {
         status: "Database initialized. Fresh mode remains empty until demo seed is explicitly run.",
         migrations: snapshot.appliedMigrationIds,
         counts: snapshot.counts,
+        integrity,
         error: null,
       };
     });
@@ -59,10 +64,12 @@ export function LocalDataVerificationPanel() {
   async function refreshCounts() {
     await runAction(async () => {
       const snapshot = await getLocalDataSnapshot();
+      const integrity = await verifySaleIntegrity();
       return {
         status: "Counts refreshed.",
         migrations: snapshot.appliedMigrationIds,
         counts: snapshot.counts,
+        integrity,
         error: null,
       };
     });
@@ -72,10 +79,12 @@ export function LocalDataVerificationPanel() {
     await runAction(async () => {
       const result = await seedDemoData();
       const migrations = await getAppliedMigrations();
+      const integrity = await verifySaleIntegrity();
       return {
         status: result.seeded ? "Demo data inserted by explicit development action." : (result.reason ?? "Demo seed skipped."),
         migrations: migrations.map((migration) => migration.id),
         counts: result.counts,
+        integrity,
         error: null,
       };
     });
@@ -85,10 +94,12 @@ export function LocalDataVerificationPanel() {
     await runAction(async () => {
       const counts = await clearLocalPilotData();
       const migrations = await getAppliedMigrations();
+      const integrity = await verifySaleIntegrity();
       return {
-        status: "Local pilot data cleared by explicit development action.",
+        status: "Local pilot data cleared. First-run choice will appear again when the app starts from the root.",
         migrations: migrations.map((migration) => migration.id),
         counts,
+        integrity,
         error: null,
       };
     });
@@ -96,7 +107,7 @@ export function LocalDataVerificationPanel() {
 
   return (
     <View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <Text style={[styles.title, { color: palette.text }]}>Phase 2 Local Data Verification</Text>
+      <Text style={[styles.title, { color: palette.text }]}>Phase 5 Local Data Verification</Text>
       <Text style={[styles.body, { color: palette.mutedText }]}>
         Development-only controls. Fresh mode is empty by default; demo data is never seeded automatically.
       </Text>
@@ -115,9 +126,29 @@ export function LocalDataVerificationPanel() {
 
       {state.counts ? (
         <View style={styles.countGrid}>
+          <Text style={[styles.metaStrong, { color: palette.text }]}>Sales: {state.counts.sales}</Text>
+          <Text style={[styles.metaStrong, { color: palette.text }]}>Receipts: {state.counts.receipt_records}</Text>
+          <Text style={[styles.metaStrong, { color: palette.text }]}>Pending queue: {state.counts.offline_queue}</Text>
           {Object.entries(state.counts).map(([key, value]) => (
             <Text key={key} style={[styles.meta, { color: palette.mutedText }]}>
               {key}: {value}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
+      {state.integrity ? (
+        <View style={styles.countGrid}>
+          <Text style={[styles.metaStrong, { color: state.integrity.ok ? palette.success : palette.danger }]}>
+            Latest sale integrity: {state.integrity.ok ? "OK" : "Needs review"}
+          </Text>
+          <Text style={[styles.meta, { color: palette.mutedText }]}>
+            Sale: {state.integrity.transactionNo ?? "none"} | items: {state.integrity.itemCount} | receipts:{" "}
+            {state.integrity.receiptCount} | movements: {state.integrity.movementCount} | queue rows: {state.integrity.queueCount}
+          </Text>
+          {state.integrity.messages.map((message) => (
+            <Text key={message} style={[styles.meta, { color: palette.mutedText }]}>
+              {message}
             </Text>
           ))}
         </View>
@@ -185,6 +216,11 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 13,
+    lineHeight: 18,
+  },
+  metaStrong: {
+    fontSize: 13,
+    fontWeight: "700",
     lineHeight: 18,
   },
   countGrid: {

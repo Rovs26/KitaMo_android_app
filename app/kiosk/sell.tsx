@@ -2,6 +2,7 @@ import { Link, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
 import { isLowStock } from "@/domain/inventory";
 import type { Product } from "@/domain/types";
 import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
@@ -86,6 +87,8 @@ export default function KioskSellScreen() {
       ) : null}
 
       {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
+
+      <NetworkStatusBadge pendingQueueCount={context?.pendingQueueCount ?? 0} />
 
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Products</Text>

@@ -2,6 +2,7 @@ import { Link, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
 import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
@@ -57,6 +58,7 @@ export default function KioskHomeScreen() {
 
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Kiosk readiness</Text>
+        <NetworkStatusBadge pendingQueueCount={context?.pendingQueueCount ?? 0} />
         <StatusRow label="Business" value={context?.activeBusiness?.businessName ?? "Missing"} />
         <StatusRow label="Active stall" value={context?.activeBranch?.branchName ?? "Missing"} />
         <StatusRow label="Products ready" value={context ? String(context.products.length) : "Loading"} />

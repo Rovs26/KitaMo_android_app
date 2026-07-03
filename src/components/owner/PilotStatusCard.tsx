@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
 import type { OwnerSetupStatus } from "@/services/ownerSetup";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
@@ -26,6 +27,7 @@ export function PilotStatusCard({ status }: PilotStatusCardProps) {
   return (
     <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <Text style={[styles.title, { color: palette.text }]}>Pilot App Status</Text>
+      <NetworkStatusBadge pendingQueueCount={status.pendingQueueCount} />
       <View style={styles.rows}>
         {rows.map(([label, value]) => (
           <View key={label} style={styles.row}>

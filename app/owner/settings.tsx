@@ -2,6 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
 import {
   createBranch,
@@ -358,6 +359,7 @@ export default function OwnerSettingsScreen() {
       </View>
 
       {status ? <PilotStatusCard status={status} /> : null}
+      {__DEV__ ? <LocalDataVerificationPanel /> : null}
     </ScrollView>
   );
 }
