@@ -1,6 +1,6 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
 import {
@@ -18,6 +18,8 @@ import {
   SectionHeader,
   SecondaryButton,
 } from "@/components/ui/KitaMoUI";
+import { listActiveOwnerAlerts, resolveOwnerAlert } from "@/db/repositories";
+import type { OwnerAlert, OwnerAlertSeverity } from "@/domain/types";
 import { getKioskShiftSummary, listRecentKioskOrders, type KioskOrderSummary, type KioskShiftSummary } from "@/services/kioskSales";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useAppStore } from "@/state/appStore";
@@ -27,11 +29,33 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
+const severityLabels: Record<OwnerAlertSeverity, string> = {
+  info: "Info",
+  warning: "Warning",
+  critical: "Critical",
+};
+
+const severityTones: Record<OwnerAlertSeverity, "neutral" | "warning" | "danger"> = {
+  info: "neutral",
+  warning: "warning",
+  critical: "danger",
+};
+
+function formatAlertTime(value: string) {
+  return new Date(value).toLocaleString("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export default function OwnerHomeScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
   const [summary, setSummary] = useState<KioskShiftSummary | null>(null);
   const [recentOrders, setRecentOrders] = useState<KioskOrderSummary[]>([]);
+  const [alerts, setAlerts] = useState<OwnerAlert[]>([]);
+  const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resolveLock = useRef(false);
   const setCurrentMode = useAppStore((state) => state.setCurrentMode);
   const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
   const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
@@ -47,6 +71,7 @@ export default function OwnerHomeScreen() {
           const nextStatus = await loadOwnerSetupStatus();
           const nextSummary = await getKioskShiftSummary();
           const orders = await listRecentKioskOrders(2);
+          const nextAlerts = nextStatus.activeBusiness ? await listActiveOwnerAlerts(nextStatus.activeBusiness.id) : [];
           if (!active) {
             return;
           }
@@ -54,6 +79,7 @@ export default function OwnerHomeScreen() {
           setStatus(nextStatus);
           setSummary(nextSummary);
           setRecentOrders(orders);
+          setAlerts(nextAlerts);
           setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
           setActiveBranchId(nextStatus.activeBranch?.id ?? null);
           setCurrentMode("owner");
@@ -73,6 +99,26 @@ export default function OwnerHomeScreen() {
       };
     }, [setActiveBranchId, setActiveBusinessId, setCurrentMode]),
   );
+
+  async function resolveAlert(alert: OwnerAlert) {
+    if (resolveLock.current) {
+      return;
+    }
+
+    resolveLock.current = true;
+    setResolvingAlertId(alert.id);
+    try {
+      await resolveOwnerAlert(alert.id);
+      const businessId = status?.activeBusiness?.id;
+      setAlerts(businessId ? await listActiveOwnerAlerts(businessId) : []);
+    } catch (resolveError) {
+      logDevError("OwnerHome.resolveAlert", resolveError);
+      setError(getFriendlyErrorMessage("Could not resolve the alert."));
+    } finally {
+      resolveLock.current = false;
+      setResolvingAlertId(null);
+    }
+  }
 
   const setupComplete = Boolean(status?.activeBusiness && status.activeBranch && status.productCount > 0);
   const activeBusiness = status?.activeBusiness?.businessName ?? "Set up your business";
@@ -136,6 +182,45 @@ export default function OwnerHomeScreen() {
           </View>
         </Card>
       ) : null}
+
+      <Card>
+        <SectionHeader
+          action={<Pill label={alerts.length > 0 ? `${alerts.length} active` : "All clear"} tone={alerts.length > 0 ? "warning" : "success"} />}
+          title="Alerts"
+        />
+        {alerts.length === 0 ? (
+          <Text style={[styles.body, { color: palette.mutedText }]}>Walang active alerts. Good job!</Text>
+        ) : (
+          <View style={styles.alertList}>
+            {alerts.slice(0, 4).map((alert) => (
+              <View key={alert.id} style={[styles.alertRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
+                <View style={styles.alertHeader}>
+                  <Text style={[styles.alertTitle, { color: palette.text }]}>{alert.title}</Text>
+                  <Pill label={severityLabels[alert.severity]} tone={severityTones[alert.severity]} />
+                </View>
+                <Text style={[styles.body, { color: palette.mutedText }]}>{alert.message}</Text>
+                <View style={styles.alertFooter}>
+                  <Text style={[styles.alertTime, { color: palette.mutedText }]}>{formatAlertTime(alert.createdAt)}</Text>
+                  <Pressable
+                    disabled={resolvingAlertId !== null}
+                    onPress={() => resolveAlert(alert)}
+                    style={[styles.resolveButton, { borderColor: palette.border, opacity: resolvingAlertId !== null ? 0.55 : 1 }]}
+                  >
+                    <Text style={[styles.resolveButtonText, { color: palette.primary }]}>
+                      {resolvingAlertId === alert.id ? "Resolving..." : "Resolve"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+            {alerts.length > 4 ? (
+              <Text style={[styles.body, { color: palette.mutedText }]}>
+                {alerts.length - 4} more alert{alerts.length - 4 === 1 ? "" : "s"} to review.
+              </Text>
+            ) : null}
+          </View>
+        )}
+      </Card>
 
       <Card>
         <SectionHeader title="Quick actions" />
@@ -289,5 +374,49 @@ const styles = StyleSheet.create({
   },
   body: {
     ...typography.body,
+  },
+  alertList: {
+    gap: spacing.sm,
+  },
+  alertRow: {
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: spacing.xs,
+    padding: 12,
+  },
+  alertHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
+  },
+  alertTitle: {
+    ...typography.button,
+    flex: 1,
+  },
+  alertFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
+  },
+  alertTime: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
+  },
+  resolveButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 34,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  resolveButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
   },
 });

@@ -1,16 +1,17 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { AppTopBar, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { createProduct, updateProduct } from "@/db/repositories";
 import type { Product, ProductType, UnitType } from "@/domain/types";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
+import { recordCookedBatch, recordSpoilage } from "@/services/stockOps";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
-import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
+import { getFriendlyErrorMessage, getUserSafeErrorMessage, logDevError } from "@/utils/errors";
 
 const productTypes: ProductType[] = ["retail item", "cooked food", "ingredient-based item", "service/other"];
 const unitTypes: UnitType[] = ["piece", "bottle", "pack", "sachet", "kilo", "serving", "case", "tray", "other"];
@@ -45,12 +46,33 @@ const emptyProductForm: ProductForm = {
   bundleLabel: "",
 };
 
+type CookForm = {
+  productId: string | null;
+  quantity: string;
+  note: string;
+};
+
+type SpoilageForm = {
+  productId: string | null;
+  quantity: string;
+  reason: string;
+};
+
+const emptyCookForm: CookForm = { productId: null, quantity: "", note: "" };
+const emptySpoilageForm: SpoilageForm = { productId: null, quantity: "", reason: "" };
+
 export default function OwnerInventoryScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
   const [showProductForm, setShowProductForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [cookForm, setCookForm] = useState<CookForm>(emptyCookForm);
+  const [spoilageForm, setSpoilageForm] = useState<SpoilageForm>(emptySpoilageForm);
+  const [cookSaving, setCookSaving] = useState(false);
+  const [spoilageSaving, setSpoilageSaving] = useState(false);
+  const cookLock = useRef(false);
+  const spoilageLock = useRef(false);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
@@ -150,6 +172,80 @@ export default function OwnerInventoryScreen() {
     }
   }
 
+  async function saveCookedBatch() {
+    if (cookLock.current) {
+      return;
+    }
+
+    if (!cookForm.productId) {
+      setMessage("Piliin muna kung anong paninda ang niluto.");
+      return;
+    }
+
+    const quantity = parseNumber(cookForm.quantity, 0);
+    if (quantity <= 0) {
+      setMessage("Ilagay kung ilang piraso ang naluto.");
+      return;
+    }
+
+    cookLock.current = true;
+    setCookSaving(true);
+    setMessage(null);
+    try {
+      const result = await recordCookedBatch({
+        productId: cookForm.productId,
+        quantity,
+        note: cookForm.note,
+      });
+      setCookForm(emptyCookForm);
+      await refresh();
+      setMessage(`Nadagdag ang ${quantity} sa ${result.productName}. Stock is now ${result.newStockQty}.`);
+    } catch (error) {
+      logDevError("OwnerInventory.saveCookedBatch", error);
+      setMessage(getUserSafeErrorMessage(error, "Could not save the cooked batch."));
+    } finally {
+      cookLock.current = false;
+      setCookSaving(false);
+    }
+  }
+
+  async function saveSpoilage() {
+    if (spoilageLock.current) {
+      return;
+    }
+
+    if (!spoilageForm.productId) {
+      setMessage("Piliin muna kung anong paninda ang nasayang.");
+      return;
+    }
+
+    const quantity = parseNumber(spoilageForm.quantity, 0);
+    if (quantity <= 0) {
+      setMessage("Ilagay kung ilang piraso ang nabawas.");
+      return;
+    }
+
+    spoilageLock.current = true;
+    setSpoilageSaving(true);
+    setMessage(null);
+    try {
+      const result = await recordSpoilage({
+        productId: spoilageForm.productId,
+        quantity,
+        reason: spoilageForm.reason,
+      });
+      setSpoilageForm(emptySpoilageForm);
+      await refresh();
+      setMessage(`Naitala ang ${quantity} na nasayang sa ${result.productName}. Stock is now ${result.newStockQty}.`);
+    } catch (error) {
+      logDevError("OwnerInventory.saveSpoilage", error);
+      setMessage(getUserSafeErrorMessage(error, "Could not save the spoilage record."));
+    } finally {
+      spoilageLock.current = false;
+      setSpoilageSaving(false);
+    }
+  }
+
   function editProduct(product: Product) {
     setShowProductForm(true);
     setProductForm({
@@ -228,6 +324,80 @@ export default function OwnerInventoryScreen() {
           );
         })}
       </View>
+
+      {products.length > 0 ? (
+        <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>Niluto / Produced</Text>
+            <Pill label="Stock in" tone="success" />
+          </View>
+          <Text style={[styles.body, { color: palette.mutedText }]}>
+            Ilang piraso ang nadagdag sa paninda? Stock will increase after saving.
+          </Text>
+          <ProductPicker
+            disabled={cookSaving}
+            label="Paninda"
+            onSelect={(productId) => setCookForm((form) => ({ ...form, productId }))}
+            products={products}
+            selectedId={cookForm.productId}
+          />
+          <View style={styles.twoColumn}>
+            <FormField
+              editable={!cookSaving}
+              keyboardType="decimal-pad"
+              label="Dami (quantity)"
+              onChangeText={(quantity) => setCookForm((form) => ({ ...form, quantity }))}
+              placeholder="0"
+              value={cookForm.quantity}
+            />
+            <FormField
+              editable={!cookSaving}
+              label="Note (optional)"
+              onChangeText={(note) => setCookForm((form) => ({ ...form, note }))}
+              placeholder="Example: umagang luto"
+              value={cookForm.note}
+            />
+          </View>
+          <ActionButton disabled={cookSaving} label={cookSaving ? "Saving..." : "Save Niluto"} onPress={saveCookedBatch} />
+        </View>
+      ) : null}
+
+      {products.length > 0 ? (
+        <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>Nasayang / Spoilage</Text>
+            <Pill label="Stock out" tone="danger" />
+          </View>
+          <Text style={[styles.body, { color: palette.mutedText }]}>
+            Ilang piraso ang nabawas? Stock will decrease after saving.
+          </Text>
+          <ProductPicker
+            disabled={spoilageSaving}
+            label="Paninda"
+            onSelect={(productId) => setSpoilageForm((form) => ({ ...form, productId }))}
+            products={products}
+            selectedId={spoilageForm.productId}
+          />
+          <View style={styles.twoColumn}>
+            <FormField
+              editable={!spoilageSaving}
+              keyboardType="decimal-pad"
+              label="Dami (quantity)"
+              onChangeText={(quantity) => setSpoilageForm((form) => ({ ...form, quantity }))}
+              placeholder="0"
+              value={spoilageForm.quantity}
+            />
+            <FormField
+              editable={!spoilageSaving}
+              label="Reason (optional)"
+              onChangeText={(reason) => setSpoilageForm((form) => ({ ...form, reason }))}
+              placeholder="Example: nabasag, na-expire"
+              value={spoilageForm.reason}
+            />
+          </View>
+          <ActionButton disabled={spoilageSaving} label={spoilageSaving ? "Saving..." : "Save Nasayang"} onPress={saveSpoilage} />
+        </View>
+      ) : null}
 
       {productFormVisible ? (
         <View style={[styles.section, styles.formSection, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -413,6 +583,47 @@ function FormField({ label, value, onChangeText, placeholder, keyboardType = "de
         ]}
         value={value}
       />
+    </View>
+  );
+}
+
+type ProductPickerProps = {
+  label: string;
+  products: Product[];
+  selectedId: string | null;
+  onSelect: (productId: string) => void;
+  disabled?: boolean;
+};
+
+function ProductPicker({ label, products, selectedId, onSelect, disabled = false }: ProductPickerProps) {
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  return (
+    <View style={styles.field}>
+      <Text style={[styles.fieldLabel, { color: palette.text }]}>{label}</Text>
+      <View style={styles.optionWrap}>
+        {products.map((product) => {
+          const selected = product.id === selectedId;
+          return (
+            <Pressable
+              disabled={disabled}
+              key={product.id}
+              onPress={() => onSelect(product.id)}
+              style={[
+                styles.option,
+                {
+                  backgroundColor: selected ? palette.primary : palette.background,
+                  borderColor: selected ? palette.primary : palette.border,
+                  opacity: disabled ? 0.6 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.optionText, { color: selected ? palette.kioskHeaderText : palette.text }]}>{product.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }

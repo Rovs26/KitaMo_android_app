@@ -4,9 +4,9 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 6.5: Bundle Pricing Parity.
+Android Phase 7: Stock, Cook, and Alerts.
 
-This phase keeps the Phase 6 local tabs intact and applies PWA-matched bundle pricing in Android Kiosk checkout. Bundle offers are still local-first SQLite data; no cloud sync, auth, AI, camera, Bluetooth, Customer/LGU mode, or release work was added.
+This phase adds the next operational layer for food sellers and stock-aware sellers: local-only owner alerts, a Notify Owner action in Kiosk Stock, a basic Cook/Niluto batch flow, Spoilage/Nasayang logging, and owner alert visibility in Home and Insights. Everything remains local-first SQLite; no push notifications, cloud sync, auth, AI, camera, Bluetooth, Customer/LGU mode, or release work was added.
 
 ## Run
 
@@ -41,7 +41,11 @@ npm run android
 - Kiosk Orders, Stock, and current local Shift summary screens.
 - Local-only Ask KitaMo suggested questions and deterministic answers.
 - Owner Records tab for local sales, receipts, filters, and recent stock movements.
-- Owner Insights tab for today's sales, payment breakdown, product counts, low-stock count, and top products.
+- Owner Insights tab for today's sales, payment breakdown, product counts, low-stock count, active alert count, and top products.
+- Local-only owner alerts with severity, active/resolved status, and resolve action in Owner Home.
+- Kiosk Stock low/out-of-stock badges with a Notify Owner action that creates a local alert.
+- Cook/Niluto batch flow in Owner Inventory that records a recipe batch, increases finished product stock, and logs a cooked inventory movement in one transaction.
+- Spoilage/Nasayang flow in Owner Inventory that decreases stock and logs a spoilage inventory movement with negative-stock protection.
 - Online / Offline local-mode indicator using Expo Network.
 - Pending offline queue visibility in Owner and Kiosk flows.
 - Development-only local data verification panel hidden behind a disabled local dev flag.
@@ -57,7 +61,7 @@ npm run android
 
 The local database is `kitamo_local.db`, opened through `src/db/client.ts`.
 
-Migrations live in `src/db/migrations/` and are tracked in the `schema_migrations` table. `runMigrations()` is safe to call repeatedly. Migration `001_initial_schema` creates the local tables, and migration `002_owner_setup_fields` adds owner setup notes fields to businesses and branches.
+Migrations live in `src/db/migrations/` and are tracked in the `schema_migrations` table. `runMigrations()` is safe to call repeatedly. Migration `001_initial_schema` creates the local tables, migration `002_owner_setup_fields` adds owner setup notes fields to businesses and branches, and migration `003_owner_alert_fields` adds `severity` and `product_id` to `owner_alerts`.
 
 The initial schema creates:
 
@@ -129,6 +133,22 @@ Ask KitaMo is local-only in Phase 6. It does not call Lis, OpenAI, Anthropic, or
 Records shows local SQLite records only. It includes summary cards, Today/All/Cash/GCash-Maya-Bank filters, local sale cards, receipt text expansion, and recent inventory movement rows where available. It does not export, edit, delete, or sync records.
 
 Insights shows simple local summaries only: today's sales, transactions, average sale, payment breakdown, product count, low-stock count, top products, and pending saves. It does not use fake sales data in fresh or demo mode; insights appear after real local sales exist on the device.
+
+## Stock Alerts, Cook, And Spoilage
+
+Phase 7 adds local-only operational flows on top of the existing tables. All alerts, batches, and spoilage records stay in SQLite on the device. There are no push notifications, background jobs, or cloud sync.
+
+Owner alerts live in `owner_alerts` with severity (`info` / `warning` / `critical`) and status (`active` / `resolved`). The `src/db/repositories/ownerAlerts.ts` repository supports creating alerts, listing active and recent alerts, counting active alerts, and marking an alert resolved.
+
+Notify Owner lives in Kiosk Stock. Low-stock and out-of-stock products show a Notify Owner action that creates a local owner alert (for example, "Low stock: Sushi Roll"). Duplicate protection works two ways: a synchronous tap lock prevents rapid double taps, and an existing active alert for the same product is reused instead of duplicated — the row then shows "Owner notified".
+
+Owner Home shows active alerts with title, message, severity badge, created time, and a Resolve button, plus a compact active-count pill. Insights shows an active alert count metric.
+
+Cook/Niluto lives in Owner Inventory. The seller picks a finished product, enters how many pieces were produced, and saves. One SQLite transaction inserts a `recipe_batches` row, increases the product stock, and inserts a `cooked` inventory movement. Ingredient deduction is intentionally deferred — cooking only increases finished goods stock and does not consume ingredient products yet.
+
+Spoilage/Nasayang also lives in Owner Inventory. The seller picks a product, enters how many pieces were wasted, and optionally adds a reason. One SQLite transaction decreases the product stock and inserts a `spoilage` inventory movement. Spoilage can never push stock below zero; the save is blocked with a friendly message instead.
+
+Cook and spoilage movements appear in Owner Records under recent stock movements with Niluto and Nasayang badges. Fresh mode starts with no alerts, batches, or spoilage records; demo products can be used with these flows, but demo mode never auto-creates alerts, batches, or spoilage rows.
 
 ## Kiosk Selling
 
@@ -268,7 +288,8 @@ Because `app_settings` is cleared, the first-run choice appears again when the a
 - Records export/download.
 - Advanced analytics or chart libraries.
 - Full staff permissions and shift open/close workflow.
-- Cook/Niluto recipe or batch production.
+- Recipe ingredient deduction and batch costing for Cook/Niluto.
+- Push notifications for owner alerts.
 
 ## PWA Safety
 

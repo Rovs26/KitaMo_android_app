@@ -37,6 +37,26 @@ function paymentLabel(method: string) {
   return method;
 }
 
+function movementBadge(movementType: string, linkedSaleId: string | null): { label: string; tone: "primary" | "success" | "danger" | "neutral" } {
+  if (movementType === "cooked") {
+    return { label: "Niluto", tone: "primary" };
+  }
+
+  if (movementType === "spoilage") {
+    return { label: "Nasayang", tone: "danger" };
+  }
+
+  if (linkedSaleId) {
+    return { label: "Sale", tone: "success" };
+  }
+
+  if (movementType === "stock_in") {
+    return { label: "Stock in", tone: "success" };
+  }
+
+  return { label: "Stock", tone: "neutral" };
+}
+
 export default function OwnerRecordsScreen() {
   const [snapshot, setSnapshot] = useState<LocalAnalyticsSnapshot | null>(null);
   const [activeFilter, setActiveFilter] = useState<SalesRecordFilter>("today");
@@ -150,18 +170,21 @@ export default function OwnerRecordsScreen() {
         {snapshot?.recentMovements.length === 0 ? (
           <EmptyState description="Stock movement records will appear after Kiosk sales or inventory changes." title="No movement records yet" />
         ) : null}
-        {snapshot?.recentMovements.slice(0, 8).map((movement) => (
-          <View key={movement.id} style={[styles.movementRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
-            <View style={styles.movementText}>
-              <Text style={[styles.itemTitle, { color: palette.text }]}>{movement.productName}</Text>
-              <Text style={[styles.body, { color: palette.mutedText }]}>
-                {movement.movementType.replaceAll("_", " ")} · {movement.quantity} {movement.unitType ?? ""}
-              </Text>
-              <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(movement.createdAt)}</Text>
+        {snapshot?.recentMovements.slice(0, 8).map((movement) => {
+          const badge = movementBadge(movement.movementType, movement.linkedSaleId);
+          return (
+            <View key={movement.id} style={[styles.movementRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
+              <View style={styles.movementText}>
+                <Text style={[styles.itemTitle, { color: palette.text }]}>{movement.productName}</Text>
+                <Text style={[styles.body, { color: palette.mutedText }]}>
+                  {movement.movementType.replaceAll("_", " ")} · {movement.quantity} {movement.unitType ?? ""}
+                </Text>
+                <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(movement.createdAt)}</Text>
+              </View>
+              <Pill label={badge.label} tone={badge.tone} />
             </View>
-            <Pill label={movement.linkedSaleId ? "Sale" : "Stock"} tone={movement.linkedSaleId ? "success" : "neutral"} />
-          </View>
-        ))}
+          );
+        })}
       </Card>
     </ScreenScroll>
   );

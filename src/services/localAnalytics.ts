@@ -1,6 +1,6 @@
 import { openKitamoDatabase } from "@/db/client";
 import { runMigrations } from "@/db/migrations";
-import type { RepositoryDatabase } from "@/db/repositories";
+import { countActiveOwnerAlerts, type RepositoryDatabase } from "@/db/repositories";
 import type { PaymentMethod, Product, UnitType } from "@/domain/types";
 
 import { loadOwnerSetupStatus, type OwnerSetupMode } from "./ownerSetup";
@@ -75,6 +75,7 @@ export type LocalAnalyticsSnapshot = {
   recentSales: LocalSaleRecord[];
   recentMovements: LocalInventoryMovementRecord[];
   pendingQueueCount: number;
+  activeAlertCount: number;
 };
 
 type CountRow = {
@@ -460,6 +461,7 @@ export async function getLocalAnalyticsSnapshot(
   const topProducts = await getTopProducts(businessId, db);
   const recentSales = await listLocalSaleRecords(filter, businessId, db);
   const recentMovements = await listRecentInventoryMovements(businessId, db);
+  const activeAlertCount = businessId ? await countActiveOwnerAlerts(businessId, db) : 0;
 
   return {
     mode: status.mode,
@@ -475,5 +477,6 @@ export async function getLocalAnalyticsSnapshot(
     recentSales,
     recentMovements,
     pendingQueueCount: recordsSummary.pendingQueueCount,
+    activeAlertCount,
   };
 }

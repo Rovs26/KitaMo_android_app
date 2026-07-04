@@ -92,6 +92,7 @@ export type InventoryMovementType =
   | "stock_in"
   | "stock_out_sale"
   | "manual_adjustment"
+  | "cooked"
   | "spoilage"
   | "return_to_supplier"
   | "customer_return";
@@ -106,6 +107,32 @@ export type InventoryMovement = LocalEntity & {
   linkedSaleId: string | null;
   unitCost: number | null;
   totalCost: number | null;
+};
+
+export type OwnerAlertSeverity = "info" | "warning" | "critical";
+export type OwnerAlertStatus = "active" | "resolved";
+
+export type OwnerAlert = LocalEntity & {
+  businessId: string;
+  branchId: string | null;
+  productId: string | null;
+  alertType: string;
+  title: string;
+  message: string;
+  severity: OwnerAlertSeverity;
+  status: OwnerAlertStatus;
+  source: string;
+};
+
+export type RecipeBatch = LocalEntity & {
+  businessId: string;
+  branchId: string | null;
+  recipeName: string;
+  batches: number;
+  expectedServings: number;
+  actualServings: number;
+  totalBatchCost: number;
+  notes: string | null;
 };
 
 export type AppSettingKey =
