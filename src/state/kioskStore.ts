@@ -12,6 +12,9 @@ export type KioskCartItem = {
   unitCost: number;
   stockQty: number;
   lowStockThreshold: number;
+  bundleQuantity: number | null;
+  bundlePrice: number | null;
+  bundleLabel: string | null;
   quantity: number;
 };
 
@@ -52,7 +55,17 @@ export const useKioskStore = create<KioskState>((set, get) => ({
     if (currentItem) {
       set((state) => ({
         cartItems: state.cartItems.map((item) =>
-          item.productId === product.id ? { ...item, quantity: item.quantity + 1, stockQty: product.stockQty } : item,
+          item.productId === product.id
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+                stockQty: product.stockQty,
+                unitPrice: product.price,
+                bundleQuantity: product.bundleQuantity,
+                bundlePrice: product.bundlePrice,
+                bundleLabel: product.bundleLabel,
+              }
+            : item,
         ),
       }));
       return { ok: true };
@@ -71,6 +84,9 @@ export const useKioskStore = create<KioskState>((set, get) => ({
           unitCost: product.cost,
           stockQty: product.stockQty,
           lowStockThreshold: product.lowStockThreshold,
+          bundleQuantity: product.bundleQuantity,
+          bundlePrice: product.bundlePrice,
+          bundleLabel: product.bundleLabel,
           quantity: 1,
         },
       ],

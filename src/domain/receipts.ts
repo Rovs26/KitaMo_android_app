@@ -5,6 +5,8 @@ export type ReceiptLineItem = {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  bundleApplied?: boolean;
+  bundleLabel?: string | null;
 };
 
 export type ReceiptTextInput = {
@@ -57,9 +59,13 @@ export function buildReceiptText(input: ReceiptTextInput) {
     `Date: ${formatDateTime(input.happenedAt)}`,
     "",
     "Items",
-    ...input.items.map(
-      (item) => `${item.name} x ${item.quantity} @ ${formatMoney(item.unitPrice)} = ${formatMoney(item.lineTotal)}`,
-    ),
+    ...input.items.flatMap((item) => {
+      const itemLines = [`${item.name} x ${item.quantity} @ ${formatMoney(item.unitPrice)} = ${formatMoney(item.lineTotal)}`];
+      if (item.bundleApplied && item.bundleLabel) {
+        itemLines.push(`  Bundle: ${item.bundleLabel}`);
+      }
+      return itemLines;
+    }),
     "",
     `Subtotal: ${formatMoney(input.subtotal)}`,
   ];

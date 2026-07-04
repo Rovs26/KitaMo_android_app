@@ -4,9 +4,9 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 6: Local Ask, Records, and Insights.
+Android Phase 6.5: Bundle Pricing Parity.
 
-This phase keeps the Phase 5 local selling behavior intact and turns the Ask, Records, and Insights tabs into local-first MVP screens. Ask is deterministic and local-only, Records reads local SQLite sales/receipts/movements, and Insights shows simple local summaries without cloud sync or real AI.
+This phase keeps the Phase 6 local tabs intact and applies PWA-matched bundle pricing in Android Kiosk checkout. Bundle offers are still local-first SQLite data; no cloud sync, auth, AI, camera, Bluetooth, Customer/LGU mode, or release work was added.
 
 ## Run
 
@@ -34,6 +34,7 @@ npm run android
 - Owner Inventory product setup and product list backed by SQLite products.
 - Kiosk entry gate for active business, active stall, and product readiness.
 - Kiosk Sell product list, stock-aware cart, and quantity controls.
+- Bundle pricing parity for Kiosk cart, checkout, sale item totals, and receipts.
 - Kiosk Checkout for cash, GCash, Maya, bank transfer, other payment methods, reference capture, and optional discount.
 - Local sale transaction with sale items, stock decrement, inventory movement, receipt record, and pending offline queue entry.
 - Receipt display with clipboard copy and native share sheet when available.
@@ -142,6 +143,22 @@ If products are missing, Kiosk shows: “Add products in Owner Inventory first.�
 The Sell screen reads active-stall products from SQLite, shows stock and low-stock/out-of-stock status, and stores the cart in Zustand for simple navigation between Sell and Checkout.
 
 Phase 5.8 tightens Kiosk entry, Sell, and cart surfaces with smaller headers, compact product rows, clearer totals, and easier checkout scanning. Sale transaction behavior is unchanged.
+
+## Bundle Pricing
+
+Android Kiosk checkout matches the validated PWA bundle pricing rule. If a product has a valid bundle quantity and bundle price, checkout applies as many full bundles as possible, then prices the remaining units at the normal unit price.
+
+Example: unit price `PHP 20`, bundle `8 for PHP 150`:
+
+- quantity `7` = `PHP 140`
+- quantity `8` = `PHP 150`
+- quantity `9` = `PHP 170`
+- quantity `16` = `PHP 300`
+- quantity `17` = `PHP 320`
+
+Bundle pricing never increases the line total above normal `unit price x quantity`. If a bundle is missing, invalid, or not cheaper than normal pricing, the line uses normal unit pricing.
+
+Kiosk Sell displays available bundle offers on product rows and shows “Bundle applied” in the cart only when the bundle affects the line total. Checkout, receipt text, `sale_items.line_total`, and `sale_items.bundle_applied` use the same pure pricing helper in `src/domain/pricing.ts`.
 
 ## Checkout And Payments
 

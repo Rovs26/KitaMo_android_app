@@ -10,6 +10,7 @@ import {
   makeSaleId,
   makeSaleItemId,
 } from "@/domain/ids";
+import { calculateCartSubtotal, calculateLineTotal } from "@/domain/pricing";
 import type { Branch, Business, PaymentMethod, Product } from "@/domain/types";
 import type { KioskCartItem } from "@/state/kioskStore";
 
@@ -127,10 +128,6 @@ function createTransactionNo(saleId: string, happenedAt: string) {
   return `KTM-${datePart}-${shortId}`;
 }
 
-function getSubtotal(cartItems: KioskCartItem[]) {
-  return cartItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
-}
-
 async function countPendingQueue(db: RepositoryDatabase) {
   const row = await db.getFirstAsync<PendingQueueCountRow>(
     "SELECT COUNT(*) AS count FROM offline_queue WHERE status = 'pending' AND deleted_at IS NULL",
@@ -188,7 +185,11 @@ export async function completeKioskSale(
   const activeBusiness = context.activeBusiness;
   const activeBranch = context.activeBranch;
 
-  const subtotal = getSubtotal(input.cartItems);
+  const pricedItems = input.cartItems.map((item) => ({
+    item,
+    pricing: calculateLineTotal(item),
+  }));
+  const subtotal = calculateCartSubtotal(input.cartItems);
   const discount = Math.max(0, input.discountAmount ?? 0);
   if (discount > subtotal) {
     throw new Error("Discount cannot be greater than the cart subtotal.");
@@ -204,11 +205,13 @@ export async function completeKioskSale(
     saleId,
     transactionNo,
     happenedAt,
-    items: input.cartItems.map((item) => ({
+    items: pricedItems.map(({ item, pricing }) => ({
       name: item.name,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
-      lineTotal: item.quantity * item.unitPrice,
+      lineTotal: pricing.lineTotal,
+      bundleApplied: pricing.bundleApplied,
+      bundleLabel: pricing.displayLabel,
     })),
     subtotal,
     discount,
@@ -247,7 +250,7 @@ export async function completeKioskSale(
       ],
     );
 
-    for (const item of input.cartItems) {
+    for (const { item, pricing } of pricedItems) {
       if (item.quantity <= 0) {
         throw new Error(`${item.name} has an invalid quantity.`);
       }
@@ -283,8 +286,8 @@ export async function completeKioskSale(
           item.quantity,
           item.unitPrice,
           item.unitCost,
-          item.quantity * item.unitPrice,
-          0,
+          pricing.lineTotal,
+          pricing.bundleApplied ? 1 : 0,
           0,
           timestamp,
           timestamp,

@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { AppTopBar, Card, formatPeso, IconBadge, Pill, PrimaryButton, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { calculateCartSubtotal, calculateLineTotal } from "@/domain/pricing";
 import type { PaymentMethod } from "@/domain/types";
 import { completeKioskSale, type CompletedKioskSale } from "@/services/kioskSales";
 import { copyReceiptText, shareReceiptText } from "@/services/shareReceipt";
@@ -41,7 +42,7 @@ export default function KioskCheckoutScreen() {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const subtotal = calculateCartSubtotal(cartItems);
   const discount = parseMoney(discountAmount);
   const total = Math.max(0, subtotal - discount);
   const referenceRequired = paymentMethod !== "cash";
@@ -153,17 +154,23 @@ export default function KioskCheckoutScreen() {
               <Text style={[styles.body, { color: palette.mutedText }]}>Cart is empty. Add products before checkout.</Text>
             ) : null}
 
-            {cartItems.map((item) => (
-              <View key={item.productId} style={[styles.cartRow, { borderColor: palette.border }]}>
-                <View style={styles.cartText}>
-                  <Text style={[styles.itemTitle, { color: palette.text }]}>{item.name}</Text>
-                  <Text style={[styles.body, { color: palette.mutedText }]}>
-                    {item.quantity} x {formatMoney(item.unitPrice)}
-                  </Text>
+            {cartItems.map((item) => {
+              const pricing = calculateLineTotal(item);
+              return (
+                <View key={item.productId} style={[styles.cartRow, { borderColor: palette.border }]}>
+                  <View style={styles.cartText}>
+                    <Text style={[styles.itemTitle, { color: palette.text }]}>{item.name}</Text>
+                    <Text style={[styles.body, { color: palette.mutedText }]}>
+                      {item.quantity} x {formatMoney(item.unitPrice)}
+                    </Text>
+                    {pricing.bundleApplied && pricing.displayLabel ? (
+                      <Text style={[styles.bundleApplied, { color: palette.warning }]}>Bundle applied: {pricing.displayLabel}</Text>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.itemTotal, { color: palette.text }]}>{formatMoney(pricing.lineTotal)}</Text>
                 </View>
-                <Text style={[styles.itemTotal, { color: palette.text }]}>{formatMoney(item.quantity * item.unitPrice)}</Text>
-              </View>
-            ))}
+              );
+            })}
 
             <AmountRow label="Subtotal" value={subtotal} />
             <AmountRow label="Discount" value={discount} />
@@ -325,6 +332,11 @@ const styles = StyleSheet.create({
   },
   body: {
     ...typography.body,
+  },
+  bundleApplied: {
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
   },
   message: {
     ...typography.body,

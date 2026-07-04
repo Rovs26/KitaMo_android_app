@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
 import { AppTopBar, Card, EmptyState, formatPeso, Pill, PrimaryButton, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { isLowStock } from "@/domain/inventory";
+import { bundleLabelFor, calculateCartSubtotal, calculateLineTotal, hasBundlePricing } from "@/domain/pricing";
 import type { Product } from "@/domain/types";
 import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
 import { useKioskStore } from "@/state/kioskStore";
@@ -63,7 +64,7 @@ export default function KioskSellScreen() {
     }
   }
 
-  const total = cartItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const total = calculateCartSubtotal(cartItems);
 
   return (
     <ScreenScroll>
@@ -106,30 +107,36 @@ export default function KioskSellScreen() {
 
         {cartItems.length === 0 ? <EmptyState description="Tap a product above to start a sale." title="Cart is empty" /> : null}
 
-        {cartItems.map((item) => (
-          <View key={item.productId} style={[styles.cartItem, { backgroundColor: palette.background, borderColor: palette.border }]}>
-            <View style={styles.cartItemHeader}>
-              <View style={styles.cartText}>
-                <Text style={[styles.itemTitle, { color: palette.text }]}>{item.name}</Text>
-                <Text style={[styles.body, { color: palette.mutedText }]}>
-                  {formatMoney(item.unitPrice)} x {item.quantity} = {formatMoney(item.unitPrice * item.quantity)}
-                </Text>
+        {cartItems.map((item) => {
+          const pricing = calculateLineTotal(item);
+          return (
+            <View key={item.productId} style={[styles.cartItem, { backgroundColor: palette.background, borderColor: palette.border }]}>
+              <View style={styles.cartItemHeader}>
+                <View style={styles.cartText}>
+                  <Text style={[styles.itemTitle, { color: palette.text }]}>{item.name}</Text>
+                  <Text style={[styles.body, { color: palette.mutedText }]}>
+                    {formatMoney(item.unitPrice)} x {item.quantity} = {formatMoney(pricing.lineTotal)}
+                  </Text>
+                  {pricing.bundleApplied && pricing.displayLabel ? (
+                    <Text style={[styles.bundleApplied, { color: palette.warning }]}>Bundle applied: {pricing.displayLabel}</Text>
+                  ) : null}
+                </View>
+                <Pressable onPress={() => removeCartItem(item.productId)}>
+                  <Text style={[styles.clearText, { color: palette.danger }]}>Remove</Text>
+                </Pressable>
               </View>
-              <Pressable onPress={() => removeCartItem(item.productId)}>
-                <Text style={[styles.clearText, { color: palette.danger }]}>Remove</Text>
-              </Pressable>
+              <View style={styles.quantityRow}>
+                <Pressable style={[styles.quantityButton, { borderColor: palette.border }]} onPress={() => decrementCartItem(item.productId)}>
+                  <Text style={[styles.quantityText, { color: palette.text }]}>-</Text>
+                </Pressable>
+                <Text style={[styles.quantityValue, { color: palette.text }]}>{item.quantity}</Text>
+                <Pressable style={[styles.quantityButton, { borderColor: palette.border }]} onPress={() => increase(item.productId)}>
+                  <Text style={[styles.quantityText, { color: palette.text }]}>+</Text>
+                </Pressable>
+              </View>
             </View>
-            <View style={styles.quantityRow}>
-              <Pressable style={[styles.quantityButton, { borderColor: palette.border }]} onPress={() => decrementCartItem(item.productId)}>
-                <Text style={[styles.quantityText, { color: palette.text }]}>-</Text>
-              </Pressable>
-              <Text style={[styles.quantityValue, { color: palette.text }]}>{item.quantity}</Text>
-              <Pressable style={[styles.quantityButton, { borderColor: palette.border }]} onPress={() => increase(item.productId)}>
-                <Text style={[styles.quantityText, { color: palette.text }]}>+</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
+          );
+        })}
 
         <View style={styles.totalRow}>
           <Text style={[styles.totalLabel, { color: palette.text }]}>Total</Text>
@@ -154,6 +161,7 @@ function ProductRow({ product, onAdd }: ProductRowProps) {
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const lowStock = isLowStock(product.stockQty, product.lowStockThreshold);
   const outOfStock = product.stockQty <= 0;
+  const bundleLabel = hasBundlePricing(product) ? bundleLabelFor(product.bundleQuantity, product.bundlePrice, product.bundleLabel) : null;
 
   return (
     <Pressable
@@ -173,6 +181,7 @@ function ProductRow({ product, onAdd }: ProductRowProps) {
         <Text style={[styles.body, { color: palette.mutedText }]}>
           {product.stockQty} {product.unitType} | {formatMoney(product.price)}
         </Text>
+        {bundleLabel ? <Text style={[styles.bundleOffer, { color: palette.warning }]}>{bundleLabel}</Text> : null}
       </View>
       <View style={styles.badges}>
         {outOfStock ? <Pill label="Out" tone="danger" /> : null}
@@ -201,6 +210,16 @@ const styles = StyleSheet.create({
   },
   body: {
     ...typography.body,
+  },
+  bundleOffer: {
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
+  },
+  bundleApplied: {
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
   },
   message: {
     ...typography.body,
