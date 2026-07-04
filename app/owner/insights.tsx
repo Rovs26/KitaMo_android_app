@@ -89,17 +89,21 @@ export default function OwnerInsightsScreen() {
             )}
           </Card>
 
-          <View style={styles.metricGrid}>
-            <MetricCard detail="Active items" icon="I" label="Products" tone="success" value={String(snapshot.lowStock.productCount)} />
-            <MetricCard detail="Need review" icon="L" label="Low stock" tone={snapshot.lowStock.lowStockCount > 0 ? "warning" : "success"} value={String(snapshot.lowStock.lowStockCount)} />
-            <MetricCard detail="Owner alerts" icon="A" label="Alerts" tone={snapshot.activeAlertCount > 0 ? "warning" : "success"} value={String(snapshot.activeAlertCount)} />
-          </View>
-
           <Card>
             <Text style={[styles.sectionTitle, { color: palette.text }]}>Top products</Text>
             <TopProductCard label="By quantity sold" product={snapshot.topProductByQuantity} />
             <TopProductCard label="By sales amount" product={snapshot.topProductBySales} />
           </Card>
+        </>
+      ) : null}
+
+      {snapshot && !loading ? (
+        <>
+          <View style={styles.metricGrid}>
+            <MetricCard detail="Active items" icon="I" label="Products" tone="success" value={String(snapshot.lowStock.productCount)} />
+            <MetricCard detail="Need review" icon="L" label="Low stock" tone={snapshot.lowStock.lowStockCount > 0 ? "warning" : "success"} value={String(snapshot.lowStock.lowStockCount)} />
+            <MetricCard detail="Owner alerts" icon="A" label="Alerts" tone={snapshot.activeAlertCount > 0 ? "warning" : "success"} value={String(snapshot.activeAlertCount)} />
+          </View>
 
           <Card>
             <Text style={[styles.sectionTitle, { color: palette.text }]}>Stock watch</Text>

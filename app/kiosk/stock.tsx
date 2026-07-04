@@ -94,11 +94,13 @@ export default function KioskStockScreen() {
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Products</Text>
-        {context?.setupMessage ? <Text style={[styles.body, { color: palette.warning }]}>{context.setupMessage}</Text> : null}
+        {context?.setupMessage && context.setupMessage !== "Add products in Owner Inventory first." ? (
+          <Text style={[styles.body, { color: palette.warning }]}>{context.setupMessage}</Text>
+        ) : null}
         {context && context.products.length === 0 ? (
           <>
-            <EmptyState description="Add products in Owner Inventory first." title="No products to sell" />
-            <SecondaryButton href="/owner/inventory" label="Add products in Owner Inventory" />
+            <EmptyState description="Add your first paninda para makita dito ang stock." title="No products yet" />
+            <SecondaryButton href="/owner/inventory" label="Open Owner Inventory" />
           </>
         ) : null}
 

@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/KitaMoUI";
 import { listActiveOwnerAlerts, resolveOwnerAlert } from "@/db/repositories";
 import type { OwnerAlert, OwnerAlertSeverity } from "@/domain/types";
-import { getKioskShiftSummary, listRecentKioskOrders, type KioskOrderSummary, type KioskShiftSummary } from "@/services/kioskSales";
+import { listRecentKioskOrders, type KioskOrderSummary } from "@/services/kioskSales";
+import { getTodaySalesSummary, type TodaySalesSummary } from "@/services/localAnalytics";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
@@ -50,7 +51,7 @@ function formatAlertTime(value: string) {
 
 export default function OwnerHomeScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
-  const [summary, setSummary] = useState<KioskShiftSummary | null>(null);
+  const [today, setToday] = useState<TodaySalesSummary | null>(null);
   const [recentOrders, setRecentOrders] = useState<KioskOrderSummary[]>([]);
   const [alerts, setAlerts] = useState<OwnerAlert[]>([]);
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export default function OwnerHomeScreen() {
       async function loadStatus() {
         try {
           const nextStatus = await loadOwnerSetupStatus();
-          const nextSummary = await getKioskShiftSummary();
+          const nextToday = await getTodaySalesSummary(nextStatus.activeBusiness?.id ?? null);
           const orders = await listRecentKioskOrders(2);
           const nextAlerts = nextStatus.activeBusiness ? await listActiveOwnerAlerts(nextStatus.activeBusiness.id) : [];
           if (!active) {
@@ -77,7 +78,7 @@ export default function OwnerHomeScreen() {
           }
 
           setStatus(nextStatus);
-          setSummary(nextSummary);
+          setToday(nextToday);
           setRecentOrders(orders);
           setAlerts(nextAlerts);
           setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
@@ -123,7 +124,7 @@ export default function OwnerHomeScreen() {
   const setupComplete = Boolean(status?.activeBusiness && status.activeBranch && status.productCount > 0);
   const activeBusiness = status?.activeBusiness?.businessName ?? "Set up your business";
   const activeBranch = status?.activeBranch?.branchName ?? "No active stall yet";
-  const salesTotal = summary?.grossSales ?? 0;
+  const salesTotal = today?.salesTotal ?? 0;
   const pendingCount = status?.pendingQueueCount ?? 0;
 
   return (
@@ -141,7 +142,6 @@ export default function OwnerHomeScreen() {
         <Text style={[styles.businessPillText, { color: palette.text }]} numberOfLines={1}>
           {activeBusiness}
         </Text>
-        <Text style={[styles.businessPillCaret, { color: palette.mutedText }]}>v</Text>
       </View>
 
       <HeroCard>
@@ -161,16 +161,18 @@ export default function OwnerHomeScreen() {
       </HeroCard>
 
       <View style={styles.metricGrid}>
-        <MetricCard detail={`${summary?.salesCount ?? 0} transactions`} icon="B" label="Benta" tone="primary" value={formatPeso(salesTotal)} />
-        <MetricCard detail="No expenses yet" icon="G" label="Gastos" tone="danger" value={formatPeso(0)} />
-        <MetricCard detail="Local gross view" icon="T" label="Tubo" tone="success" value={formatPeso(salesTotal)} />
+        <MetricCard detail={`${today?.transactionCount ?? 0} transactions today`} icon="B" label="Benta" tone="primary" value={formatPeso(salesTotal)} />
+        <MetricCard detail="No expenses recorded yet" icon="G" label="Gastos" tone="danger" value={formatPeso(0)} />
+        <MetricCard detail="Benta minus puhunan today" icon="T" label="Tubo" tone="success" value={formatPeso(Math.max(0, salesTotal - (today?.costTotal ?? 0)))} />
         <MetricCard detail="Pending saves" icon="P" label="Pending" tone="accent" value={String(pendingCount)} />
       </View>
 
       {!status ? (
         <Card>
-          <SectionHeader title="Loading" />
-          <Text style={[styles.body, { color: palette.mutedText }]}>Checking your local workspace.</Text>
+          <SectionHeader title={error ? "Please try again" : "Loading"} />
+          <Text style={[styles.body, { color: palette.mutedText }]}>
+            {error ? "Hindi ma-load ang workspace. Balikan ang Home para subukan ulit." : "Checking your local workspace."}
+          </Text>
         </Card>
       ) : !setupComplete ? (
         <Card>
@@ -297,11 +299,6 @@ const styles = StyleSheet.create({
   businessPillText: {
     ...typography.button,
     maxWidth: 250,
-  },
-  businessPillCaret: {
-    fontSize: 14,
-    fontWeight: "800",
-    lineHeight: 18,
   },
   heroTop: {
     alignItems: "center",

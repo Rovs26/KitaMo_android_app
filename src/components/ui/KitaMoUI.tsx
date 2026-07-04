@@ -46,7 +46,9 @@ export function ScreenScroll({ children, bottomNav = false }: PropsWithChildren<
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, bottomNav ? styles.scrollWithNav : null]}>{children}</ScrollView>
+      <ScrollView contentContainerStyle={[styles.scrollContent, bottomNav ? styles.scrollWithNav : null]} keyboardShouldPersistTaps="handled">
+        {children}
+      </ScrollView>
       {bottomNav ? <OwnerBottomNav /> : null}
     </View>
   );

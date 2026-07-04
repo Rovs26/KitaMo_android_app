@@ -38,13 +38,25 @@ export default function KioskCheckoutScreen() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
   const [completedSale, setCompletedSale] = useState<CompletedKioskSale | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
+  function setNotice(text: string) {
+    setMessage(text);
+    setMessageIsError(false);
+  }
+
+  function setError(text: string) {
+    setMessage(text);
+    setMessageIsError(true);
+  }
+
   const subtotal = calculateCartSubtotal(cartItems);
   const discount = parseMoney(discountAmount);
-  const total = Math.max(0, subtotal - discount);
+  const discountInvalid = discount === null;
+  const total = Math.max(0, subtotal - (discount ?? 0));
   const referenceRequired = paymentMethod !== "cash";
 
   async function confirmCheckout() {
@@ -53,37 +65,42 @@ export default function KioskCheckoutScreen() {
     }
 
     if (cartItems.length === 0) {
-      setMessage("Cart is empty.");
+      setError("Cart is empty.");
+      return;
+    }
+
+    if (discount === null) {
+      setError("Discount should be a number, like 10 or 12.50.");
       return;
     }
 
     if (discount > subtotal) {
-      setMessage("Discount cannot be greater than subtotal.");
+      setError("Discount cannot be greater than subtotal.");
       return;
     }
 
     if (referenceRequired && !referenceNumber.trim()) {
-      setMessage(`${paymentLabel(paymentMethod)} needs a reference number before completing checkout.`);
+      setError(`${paymentLabel(paymentMethod)} needs a reference number before completing checkout.`);
       return;
     }
 
     savingRef.current = true;
     setSaving(true);
-    setMessage("Saving local sale...");
+    setNotice("Saving local sale...");
     try {
       const sale = await completeKioskSale({
         cartItems,
         paymentMethod,
-        externalReferenceNumber: referenceNumber.trim() || null,
+        externalReferenceNumber: referenceRequired ? referenceNumber.trim() || null : null,
         discountAmount: discount,
       });
       setCompletedSale(sale);
       setLastReceipt(sale.saleId, sale.receiptText);
       clearCart();
-      setMessage("Sale completed locally.");
+      setNotice("Sale completed. Saved locally on this device.");
     } catch (error) {
       logDevError("KioskCheckout.confirmCheckout", error);
-      setMessage(getUserSafeErrorMessage(error, "Could not complete checkout."));
+      setError(getUserSafeErrorMessage(error, "Could not complete checkout."));
       savingRef.current = false;
     } finally {
       setSaving(false);
@@ -96,7 +113,7 @@ export default function KioskCheckoutScreen() {
     }
 
     await copyReceiptText(completedSale.receiptText);
-    setMessage("Receipt copied to clipboard.");
+    setNotice("Receipt copied to clipboard.");
   }
 
   async function shareReceipt() {
@@ -105,14 +122,18 @@ export default function KioskCheckoutScreen() {
     }
 
     const shared = await shareReceiptText(completedSale.receiptText);
-    setMessage(shared ? "Receipt shared." : "Sharing is not available on this device.");
+    if (shared) {
+      setNotice("Share options opened.");
+    } else {
+      setError("Sharing is not available on this device.");
+    }
   }
 
   return (
     <ScreenScroll>
       <AppTopBar subtitle="Review payment and save the receipt." title="Complete sale" />
 
-      {message ? <Text style={[styles.message, { color: message.includes("Could not") || message.includes("cannot") ? palette.danger : palette.text }]}>{message}</Text> : null}
+      {message ? <Text style={[styles.message, { color: messageIsError ? palette.danger : palette.text }]}>{message}</Text> : null}
 
       {completedSale ? (
         <Card>
@@ -173,7 +194,7 @@ export default function KioskCheckoutScreen() {
             })}
 
             <AmountRow label="Subtotal" value={subtotal} />
-            <AmountRow label="Discount" value={discount} />
+            <AmountRow label="Discount" value={discount ?? 0} />
             <AmountRow strong label="Total" value={total} />
           </Card>
 
@@ -220,6 +241,9 @@ export default function KioskCheckoutScreen() {
               placeholder="Optional"
               value={discountAmount}
             />
+            {discountInvalid ? (
+              <Text style={[styles.body, { color: palette.danger }]}>Discount should be a number, like 10 or 12.50.</Text>
+            ) : null}
 
             <PrimaryButton disabled={saving || cartItems.length === 0} label={saving ? "Saving..." : "Confirm Checkout"} onPress={confirmCheckout} />
           </Card>
@@ -229,14 +253,22 @@ export default function KioskCheckoutScreen() {
   );
 }
 
-function parseMoney(value: string) {
+function parseMoney(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) {
     return 0;
   }
 
+  if (trimmed.includes(",")) {
+    return null;
+  }
+
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
 }
 
 type AmountRowProps = {

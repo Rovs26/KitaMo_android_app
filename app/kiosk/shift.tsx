@@ -46,7 +46,7 @@ export default function KioskShiftScreen() {
 
   return (
     <ScreenScroll>
-      <AppTopBar subtitle="Running totals for sales saved on this phone." title="Shift Summary" />
+      <AppTopBar subtitle="Lahat ng benta na naka-save sa phone na ito." title="Shift Summary" />
 
       {message ? <Text style={[styles.body, { color: palette.danger }]}>{message}</Text> : null}
 
@@ -61,7 +61,7 @@ export default function KioskShiftScreen() {
         <MetricCard detail={`${summary?.salesCount ?? 0} sales`} icon="B" label="Total Sales" tone="primary" value={summary ? formatMoney(summary.grossSales) : "..."} />
         <MetricCard detail="Cash payments" icon="C" label="Cash" tone="success" value={summary ? formatMoney(summary.cashTotal) : "..."} />
         <MetricCard detail="GCash and Maya" icon="G" label="E-wallet" tone="accent" value={summary ? formatMoney((summary.gcashTotal + summary.mayaTotal)) : "..."} />
-        <MetricCard detail="Local queue" icon="P" label="Pending" tone="warning" value={summary ? String(summary.pendingQueueCount) : "..."} />
+        <MetricCard detail="Pending saves" icon="P" label="Pending" tone="warning" value={summary ? String(summary.pendingQueueCount) : "..."} />
       </View>
 
       <Card>

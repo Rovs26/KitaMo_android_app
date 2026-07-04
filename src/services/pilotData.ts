@@ -12,6 +12,7 @@ import {
   setBooleanAppSetting,
   type RepositoryDatabase,
 } from "@/db/repositories";
+import type { Branch, Business, Product } from "@/domain/types";
 
 export async function initializeLocalDataFoundation(db: RepositoryDatabase = openKitamoDatabase()) {
   const migrationResult = await runMigrations(db);
@@ -45,98 +46,108 @@ export async function seedDemoData(db: RepositoryDatabase = openKitamoDatabase()
     };
   }
 
-  const business = await createBusiness(
-    {
-      businessName: "KitaMo Demo Stall",
-      businessType: "kiosk",
-      ownerName: "Demo Seller",
-      barangay: "Demo Barangay",
-      contactNumber: null,
-      preferredLanguage: "Taglish",
-    },
-    db,
-  );
+  let business: Business | null = null;
+  let branch: Branch | null = null;
+  const products: Product[] = [];
 
-  const branch = await createBranch(
-    {
-      businessId: business.id,
-      branchName: "Night Bazaar Booth",
-      location: "Demo Night Market",
-      branchType: "stall",
-    },
-    db,
-  );
-
-  const products = [
-    await createProduct(
+  await db.withExclusiveTransactionAsync(async (txn) => {
+    business = await createBusiness(
       {
-        businessId: business.id,
-        branchId: branch.id,
-        name: "Coke Mismo",
-        category: "Drinks",
-        price: 25,
-        cost: 18,
-        stockQty: 12,
-        unitType: "bottle",
-        lowStockThreshold: 6,
-        productType: "retail item",
+        businessName: "KitaMo Demo Stall",
+        businessType: "kiosk",
+        ownerName: "Demo Seller",
+        barangay: "Demo Barangay",
+        contactNumber: null,
+        preferredLanguage: "Taglish",
       },
-      db,
-    ),
-    await createProduct(
-      {
-        businessId: business.id,
-        branchId: branch.id,
-        name: "Adobo Rice Meal",
-        category: "Rice meals",
-        price: 85,
-        cost: 48,
-        stockQty: 10,
-        unitType: "serving",
-        lowStockThreshold: 4,
-        productType: "cooked food",
-      },
-      db,
-    ),
-    await createProduct(
-      {
-        businessId: business.id,
-        branchId: branch.id,
-        name: "Sushi Roll",
-        category: "Night bazaar",
-        price: 20,
-        cost: 11,
-        stockQty: 40,
-        unitType: "piece",
-        lowStockThreshold: 12,
-        bundleQuantity: 8,
-        bundlePrice: 150,
-        bundleLabel: "8 for PHP 150",
-        productType: "cooked food",
-      },
-      db,
-    ),
-  ];
-
-  for (const product of products) {
-    await createInventoryMovement(
-      {
-        businessId: business.id,
-        branchId: branch.id,
-        productId: product.id,
-        movementType: "stock_in",
-        quantity: product.stockQty,
-        reason: "Demo opening stock",
-        unitCost: product.cost,
-        totalCost: product.cost * product.stockQty,
-      },
-      db,
+      txn,
     );
-  }
 
-  await setAppSetting("activeBusinessId", business.id, "string", db);
-  await setAppSetting("activeBranchId", branch.id, "string", db);
-  await setBooleanAppSetting("hasSeededDemoData", true, db);
+    branch = await createBranch(
+      {
+        businessId: business.id,
+        branchName: "Night Bazaar Booth",
+        location: "Demo Night Market",
+        branchType: "stall",
+      },
+      txn,
+    );
+
+    products.push(
+      await createProduct(
+        {
+          businessId: business.id,
+          branchId: branch.id,
+          name: "Coke Mismo",
+          category: "Drinks",
+          price: 25,
+          cost: 18,
+          stockQty: 12,
+          unitType: "bottle",
+          lowStockThreshold: 6,
+          productType: "retail item",
+        },
+        txn,
+      ),
+      await createProduct(
+        {
+          businessId: business.id,
+          branchId: branch.id,
+          name: "Adobo Rice Meal",
+          category: "Rice meals",
+          price: 85,
+          cost: 48,
+          stockQty: 10,
+          unitType: "serving",
+          lowStockThreshold: 4,
+          productType: "cooked food",
+        },
+        txn,
+      ),
+      await createProduct(
+        {
+          businessId: business.id,
+          branchId: branch.id,
+          name: "Sushi Roll",
+          category: "Night bazaar",
+          price: 20,
+          cost: 11,
+          stockQty: 40,
+          unitType: "piece",
+          lowStockThreshold: 12,
+          bundleQuantity: 8,
+          bundlePrice: 150,
+          bundleLabel: "8 for PHP 150",
+          productType: "cooked food",
+        },
+        txn,
+      ),
+    );
+
+    for (const product of products) {
+      await createInventoryMovement(
+        {
+          businessId: business.id,
+          branchId: branch.id,
+          productId: product.id,
+          movementType: "stock_in",
+          quantity: product.stockQty,
+          reason: "Demo opening stock",
+          unitCost: product.cost,
+          totalCost: product.cost * product.stockQty,
+        },
+        txn,
+      );
+    }
+
+    await setAppSetting("activeBusinessId", business.id, "string", txn);
+    await setAppSetting("activeBranchId", branch.id, "string", txn);
+    await setBooleanAppSetting("hasSeededDemoData", true, txn);
+  });
+
+  if (!business || !branch) {
+    throw new Error("Demo data was not created.");
+  }
 
   return {
     seeded: true,

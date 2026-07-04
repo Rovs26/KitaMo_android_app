@@ -4,9 +4,43 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 7: Stock, Cook, and Alerts.
+Android Phase 7.5: End-to-End QA Hardening and Seller Pilot Cleanup.
 
-This phase adds the next operational layer for food sellers and stock-aware sellers: local-only owner alerts, a Notify Owner action in Kiosk Stock, a basic Cook/Niluto batch flow, Spoilage/Nasayang logging, and owner alert visibility in Home and Insights. Everything remains local-first SQLite; no push notifications, cloud sync, auth, AI, camera, Bluetooth, Customer/LGU mode, or release work was added.
+This phase walked every seller flow end to end (first run, Owner Home, Settings, Inventory, Cook/Spoilage, Kiosk sell/checkout/receipt/orders/stock/shift, Ask, Records, Insights, alerts) and fixed the bugs, stale totals, edge cases, and copy issues found. No new features, schema changes, or integrations were added.
+
+Phase 7 added the operational layer for food sellers: local-only owner alerts, Notify Owner in Kiosk Stock, the Cook/Niluto batch flow, Spoilage/Nasayang logging, and owner alert visibility in Home and Insights. Everything remains local-first SQLite; no push notifications, cloud sync, auth, AI, camera, Bluetooth, Customer/LGU mode, or release work.
+
+### Phase 7.5 fixes
+
+- Owner Home "Today's Kita", Benta, and Tubo now use today's sales only (they previously showed all-time totals), and Tubo now shows benta minus recorded product cost instead of repeating gross sales.
+- Editing a product no longer silently reverts stock changes that happened while the edit form was open (kiosk sales, cooking, spoilage): stock is only written when the seller actually edits the stock field.
+- Editing a product no longer silently moves it to the active stall or force-reactivates it.
+- A reference number typed for GCash/Maya/bank is no longer saved onto the sale (or printed on the receipt) when the seller switches back to cash before checkout.
+- Invalid discount input now blocks checkout with a friendly message instead of being silently treated as zero.
+- Demo seeding now runs in one SQLite transaction (no partial demo data if interrupted) and the first-run buttons have a double-tap lock, so demo data cannot be created twice.
+- Deactivating the currently active stall now moves the active selection to another active stall when one exists.
+- Cooking a low-stock product back above its threshold now auto-resolves its active low-stock alert, so Notify Owner can fire again on the next shortage.
+- Unsaved Business Profile edits are no longer wiped when a stall is added, edited, or selected.
+- Number fields (stock, prices, bundle, cook/spoilage quantities, discount) now reject commas and non-numeric input with a friendly message instead of silently saving 0.
+- Insights now shows Products, Low stock, Alerts, and Stock watch even before the first sale (sales metrics still appear only after real sales).
+- Error messages now render in red consistently in Settings, Inventory, and Checkout; Cook and Spoilage feedback now appears next to their own Save buttons.
+- Taps on Save/Checkout buttons now work on the first tap while the keyboard is open.
+- Receipt text no longer includes the internal sale ID or sync wording; it now ends with "Saved locally on this device."
+- Removed the non-functional dropdown caret on the Home business pill; Orders and Inventory no longer flash empty/form states while loading; returning users no longer see the first-run chooser flash; Kiosk Stock empty state no longer repeats the same sentence three times; assorted Taglish copy cleanups ("Pending saves", Settings subtitle, share feedback).
+
+### Verified in this pass
+
+- Bundle pricing regression (unit 20, bundle 8-for-150): qty 7/8/9/16/17 = 140/150/170/300/320 through the shared pricing helper used by cart, checkout, sale rows, receipts, and Records/Insights totals. Run `npm run check:pricing` to re-verify.
+- Sale, cook, and spoilage writes are each one SQLite transaction; negative stock is blocked at the SQL level (`stock_qty >= ?` guards); duplicate submissions are blocked by synchronous tap locks on checkout, cook, spoilage, notify, resolve, and first-run actions.
+- Fresh mode starts empty; demo data appears only after Try Demo Data; Clear Local Data returns to the first-run choice.
+- The dev verification panel stays hidden (`__DEV__` + a flag that is hard-coded off); no SQLite/migration/queue wording appears in seller-facing screens.
+
+### Known limitations (honest)
+
+- Shift Summary shows all sales saved on the phone (there is no shift open/close yet); the subtitle says so.
+- Service-type products still track a stock quantity; give them a high stock number for now so they stay sellable.
+- Owner Home shows up to 4 active alerts; resolve them to see the rest. There is no separate alerts screen yet.
+- Expenses (Gastos) are not recorded yet, so Tubo is benta minus product cost only.
 
 ## Run
 
@@ -14,6 +48,7 @@ This phase adds the next operational layer for food sellers and stock-aware sell
 npm install
 npm run typecheck
 npm run lint
+npm run check:pricing
 npm run start
 ```
 
@@ -290,6 +325,9 @@ Because `app_settings` is cleared, the first-run choice appears again when the a
 - Full staff permissions and shift open/close workflow.
 - Recipe ingredient deduction and batch costing for Cook/Niluto.
 - Push notifications for owner alerts.
+- Expense (Gastos) recording.
+- A dedicated alerts list screen.
+- Stock-free selling for service-type products.
 
 ## PWA Safety
 

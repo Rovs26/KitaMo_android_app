@@ -111,6 +111,7 @@ export async function recordCookedBatch(
   const timestamp = new Date().toISOString();
   const batchId = makeBatchId();
   const batchCost = product.cost * input.quantity;
+  const restockedAboveThreshold = product.stockQty + input.quantity > product.lowStockThreshold;
 
   await db.withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
@@ -174,6 +175,18 @@ export async function recordCookedBatch(
         null,
       ],
     );
+
+    if (restockedAboveThreshold) {
+      await txn.runAsync(
+        `
+          UPDATE owner_alerts
+          SET status = 'resolved', updated_at = ?, sync_status = 'local'
+          WHERE product_id = ? AND business_id = ? AND alert_type = ?
+            AND status IN ('active', 'open') AND deleted_at IS NULL
+        `,
+        [timestamp, product.id, business.id, LOW_STOCK_ALERT_TYPE],
+      );
+    }
   });
 
   return {

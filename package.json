@@ -7,7 +7,8 @@
     "start": "EXPO_NO_TELEMETRY=1 expo start",
     "android": "EXPO_NO_TELEMETRY=1 expo start --android",
     "lint": "EXPO_NO_TELEMETRY=1 expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:pricing": "tsc src/domain/pricing.ts --outDir node_modules/.cache/kitamo-pricing-check --module commonjs --target es2020 --skipLibCheck && node scripts/check-pricing.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

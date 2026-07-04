@@ -30,13 +30,19 @@ function paymentLabel(method: PaymentMethod) {
 export default function KioskOrdersScreen() {
   const [orders, setOrders] = useState<KioskOrderSummary[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<KioskOrderSummary | null>(null);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
   const refresh = useCallback(async () => {
-    const nextOrders = await listRecentKioskOrders();
-    setOrders(nextOrders);
+    setLoading(true);
+    try {
+      const nextOrders = await listRecentKioskOrders();
+      setOrders(nextOrders);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useFocusEffect(
@@ -70,7 +76,7 @@ export default function KioskOrdersScreen() {
     }
 
     const shared = await shareReceiptText(selectedOrder.receiptText);
-    setMessage(shared ? "Receipt shared." : "Sharing is not available on this device.");
+    setMessage(shared ? "Share options opened." : "Sharing is not available on this device.");
   }
 
   return (
@@ -81,7 +87,10 @@ export default function KioskOrdersScreen() {
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Orders</Text>
-        {orders.length === 0 ? <EmptyState description="Kiosk sales will appear here after checkout." title="No local sales yet" /> : null}
+        {loading ? <EmptyState description="Reading local sales." title="Loading orders" /> : null}
+        {!loading && orders.length === 0 ? (
+          <EmptyState description="Kiosk sales will appear here after checkout." title="No local sales yet" />
+        ) : null}
 
         {orders.map((order) => (
           <ListRow

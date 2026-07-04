@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card, IconBadge, KitaMoBrand, PrimaryButton, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
@@ -21,6 +21,7 @@ export default function WelcomeScreen() {
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState<"fresh" | "demo" | null>(null);
   const [message, setMessage] = useState("Preparing local data.");
+  const startLock = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -62,6 +63,11 @@ export default function WelcomeScreen() {
   }, [router, setActiveBranchId, setActiveBusinessId, setCurrentMode]);
 
   async function startFresh() {
+    if (startLock.current) {
+      return;
+    }
+
+    startLock.current = true;
     setBusy("fresh");
     setMessage("Starting with an empty local workspace.");
     try {
@@ -74,11 +80,17 @@ export default function WelcomeScreen() {
       logDevError("Welcome.startFresh", error);
       setMessage(getFriendlyErrorMessage("Could not start fresh mode."));
     } finally {
+      startLock.current = false;
       setBusy(null);
     }
   }
 
   async function tryDemoData() {
+    if (startLock.current) {
+      return;
+    }
+
+    startLock.current = true;
     setBusy("demo");
     setMessage("Creating demo business, stall, and products.");
     try {
@@ -92,6 +104,7 @@ export default function WelcomeScreen() {
       logDevError("Welcome.tryDemoData", error);
       setMessage(getFriendlyErrorMessage("Could not create demo data."));
     } finally {
+      startLock.current = false;
       setBusy(null);
     }
   }
@@ -112,31 +125,37 @@ export default function WelcomeScreen() {
         <View style={styles.choiceHeader}>
           <IconBadge label="K" tone="primary" size="lg" />
           <View style={styles.choiceText}>
-            <Text style={[styles.choiceTitle, { color: palette.text }]}>Start local-first</Text>
+            <Text style={[styles.choiceTitle, { color: palette.text }]}>{checking ? "Opening KitaMo" : "Start local-first"}</Text>
             <Text style={[styles.body, { color: palette.mutedText }]}>{message}</Text>
           </View>
         </View>
 
-        <PrimaryButton disabled={disabled} label={busy === "fresh" ? "Starting..." : "Start Fresh Business"} onPress={startFresh} />
-        <SecondaryButton disabled={disabled} label={busy === "demo" ? "Creating demo..." : "Try Demo Data"} onPress={tryDemoData} />
+        {!checking ? (
+          <>
+            <PrimaryButton disabled={disabled} label={busy === "fresh" ? "Starting..." : "Start Fresh Business"} onPress={startFresh} />
+            <SecondaryButton disabled={disabled} label={busy === "demo" ? "Creating demo..." : "Try Demo Data"} onPress={tryDemoData} />
+          </>
+        ) : null}
       </Card>
 
-      <View style={styles.infoGrid}>
-        <ModeTile
-          description="No sample products, sales, or records."
-          disabled={disabled}
-          label="Fresh"
-          onPress={startFresh}
-          toneColor={palette.primary}
-        />
-        <ModeTile
-          description="One sample business, stall, and products."
-          disabled={disabled}
-          label="Demo"
-          onPress={tryDemoData}
-          toneColor={palette.accent}
-        />
-      </View>
+      {!checking ? (
+        <View style={styles.infoGrid}>
+          <ModeTile
+            description="No sample products, sales, or records."
+            disabled={disabled}
+            label="Fresh"
+            onPress={startFresh}
+            toneColor={palette.primary}
+          />
+          <ModeTile
+            description="One sample business, stall, and products."
+            disabled={disabled}
+            label="Demo"
+            onPress={tryDemoData}
+            toneColor={palette.accent}
+          />
+        </View>
+      ) : null}
     </ScreenScroll>
   );
 }

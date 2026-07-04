@@ -23,6 +23,7 @@ type ProductForm = {
   productType: ProductType;
   unitType: UnitType;
   stockQty: string;
+  initialStockQty: string | null;
   lowStockThreshold: string;
   price: string;
   cost: string;
@@ -38,6 +39,7 @@ const emptyProductForm: ProductForm = {
   productType: "retail item",
   unitType: "piece",
   stockQty: "",
+  initialStockQty: null,
   lowStockThreshold: "",
   price: "",
   cost: "",
@@ -45,6 +47,8 @@ const emptyProductForm: ProductForm = {
   bundlePrice: "",
   bundleLabel: "",
 };
+
+const numbersOnlyMessage = "Numbers only, like 1500 or 12.5. Walang comma.";
 
 type CookForm = {
   productId: string | null;
@@ -67,14 +71,29 @@ export default function OwnerInventoryScreen() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
   const [cookForm, setCookForm] = useState<CookForm>(emptyCookForm);
   const [spoilageForm, setSpoilageForm] = useState<SpoilageForm>(emptySpoilageForm);
+  const [cookMessage, setCookMessage] = useState<string | null>(null);
+  const [cookIsError, setCookIsError] = useState(false);
+  const [spoilageMessage, setSpoilageMessage] = useState<string | null>(null);
+  const [spoilageIsError, setSpoilageIsError] = useState(false);
   const [cookSaving, setCookSaving] = useState(false);
   const [spoilageSaving, setSpoilageSaving] = useState(false);
   const cookLock = useRef(false);
   const spoilageLock = useRef(false);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  function setNotice(text: string) {
+    setMessage(text);
+    setMessageIsError(false);
+  }
+
+  function setError(text: string) {
+    setMessage(text);
+    setMessageIsError(true);
+  }
 
   const refresh = useCallback(async () => {
     const nextStatus = await loadOwnerSetupStatus();
@@ -100,62 +119,78 @@ export default function OwnerInventoryScreen() {
 
   async function saveProduct() {
     if (!status?.activeBusiness) {
-      setMessage("Create your business profile before adding products.");
+      setError("Create your business profile before adding products.");
       return;
     }
 
     const name = productForm.name.trim();
     if (!name) {
-      setMessage("Product name is required.");
+      setError("Product name is required.");
       return;
     }
 
-    const stockQty = parseNumber(productForm.stockQty, 0);
-    const lowStockThreshold = parseNumber(productForm.lowStockThreshold, 0);
-    const price = parseNumber(productForm.price, 0);
-    const cost = parseNumber(productForm.cost, 0);
-    const bundleQuantity = parseOptionalNumber(productForm.bundleQuantity);
-    const bundlePrice = parseOptionalNumber(productForm.bundlePrice);
+    const stockQty = parseRequiredNumber(productForm.stockQty, 0);
+    const lowStockThreshold = parseRequiredNumber(productForm.lowStockThreshold, 0);
+    const price = parseRequiredNumber(productForm.price, 0);
+    const cost = parseRequiredNumber(productForm.cost, 0);
+    const bundleQuantity = parseOptionalStrictNumber(productForm.bundleQuantity);
+    const bundlePrice = parseOptionalStrictNumber(productForm.bundlePrice);
+
+    if (
+      stockQty === "invalid" ||
+      lowStockThreshold === "invalid" ||
+      price === "invalid" ||
+      cost === "invalid" ||
+      bundleQuantity === "invalid" ||
+      bundlePrice === "invalid"
+    ) {
+      setError(numbersOnlyMessage);
+      return;
+    }
 
     if ([stockQty, lowStockThreshold, price, cost].some((value) => value < 0)) {
-      setMessage("Stock, threshold, selling price, and unit cost cannot be negative.");
+      setError("Stock, threshold, selling price, and unit cost cannot be negative.");
       return;
     }
 
     if (bundleQuantity !== null && bundleQuantity <= 0) {
-      setMessage("Bundle quantity must be greater than zero.");
+      setError("Bundle quantity must be greater than zero.");
       return;
     }
 
     if (bundlePrice !== null && bundlePrice < 0) {
-      setMessage("Bundle price cannot be negative.");
+      setError("Bundle price cannot be negative.");
       return;
     }
 
     setSaving(true);
     setMessage(null);
     try {
-      const payload = {
-        branchId: status.activeBranch?.id ?? null,
+      const sharedFields = {
         name,
         category: productForm.category.trim() || "General",
         productType: productForm.productType,
         unitType: productForm.unitType,
-        stockQty,
         lowStockThreshold,
         price,
         cost,
         bundleQuantity,
         bundlePrice,
         bundleLabel: productForm.bundleLabel.trim() || null,
-        active: true,
       };
 
       if (productForm.id) {
-        await updateProduct(productForm.id, payload);
+        const stockChanged = productForm.stockQty.trim() !== (productForm.initialStockQty ?? "").trim();
+        await updateProduct(productForm.id, {
+          ...sharedFields,
+          ...(stockChanged ? { stockQty } : {}),
+        });
       } else {
         await createProduct({
-          ...payload,
+          ...sharedFields,
+          stockQty,
+          branchId: status.activeBranch?.id ?? null,
+          active: true,
           businessId: status.activeBusiness.id,
         });
       }
@@ -163,10 +198,10 @@ export default function OwnerInventoryScreen() {
       setProductForm(emptyProductForm);
       setShowProductForm(false);
       await refresh();
-      setMessage(productForm.id ? "Product updated." : "Product added.");
+      setNotice(productForm.id ? "Product updated." : "Product added.");
     } catch (error) {
       logDevError("OwnerInventory.saveProduct", error);
-      setMessage(getFriendlyErrorMessage("Could not save product."));
+      setError(getFriendlyErrorMessage("Could not save product."));
     } finally {
       setSaving(false);
     }
@@ -178,19 +213,27 @@ export default function OwnerInventoryScreen() {
     }
 
     if (!cookForm.productId) {
-      setMessage("Piliin muna kung anong paninda ang niluto.");
+      setCookMessage("Piliin muna kung anong paninda ang niluto.");
+      setCookIsError(true);
       return;
     }
 
-    const quantity = parseNumber(cookForm.quantity, 0);
+    const quantity = parseRequiredNumber(cookForm.quantity, 0);
+    if (quantity === "invalid") {
+      setCookMessage(numbersOnlyMessage);
+      setCookIsError(true);
+      return;
+    }
+
     if (quantity <= 0) {
-      setMessage("Ilagay kung ilang piraso ang naluto.");
+      setCookMessage("Ilagay kung ilang piraso ang naluto.");
+      setCookIsError(true);
       return;
     }
 
     cookLock.current = true;
     setCookSaving(true);
-    setMessage(null);
+    setCookMessage(null);
     try {
       const result = await recordCookedBatch({
         productId: cookForm.productId,
@@ -199,10 +242,12 @@ export default function OwnerInventoryScreen() {
       });
       setCookForm(emptyCookForm);
       await refresh();
-      setMessage(`Nadagdag ang ${quantity} sa ${result.productName}. Stock is now ${result.newStockQty}.`);
+      setCookMessage(`Stock updated. Nadagdag ang ${quantity} sa ${result.productName} (${result.newStockQty} na ngayon).`);
+      setCookIsError(false);
     } catch (error) {
       logDevError("OwnerInventory.saveCookedBatch", error);
-      setMessage(getUserSafeErrorMessage(error, "Could not save the cooked batch."));
+      setCookMessage(getUserSafeErrorMessage(error, "Could not save the cooked batch."));
+      setCookIsError(true);
     } finally {
       cookLock.current = false;
       setCookSaving(false);
@@ -215,19 +260,27 @@ export default function OwnerInventoryScreen() {
     }
 
     if (!spoilageForm.productId) {
-      setMessage("Piliin muna kung anong paninda ang nasayang.");
+      setSpoilageMessage("Piliin muna kung anong paninda ang nasayang.");
+      setSpoilageIsError(true);
       return;
     }
 
-    const quantity = parseNumber(spoilageForm.quantity, 0);
+    const quantity = parseRequiredNumber(spoilageForm.quantity, 0);
+    if (quantity === "invalid") {
+      setSpoilageMessage(numbersOnlyMessage);
+      setSpoilageIsError(true);
+      return;
+    }
+
     if (quantity <= 0) {
-      setMessage("Ilagay kung ilang piraso ang nabawas.");
+      setSpoilageMessage("Ilagay kung ilang piraso ang nabawas.");
+      setSpoilageIsError(true);
       return;
     }
 
     spoilageLock.current = true;
     setSpoilageSaving(true);
-    setMessage(null);
+    setSpoilageMessage(null);
     try {
       const result = await recordSpoilage({
         productId: spoilageForm.productId,
@@ -236,10 +289,12 @@ export default function OwnerInventoryScreen() {
       });
       setSpoilageForm(emptySpoilageForm);
       await refresh();
-      setMessage(`Naitala ang ${quantity} na nasayang sa ${result.productName}. Stock is now ${result.newStockQty}.`);
+      setSpoilageMessage(`Stock updated. Nabawas ang ${quantity} sa ${result.productName} (${result.newStockQty} na lang).`);
+      setSpoilageIsError(false);
     } catch (error) {
       logDevError("OwnerInventory.saveSpoilage", error);
-      setMessage(getUserSafeErrorMessage(error, "Could not save the spoilage record."));
+      setSpoilageMessage(getUserSafeErrorMessage(error, "Could not save the spoilage record."));
+      setSpoilageIsError(true);
     } finally {
       spoilageLock.current = false;
       setSpoilageSaving(false);
@@ -255,6 +310,7 @@ export default function OwnerInventoryScreen() {
       productType: product.productType,
       unitType: product.unitType,
       stockQty: String(product.stockQty),
+      initialStockQty: String(product.stockQty),
       lowStockThreshold: String(product.lowStockThreshold),
       price: String(product.price),
       cost: String(product.cost),
@@ -268,13 +324,13 @@ export default function OwnerInventoryScreen() {
   const products = status?.products ?? [];
   const lowStockCount = products.filter((product) => product.stockQty <= product.lowStockThreshold).length;
   const stockValue = products.reduce((total, product) => total + product.stockQty * product.cost, 0);
-  const productFormVisible = products.length === 0 || showProductForm || Boolean(productForm.id);
+  const productFormVisible = Boolean(status) && (products.length === 0 || showProductForm || Boolean(productForm.id));
 
   return (
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Paninda at sangkap" title="Inventory" />
 
-      {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
+      {message ? <Text style={[styles.message, { color: messageIsError ? palette.danger : palette.text }]}>{message}</Text> : null}
 
       <View style={styles.summaryGrid}>
         <MetricCard detail="Total items" icon="I" label="Products" tone="primary" value={String(products.length)} />
@@ -358,6 +414,9 @@ export default function OwnerInventoryScreen() {
               value={cookForm.note}
             />
           </View>
+          {cookMessage ? (
+            <Text style={[styles.body, { color: cookIsError ? palette.danger : palette.text }]}>{cookMessage}</Text>
+          ) : null}
           <ActionButton disabled={cookSaving} label={cookSaving ? "Saving..." : "Save Niluto"} onPress={saveCookedBatch} />
         </View>
       ) : null}
@@ -395,6 +454,9 @@ export default function OwnerInventoryScreen() {
               value={spoilageForm.reason}
             />
           </View>
+          {spoilageMessage ? (
+            <Text style={[styles.body, { color: spoilageIsError ? palette.danger : palette.text }]}>{spoilageMessage}</Text>
+          ) : null}
           <ActionButton disabled={spoilageSaving} label={spoilageSaving ? "Saving..." : "Save Nasayang"} onPress={saveSpoilage} />
         </View>
       ) : null}
@@ -530,24 +592,32 @@ export default function OwnerInventoryScreen() {
   );
 }
 
-function parseNumber(value: string, fallback: number) {
+function parseRequiredNumber(value: string, fallback: number): number | "invalid" {
   const trimmed = value.trim();
   if (!trimmed) {
     return fallback;
   }
 
+  if (trimmed.includes(",")) {
+    return "invalid";
+  }
+
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed) ? parsed : "invalid";
 }
 
-function parseOptionalNumber(value: string) {
+function parseOptionalStrictNumber(value: string): number | null | "invalid" {
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
   }
 
+  if (trimmed.includes(",")) {
+    return "invalid";
+  }
+
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) ? parsed : "invalid";
 }
 
 type FormFieldProps = {

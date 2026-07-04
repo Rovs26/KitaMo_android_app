@@ -11,6 +11,7 @@ export type TodaySalesSummary = {
   salesTotal: number;
   transactionCount: number;
   averageSale: number;
+  costTotal: number;
 };
 
 export type RecordsSummary = TodaySalesSummary & {
@@ -148,6 +149,7 @@ function emptyTodaySummary(): TodaySalesSummary {
     salesTotal: 0,
     transactionCount: 0,
     averageSale: 0,
+    costTotal: 0,
   };
 }
 
@@ -221,6 +223,16 @@ export async function getTodaySalesSummary(
     [businessId, startIso, endIso],
   );
 
+  const costRow = await db.getFirstAsync<{ cost_total: number | null }>(
+    `
+      SELECT COALESCE(SUM(si.unit_cost * si.quantity), 0) AS cost_total
+      FROM sale_items si
+      JOIN sales s ON s.id = si.sale_id AND s.deleted_at IS NULL
+      WHERE s.business_id = ? AND s.happened_at >= ? AND s.happened_at < ? AND si.deleted_at IS NULL
+    `,
+    [businessId, startIso, endIso],
+  );
+
   const transactionCount = row?.transaction_count ?? 0;
   const salesTotal = row?.sales_total ?? 0;
 
@@ -228,6 +240,7 @@ export async function getTodaySalesSummary(
     transactionCount,
     salesTotal,
     averageSale: transactionCount > 0 ? salesTotal / transactionCount : 0,
+    costTotal: costRow?.cost_total ?? 0,
   };
 }
 

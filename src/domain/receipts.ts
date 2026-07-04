@@ -55,7 +55,6 @@ export function buildReceiptText(input: ReceiptTextInput) {
     input.businessName,
     input.branchName,
     `Receipt: ${input.transactionNo}`,
-    `Sale ID: ${input.saleId}`,
     `Date: ${formatDateTime(input.happenedAt)}`,
     "",
     "Items",
@@ -83,7 +82,7 @@ export function buildReceiptText(input: ReceiptTextInput) {
     lines.push(`Reference: ${input.externalReferenceNumber}`);
   }
 
-  lines.push("", "Stored locally on this device. Sync is not connected yet.", "Salamat po!");
+  lines.push("", "Saved locally on this device.", "Salamat po!");
 
   return lines.join("\n");
 }

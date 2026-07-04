@@ -77,28 +77,42 @@ export default function OwnerSettingsScreen() {
   const [branchForm, setBranchForm] = useState<BranchForm>(emptyBranchForm);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
   const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
   const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
-  const refresh = useCallback(async () => {
-    const nextStatus = await loadOwnerSetupStatus();
-    setStatus(nextStatus);
-    setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
-    setActiveBranchId(nextStatus.activeBranch?.id ?? null);
+  function setNotice(text: string) {
+    setMessage(text);
+    setMessageIsError(false);
+  }
 
-    if (nextStatus.activeBusiness) {
-      setBusinessForm({
-        businessName: nextStatus.activeBusiness.businessName,
-        businessType: nextStatus.activeBusiness.businessType,
-        ownerName: nextStatus.activeBusiness.ownerName,
-        contactNumber: nextStatus.activeBusiness.contactNumber ?? "",
-        barangay: nextStatus.activeBusiness.barangay,
-        notes: nextStatus.activeBusiness.notes ?? "",
-      });
-    }
-  }, [setActiveBranchId, setActiveBusinessId]);
+  function setError(text: string) {
+    setMessage(text);
+    setMessageIsError(true);
+  }
+
+  const refresh = useCallback(
+    async (options?: { keepBusinessForm?: boolean }) => {
+      const nextStatus = await loadOwnerSetupStatus();
+      setStatus(nextStatus);
+      setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
+      setActiveBranchId(nextStatus.activeBranch?.id ?? null);
+
+      if (nextStatus.activeBusiness && !options?.keepBusinessForm) {
+        setBusinessForm({
+          businessName: nextStatus.activeBusiness.businessName,
+          businessType: nextStatus.activeBusiness.businessType,
+          ownerName: nextStatus.activeBusiness.ownerName,
+          contactNumber: nextStatus.activeBusiness.contactNumber ?? "",
+          barangay: nextStatus.activeBusiness.barangay,
+          notes: nextStatus.activeBusiness.notes ?? "",
+        });
+      }
+    },
+    [setActiveBranchId, setActiveBusinessId],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -108,6 +122,7 @@ export default function OwnerSettingsScreen() {
         logDevError("OwnerSettings.refresh", error);
         if (active) {
           setMessage(getFriendlyErrorMessage("Could not load settings."));
+          setMessageIsError(true);
         }
       });
 
@@ -123,7 +138,7 @@ export default function OwnerSettingsScreen() {
     const barangay = businessForm.barangay.trim();
 
     if (!businessName || !ownerName || !barangay) {
-      setMessage("Business name, owner/contact name, and address/location are required.");
+      setError("Business name, owner/contact name, and address/location are required.");
       return;
     }
 
@@ -147,10 +162,10 @@ export default function OwnerSettingsScreen() {
       await setActiveBusiness(savedBusiness.id);
       setActiveBusinessId(savedBusiness.id);
       await refresh();
-      setMessage(status?.activeBusiness ? "Business profile updated." : "Business profile created.");
+      setNotice(status?.activeBusiness ? "Business profile updated." : "Business profile created.");
     } catch (error) {
       logDevError("OwnerSettings.saveBusinessProfile", error);
-      setMessage(getFriendlyErrorMessage("Could not save business profile."));
+      setError(getFriendlyErrorMessage("Could not save business profile."));
     } finally {
       setSaving(false);
     }
@@ -158,13 +173,13 @@ export default function OwnerSettingsScreen() {
 
   async function saveBranch() {
     if (!status?.activeBusiness) {
-      setMessage("Create your business profile before adding a stall or store.");
+      setError("Create your business profile before adding a stall or store.");
       return;
     }
 
     const branchName = branchForm.branchName.trim();
     if (!branchName) {
-      setMessage("Stall or branch name is required.");
+      setError("Stall or branch name is required.");
       return;
     }
 
@@ -185,17 +200,26 @@ export default function OwnerSettingsScreen() {
             businessId: status.activeBusiness.id,
           });
 
+      let noticeText = branchForm.id ? "Store or stall updated." : "Store or stall added.";
+
       if (savedBranch.active || !status.activeBranch) {
         await setActiveBranch(savedBranch.id);
         setActiveBranchId(savedBranch.id);
+      } else if (!savedBranch.active && status.activeBranch?.id === savedBranch.id) {
+        const fallbackBranch = status.branches.find((branch) => branch.active && branch.id !== savedBranch.id);
+        if (fallbackBranch) {
+          await setActiveBranch(fallbackBranch.id);
+          setActiveBranchId(fallbackBranch.id);
+          noticeText = `Store or stall updated. ${fallbackBranch.branchName} is now the active stall.`;
+        }
       }
 
       setBranchForm(emptyBranchForm);
-      await refresh();
-      setMessage(branchForm.id ? "Store or stall updated." : "Store or stall added.");
+      await refresh({ keepBusinessForm: true });
+      setNotice(noticeText);
     } catch (error) {
       logDevError("OwnerSettings.saveBranch", error);
-      setMessage(getFriendlyErrorMessage("Could not save store or stall."));
+      setError(getFriendlyErrorMessage("Could not save store or stall."));
     } finally {
       setSaving(false);
     }
@@ -207,11 +231,11 @@ export default function OwnerSettingsScreen() {
     try {
       await setActiveBranch(branchId);
       setActiveBranchId(branchId);
-      await refresh();
-      setMessage("Active stall updated.");
+      await refresh({ keepBusinessForm: true });
+      setNotice("Active stall updated.");
     } catch (error) {
       logDevError("OwnerSettings.chooseActiveBranch", error);
-      setMessage(getFriendlyErrorMessage("Could not select active stall."));
+      setError(getFriendlyErrorMessage("Could not select active stall."));
     } finally {
       setSaving(false);
     }
@@ -230,9 +254,9 @@ export default function OwnerSettingsScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Settings at access" title="Business Profile" />
+      <AppTopBar subtitle="Negosyo, stalls, at app status." title="Business Profile" />
 
-      {message ? <Text style={[styles.message, { color: message.includes("Could not") ? palette.danger : palette.text }]}>{message}</Text> : null}
+      {message ? <Text style={[styles.message, { color: messageIsError ? palette.danger : palette.text }]}>{message}</Text> : null}
 
       <Card>
         <View style={styles.summaryCard}>
