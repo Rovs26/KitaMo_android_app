@@ -4,9 +4,9 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Phase 5.8: Mobile UI Polish and Navigation Refinement.
+Android Phase 6: Local Ask, Records, and Insights.
 
-This phase keeps the Phase 5 local selling behavior intact and polishes the Phase 5.7 visual redesign for real Android phone use: smaller typography, tighter spacing, denser cards, proper bottom navigation icons, and more intentional Owner/Kiosk placeholder states.
+This phase keeps the Phase 5 local selling behavior intact and turns the Ask, Records, and Insights tabs into local-first MVP screens. Ask is deterministic and local-only, Records reads local SQLite sales/receipts/movements, and Insights shows simple local summaries without cloud sync or real AI.
 
 ## Run
 
@@ -38,6 +38,9 @@ npm run android
 - Local sale transaction with sale items, stock decrement, inventory movement, receipt record, and pending offline queue entry.
 - Receipt display with clipboard copy and native share sheet when available.
 - Kiosk Orders, Stock, and current local Shift summary screens.
+- Local-only Ask KitaMo suggested questions and deterministic answers.
+- Owner Records tab for local sales, receipts, filters, and recent stock movements.
+- Owner Insights tab for today's sales, payment breakdown, product counts, low-stock count, and top products.
 - Online / Offline local-mode indicator using Expo Network.
 - Pending offline queue visibility in Owner and Kiosk flows.
 - Development-only local data verification panel hidden behind a disabled local dev flag.
@@ -111,6 +114,20 @@ Owner Inventory supports creating/editing local products and listing stock quant
 Owner Inventory uses a cleaner product setup/list baseline with compact fields, product cards, stock, unit, price, and low-stock badges.
 
 Phase 5.8 keeps Inventory summary cards for Products, Low Stock, and Stock Value, then prioritizes the product list before the Add Product form. The form expands when adding/editing products so saved products stay easier to scan. Recipe/batch cooking remains deferred.
+
+## Ask, Records, And Insights
+
+Ask KitaMo is local-only in Phase 6. It does not call Lis, OpenAI, Anthropic, or any remote API. Suggested questions answer from SQLite-backed local summaries:
+
+- today's sales total
+- today's transaction count
+- pending saves
+- product and low-stock counts
+- top product from local `sale_items`
+
+Records shows local SQLite records only. It includes summary cards, Today/All/Cash/GCash-Maya-Bank filters, local sale cards, receipt text expansion, and recent inventory movement rows where available. It does not export, edit, delete, or sync records.
+
+Insights shows simple local summaries only: today's sales, transactions, average sale, payment breakdown, product count, low-stock count, top products, and pending saves. It does not use fake sales data in fresh or demo mode; insights appear after real local sales exist on the device.
 
 ## Kiosk Selling
 
@@ -230,6 +247,9 @@ Because `app_settings` is cleared, the first-run choice appears again when the a
 - LGU Mode.
 - Play Store production release work.
 - Supabase sync processing for `offline_queue`.
+- Real Lis AI or multi-agent Ask.
+- Records export/download.
+- Advanced analytics or chart libraries.
 - Full staff permissions and shift open/close workflow.
 - Cook/Niluto recipe or batch production.
 
