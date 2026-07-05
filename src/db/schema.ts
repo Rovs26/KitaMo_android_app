@@ -1,4 +1,4 @@
-export const schemaVersion = 3;
+export const schemaVersion = 4;
 
 export const syncStatusValues = ["local", "pending", "synced", "failed"] as const;
 
@@ -7,6 +7,9 @@ export const resettableTables = [
   "receipt_records",
   "owner_alerts",
   "recipe_batches",
+  "ingredient_movements",
+  "ingredient_lots",
+  "ingredients",
   "inventory_movements",
   "sale_items",
   "sales",
@@ -26,6 +29,9 @@ export const countableTables = [
   "owner_alerts",
   "receipt_records",
   "offline_queue",
+  "ingredients",
+  "ingredient_lots",
+  "ingredient_movements",
 ] as const;
 
 export type ResettableTable = (typeof resettableTables)[number];

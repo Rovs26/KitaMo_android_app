@@ -23,8 +23,26 @@ const createProductSchema = z.object({
   productType: z.string().default("retail item"),
 });
 
+// Separate schema without .default() values: zod v4 .partial() re-applies field
+// defaults for missing keys, which would zero stock/price on partial updates.
+const updateProductSchema = z.object({
+  branchId: z.string().nullable().optional(),
+  name: z.string().min(1).optional(),
+  category: z.string().optional(),
+  price: z.number().nonnegative().optional(),
+  cost: z.number().nonnegative().optional(),
+  stockQty: z.number().optional(),
+  unitType: z.string().optional(),
+  lowStockThreshold: z.number().nonnegative().optional(),
+  bundleQuantity: z.number().positive().nullable().optional(),
+  bundlePrice: z.number().nonnegative().nullable().optional(),
+  bundleLabel: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+  productType: z.string().optional(),
+});
+
 export type CreateProductInput = z.input<typeof createProductSchema>;
-export type UpdateProductInput = Partial<Omit<CreateProductInput, "id" | "businessId">>;
+export type UpdateProductInput = z.input<typeof updateProductSchema>;
 
 type ProductRow = {
   id: string;
@@ -143,7 +161,7 @@ export async function updateProduct(id: string, input: UpdateProductInput, db?: 
     throw new Error("Product not found.");
   }
 
-  const parsed = createProductSchema.partial().parse(input);
+  const parsed = updateProductSchema.parse(input);
   const database = getRepositoryDatabase(db);
   const updatedAt = nowIso();
   const product: Product = {

@@ -5,13 +5,19 @@ import { openKitamoDatabase } from "@/db/client";
 import { initialSchemaMigration } from "./001_initial_schema";
 import { ownerSetupFieldsMigration } from "./002_owner_setup_fields";
 import { ownerAlertFieldsMigration } from "./003_owner_alert_fields";
+import { groceryPoolMigration } from "./004_grocery_pool";
 
 export type Migration = {
   id: string;
   up: string;
 };
 
-const migrations: Migration[] = [initialSchemaMigration, ownerSetupFieldsMigration, ownerAlertFieldsMigration];
+const migrations: Migration[] = [
+  initialSchemaMigration,
+  ownerSetupFieldsMigration,
+  ownerAlertFieldsMigration,
+  groceryPoolMigration,
+];
 
 type MigrationRow = {
   id: string;

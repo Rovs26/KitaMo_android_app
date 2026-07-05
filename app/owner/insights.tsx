@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, type DimensionValue, View } from "react-native";
 
 import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
 import { getLocalAnalyticsSnapshot, type LocalAnalyticsSnapshot, type PaymentBreakdownItem } from "@/services/localAnalytics";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
@@ -18,6 +19,7 @@ function formatQuantity(value: number) {
 
 export default function OwnerInsightsScreen() {
   const [snapshot, setSnapshot] = useState<LocalAnalyticsSnapshot | null>(null);
+  const [grocery, setGrocery] = useState<GroceryPoolSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -27,7 +29,9 @@ export default function OwnerInsightsScreen() {
     setLoading(true);
     try {
       const nextSnapshot = await getLocalAnalyticsSnapshot("all");
+      const nextGrocery = await loadGroceryPoolSnapshot();
       setSnapshot(nextSnapshot);
+      setGrocery(nextGrocery);
       setError(null);
     } catch (loadError) {
       logDevError("OwnerInsights.refresh", loadError);
@@ -103,6 +107,13 @@ export default function OwnerInsightsScreen() {
             <MetricCard detail="Active items" icon="I" label="Products" tone="success" value={String(snapshot.lowStock.productCount)} />
             <MetricCard detail="Need review" icon="L" label="Low stock" tone={snapshot.lowStock.lowStockCount > 0 ? "warning" : "success"} value={String(snapshot.lowStock.lowStockCount)} />
             <MetricCard detail="Owner alerts" icon="A" label="Alerts" tone={snapshot.activeAlertCount > 0 ? "warning" : "success"} value={String(snapshot.activeAlertCount)} />
+            <MetricCard
+              detail={`${grocery?.lowStockIngredients.length ?? 0} low-stock ingredient${(grocery?.lowStockIngredients.length ?? 0) === 1 ? "" : "s"}`}
+              icon="G"
+              label="Grocery"
+              tone={(grocery?.lowStockIngredients.length ?? 0) > 0 ? "warning" : "primary"}
+              value={formatPeso(grocery?.totalRemainingValue ?? 0)}
+            />
           </View>
 
           <Card>

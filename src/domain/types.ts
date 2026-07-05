@@ -109,6 +109,48 @@ export type InventoryMovement = LocalEntity & {
   totalCost: number | null;
 };
 
+export type IngredientUnit = "g" | "kg" | "ml" | "L" | "pcs" | "pack";
+
+export type Ingredient = LocalEntity & {
+  businessId: string;
+  name: string;
+  defaultUnit: IngredientUnit;
+  category: string;
+  lowStockThreshold: number;
+  isActive: boolean;
+};
+
+export type IngredientLotStatus = "active" | "depleted" | "archived";
+
+export type IngredientLot = LocalEntity & {
+  businessId: string;
+  ingredientId: string;
+  brandName: string | null;
+  sourceName: string | null;
+  purchaseDate: string;
+  purchasedQuantity: number;
+  remainingQuantity: number;
+  unit: IngredientUnit;
+  totalCost: number;
+  costPerUnit: number;
+  notes: string | null;
+  status: IngredientLotStatus;
+};
+
+export type IngredientMovementType = "purchase" | "adjustment" | "recipe_usage" | "spoilage";
+
+export type IngredientMovement = LocalEntity & {
+  businessId: string;
+  ingredientId: string;
+  lotId: string | null;
+  movementType: IngredientMovementType;
+  quantity: number;
+  unit: IngredientUnit;
+  unitCost: number | null;
+  totalCost: number | null;
+  reason: string;
+};
+
 export type OwnerAlertSeverity = "info" | "warning" | "critical";
 export type OwnerAlertStatus = "active" | "resolved";
 

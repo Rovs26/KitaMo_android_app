@@ -4,6 +4,34 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 8A+8B: Food Business Engine Plan + Grocery Pool Foundation.
+
+Phase 8A produced the full Food Business Engine architecture plan in [`docs/food-business-engine.md`](docs/food-business-engine.md) — grocery pool, ingredient lots, recipe builder, per-stall production, cook-upon-order, fixed costs, and consolidated reporting, phased 8B through 8G.
+
+Phase 8B implements only the foundation: a central Grocery Pool where the owner records every grocery/ingredient purchase as a lot with brand, source, quantity, unit, and cost. Ingredients are separate from sellable products — nothing changes in the existing product, kiosk, or sale flows.
+
+### Grocery Pool (Phase 8B)
+
+- `ingredients` holds the concept ("Soy sauce", default unit, category, low-stock threshold); `ingredient_lots` holds each actual purchase ("Kikkoman, 1L, ₱180, from grocery") with remaining quantity, computed cost per unit, and status; `ingredient_movements` records purchases and manual adjustments as an audit trail. All three are cleared by Clear Local Data and created by migration `004_grocery_pool`.
+- The same ingredient can hold many lots with different brands, sources, and prices (Kikkoman ₱180/L next to local brand ₱45/L) — this is the base the recipe builder will select from.
+- Recording a purchase is one SQLite transaction: find-or-create the ingredient (case-insensitive name match), create the lot, write the purchase movement. Quantity and total cost must be positive; remaining stock can never go negative; cost per unit = total cost ÷ quantity.
+- The Grocery Pool screen (Owner Home quick action, or from Inventory) shows remaining grocery value, ingredient count, low-stock ingredients, recent purchases, an add form with a live cost-per-unit preview, and a searchable list matching ingredient name, brand, and source. Strict number input (walang comma), duplicate-tap lock, feedback beside the form.
+- Units supported: g, kg, ml, L, pcs, pack — stored as entered. Low-stock math converts only kg↔g and L↔ml; lots in other units still count toward value but are skipped in the threshold comparison until unit conversion lands with recipe costing.
+- Insights shows a Grocery metric (remaining value + low-stock ingredient count). The central pool is business-level: there is no manual allocation of groceries to stalls, ever — later phases reduce the pool through actual production or cook-upon-order usage.
+- Fresh mode starts with an empty pool; demo mode does not auto-create grocery records.
+- Also fixes an inherited product-edit bug: partial product updates re-applied schema defaults, so editing a product without touching the stock field could reset its stock to zero. Product and ingredient updates now use defaults-free update validation, so omitted fields are truly preserved.
+
+### Phase 8B deferred (designed in the plan, not built)
+
+- Recipe builder and searchable ingredient selection in recipes.
+- Ingredient deduction (production or cook-upon-order).
+- Cook-upon-order COGS estimation, shortfall logging, and recent-price fallback.
+- Custom ingredient cost fallback lines.
+- General unit conversion (pack sizes etc.).
+- Fixed costs and per-stall/consolidated profit reports.
+
+## Previous Phase
+
 Android Phase 7.5: End-to-End QA Hardening and Seller Pilot Cleanup.
 
 This phase walked every seller flow end to end (first run, Owner Home, Settings, Inventory, Cook/Spoilage, Kiosk sell/checkout/receipt/orders/stock/shift, Ask, Records, Insights, alerts) and fixed the bugs, stale totals, edge cases, and copy issues found. No new features, schema changes, or integrations were added.
@@ -96,7 +124,7 @@ npm run android
 
 The local database is `kitamo_local.db`, opened through `src/db/client.ts`.
 
-Migrations live in `src/db/migrations/` and are tracked in the `schema_migrations` table. `runMigrations()` is safe to call repeatedly. Migration `001_initial_schema` creates the local tables, migration `002_owner_setup_fields` adds owner setup notes fields to businesses and branches, and migration `003_owner_alert_fields` adds `severity` and `product_id` to `owner_alerts`.
+Migrations live in `src/db/migrations/` and are tracked in the `schema_migrations` table. `runMigrations()` is safe to call repeatedly. Migration `001_initial_schema` creates the local tables, migration `002_owner_setup_fields` adds owner setup notes fields to businesses and branches, migration `003_owner_alert_fields` adds `severity` and `product_id` to `owner_alerts`, and migration `004_grocery_pool` adds the grocery pool tables.
 
 The initial schema creates:
 
@@ -111,6 +139,12 @@ The initial schema creates:
 - `receipt_records`
 - `offline_queue`
 - `app_settings`
+
+Migration `004_grocery_pool` adds:
+
+- `ingredients`
+- `ingredient_lots`
+- `ingredient_movements`
 
 ## Fresh Mode
 

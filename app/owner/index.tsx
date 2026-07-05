@@ -229,6 +229,7 @@ export default function OwnerHomeScreen() {
         <View style={styles.actionGrid}>
           <SecondaryButton href="/owner/inventory" label="Add Product" />
           <PrimaryButton href="/kiosk" label="Open Kiosk" />
+          <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
           <SecondaryButton href="/owner/records" label="Records" />
           <SecondaryButton href="/owner/settings" label="Settings" />
         </View>

@@ -9,7 +9,10 @@ export type LocalIdKind =
   | "alert"
   | "queue_item"
   | "batch"
-  | "setting";
+  | "setting"
+  | "ingredient"
+  | "ingredient_lot"
+  | "ingredient_movement";
 
 function shortRandom() {
   return Math.random().toString(36).slice(2, 8);
@@ -30,3 +33,6 @@ export const makeAlertId = () => makeLocalId("alert");
 export const makeQueueItemId = () => makeLocalId("queue_item");
 export const makeBatchId = () => makeLocalId("batch");
 export const makeSettingId = () => makeLocalId("setting");
+export const makeIngredientId = () => makeLocalId("ingredient");
+export const makeIngredientLotId = () => makeLocalId("ingredient_lot");
+export const makeIngredientMovementId = () => makeLocalId("ingredient_movement");

@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { AppTopBar, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { createProduct, updateProduct } from "@/db/repositories";
 import type { Product, ProductType, UnitType } from "@/domain/types";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
@@ -337,6 +337,8 @@ export default function OwnerInventoryScreen() {
         <MetricCard detail="Need review" icon="!" label="Low Stock" tone={lowStockCount > 0 ? "warning" : "success"} value={`${lowStockCount} items`} />
         <MetricCard detail="Cost basis" icon="P" label="Stock Value" tone="success" value={formatPeso(stockValue)} />
       </View>
+
+      <SecondaryButton href="/owner/grocery" label="Grocery Pool / Ingredients" />
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.sectionHeaderRow}>
