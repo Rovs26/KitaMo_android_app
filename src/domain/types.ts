@@ -151,6 +151,36 @@ export type IngredientMovement = LocalEntity & {
   reason: string;
 };
 
+export type RecipeProductionMode = "prepared_before_selling" | "cook_upon_order";
+
+export type Recipe = LocalEntity & {
+  businessId: string;
+  outputProductId: string;
+  name: string;
+  outputQuantity: number;
+  outputUnit: IngredientUnit;
+  productionMode: RecipeProductionMode;
+  suggestedSellingPrice: number | null;
+  notes: string | null;
+  isActive: boolean;
+};
+
+export type RecipeIngredientLine = LocalEntity & {
+  businessId: string;
+  recipeId: string;
+  ingredientId: string | null;
+  ingredientLotId: string | null;
+  customName: string | null;
+  quantity: number;
+  unit: IngredientUnit;
+  costOverride: number | null;
+  costPerUnitSnapshot: number | null;
+  lineCostSnapshot: number;
+  sourceLabelSnapshot: string | null;
+  isCustom: boolean;
+  notes: string | null;
+};
+
 export type OwnerAlertSeverity = "info" | "warning" | "critical";
 export type OwnerAlertStatus = "active" | "resolved";
 

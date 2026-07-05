@@ -5,6 +5,7 @@ import { StyleSheet, Text, type DimensionValue, View } from "react-native";
 import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
 import { getLocalAnalyticsSnapshot, type LocalAnalyticsSnapshot, type PaymentBreakdownItem } from "@/services/localAnalytics";
+import { loadRecipesOverview, type RecipesOverview } from "@/services/recipes";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
@@ -20,6 +21,7 @@ function formatQuantity(value: number) {
 export default function OwnerInsightsScreen() {
   const [snapshot, setSnapshot] = useState<LocalAnalyticsSnapshot | null>(null);
   const [grocery, setGrocery] = useState<GroceryPoolSnapshot | null>(null);
+  const [recipesOverview, setRecipesOverview] = useState<RecipesOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -30,8 +32,10 @@ export default function OwnerInsightsScreen() {
     try {
       const nextSnapshot = await getLocalAnalyticsSnapshot("all");
       const nextGrocery = await loadGroceryPoolSnapshot();
+      const nextRecipes = await loadRecipesOverview();
       setSnapshot(nextSnapshot);
       setGrocery(nextGrocery);
+      setRecipesOverview(nextRecipes);
       setError(null);
     } catch (loadError) {
       logDevError("OwnerInsights.refresh", loadError);
@@ -113,6 +117,13 @@ export default function OwnerInsightsScreen() {
               label="Grocery"
               tone={(grocery?.lowStockIngredients.length ?? 0) > 0 ? "warning" : "primary"}
               value={formatPeso(grocery?.totalRemainingValue ?? 0)}
+            />
+            <MetricCard
+              detail={`${recipesOverview?.lowMakeableCount ?? 0} low makeable`}
+              icon="R"
+              label="Recipes"
+              tone={(recipesOverview?.lowMakeableCount ?? 0) > 0 ? "warning" : "success"}
+              value={String(recipesOverview?.activeCount ?? 0)}
             />
           </View>
 

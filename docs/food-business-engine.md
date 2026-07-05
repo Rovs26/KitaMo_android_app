@@ -1,6 +1,6 @@
 # KitaMo Food Business Engine — Architecture Plan
 
-Status: Phase 8A planning document. Phase 8B implements only the Grocery Pool and Ingredient Inventory foundation described in sections 5–6. Everything else in this document is design for later phases.
+Status: Phase 8A planning document. Phase 8B implemented the Grocery Pool and Ingredient Inventory foundation (sections 5–6). Phase 8C+8D implemented the Recipe Builder with selected-lot costing, custom-cost lines, makeable quantity, and bottleneck detection (sections 7–9, without ingredient deduction). Production per stall, cook-upon-order, fixed costs, and consolidated reporting remain design-only.
 
 ## 1. Executive summary
 
@@ -118,14 +118,18 @@ Why lots instead of a single running quantity per ingredient:
 
 Recording flow ("Add grocery" form): the owner types the ingredient name; the service finds an existing ingredient by case-insensitive name or creates one, then creates the lot and a `purchase` movement — all in one transaction. Two soy sauce purchases with different brands become one `ingredients` row + two `ingredient_lots` rows, which is exactly the tester's example.
 
-## 7. Recipe builder design (Phase 8C, not in 8B)
+## 7. Recipe builder design (shipped in Phase 8C+8D)
 
-- `recipes`: id, business_id, product_id (links to sellable product), name, yield_quantity ("makes 20 pcs"), notes, is_active.
-- `recipe_ingredients`: recipe_id, then either
-  - pool line: `ingredient_id` + optional `preferred_lot_id` (owner-selected brand/source) + quantity + unit, or
-  - custom line: `custom_name` + `custom_unit_cost` + quantity (fallback when the pool has nothing — see §9).
-- Costing preview at edit time: pool lines price from preferred lot's cost/unit, else the ingredient's most recent lot; custom lines use the typed cost. Preview only — nothing deducts.
-- A recipe never hard-fails when a lot is depleted; it downgrades to recent-price estimation and shows a gentle "wala na sa pool" hint.
+As built:
+
+- `recipes`: id, business_id, output_product_id (links to sellable product), name, output_quantity, output_unit, production_mode (`prepared_before_selling` / `cook_upon_order`, informational until 8E), suggested_selling_price (column reserved), notes, is_active.
+- `recipe_ingredient_lines`: recipe_id plus either
+  - lot line: `ingredient_id` + `ingredient_lot_id` (the owner-selected brand/source) + quantity + unit, with save-time snapshots (`cost_per_unit_snapshot`, `line_cost_snapshot`, `source_label_snapshot`) so archived/depleted lots never break a saved recipe, or
+  - custom line: `custom_name` + `cost_override` with `is_custom = 1` (see §9 — shipped).
+- Costing rule enforced in `src/domain/recipeCosting.ts` (pure, verified by `npm run check:recipes`): a lot line prices from its selected lot only, after kg↔g / L↔ml conversion; incompatible units are rejected, never silently computed. No averaging across lots.
+- Makeable quantity and bottleneck are computed live from current lot remaining quantities, aggregating lines that share a lot; custom lines never limit makeable quantity.
+- Nothing deducts: saving, costing, and browsing recipes leave grocery stock untouched until 8E production lands.
+- Line editing after save is deferred (archive + recreate); recipe metadata updates use a defaults-free schema.
 
 ## 8. Searchable ingredient selection design
 
@@ -176,12 +180,12 @@ Recording flow ("Add grocery" form): the owner types the ingredient name; the se
 
 | Phase | Scope | Ships |
 | --- | --- | --- |
-| **8B (now)** | Grocery Pool foundation | ingredients/lots/movements tables, grocery repos + service, Grocery Pool screen, Home/Insights hooks |
-| 8C | Recipe Builder | recipes + recipe_ingredients, searchable lot picker, custom-cost lines, cost preview (no deduction) |
-| 8D | Production per stall | production_runs, pool deduction with FIFO + preferred lot, batch cost onto stall goods, transfers |
-| 8E | Cook-upon-order | cooked_to_order flag, no-block selling, cost_estimates + shortfall logging, history-price fallback |
-| 8F | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
-| 8G | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases |
+| **8B (shipped)** | Grocery Pool foundation | ingredients/lots/movements tables, grocery repos + service, Grocery Pool screen, Home/Insights hooks |
+| **8C+8D (shipped)** | Recipe Builder + costing | recipes + recipe_ingredient_lines, searchable lot picker, custom-cost lines, selected-lot costing, makeable quantity + bottleneck (no deduction) |
+| 8E | Production per stall | production_runs, pool deduction with FIFO + selected lot, batch cost onto stall goods, transfers |
+| 8F | Cook-upon-order | no-block selling for cook_upon_order recipes, cost_estimates + shortfall logging, history-price fallback |
+| 8G | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
+| 8H | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases |
 
 Each phase is independently shippable and keeps all earlier flows intact.
 

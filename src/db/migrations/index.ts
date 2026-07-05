@@ -6,6 +6,7 @@ import { initialSchemaMigration } from "./001_initial_schema";
 import { ownerSetupFieldsMigration } from "./002_owner_setup_fields";
 import { ownerAlertFieldsMigration } from "./003_owner_alert_fields";
 import { groceryPoolMigration } from "./004_grocery_pool";
+import { recipesMigration } from "./005_recipes";
 
 export type Migration = {
   id: string;
@@ -17,6 +18,7 @@ const migrations: Migration[] = [
   ownerSetupFieldsMigration,
   ownerAlertFieldsMigration,
   groceryPoolMigration,
+  recipesMigration,
 ];
 
 type MigrationRow = {

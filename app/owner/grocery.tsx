@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { ingredientUnits } from "@/db/repositories";
 import type { IngredientUnit } from "@/domain/types";
 import { addGroceryPurchase, loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
@@ -241,6 +241,8 @@ export default function OwnerGroceryScreen() {
         />
         <MetricCard detail="Last 7 days" icon="G" label="Purchases" tone="accent" value={String(snapshot?.recentLotCount ?? 0)} />
       </View>
+
+      <SecondaryButton href="/owner/recipes" label="Use ingredients in a recipe" />
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Add grocery item</Text>

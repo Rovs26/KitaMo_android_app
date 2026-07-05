@@ -7,5 +7,7 @@ export * from "./inventoryMovements";
 export * from "./ownerAlerts";
 export * from "./pilotDataReset";
 export * from "./products";
+export * from "./recipeIngredientLines";
+export * from "./recipes";
 export * from "./sales";
 export * from "./shared";

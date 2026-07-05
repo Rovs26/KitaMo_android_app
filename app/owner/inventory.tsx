@@ -338,7 +338,10 @@ export default function OwnerInventoryScreen() {
         <MetricCard detail="Cost basis" icon="P" label="Stock Value" tone="success" value={formatPeso(stockValue)} />
       </View>
 
-      <SecondaryButton href="/owner/grocery" label="Grocery Pool / Ingredients" />
+      <View style={styles.twoColumn}>
+        <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
+        <SecondaryButton href="/owner/recipes" label="Recipes" />
+      </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.sectionHeaderRow}>

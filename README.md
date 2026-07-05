@@ -4,6 +4,30 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 8C+8D: Recipe Builder and Recipe Costing.
+
+Owners can now create recipes for sellable products, picking specific ingredient lots from the Grocery Pool — the exact brand and source, not an average. Recipe costing, makeable quantity, and bottleneck detection are live. No ingredient deduction happens yet: saving or costing a recipe never changes grocery stock.
+
+### Recipes (Phase 8C+8D)
+
+- Migration `005_recipes` adds `recipes` (linked to a sellable product as output, with output quantity/unit, production mode, notes) and `recipe_ingredient_lines` (either a selected ingredient lot or a custom-cost line). Both are wiped by Clear Local Data.
+- **Selected-lot costing**: a line stores the chosen lot and snapshots its cost per unit at save time. If the owner picked Kikkoman at ₱180/L, the line costs from Kikkoman — never averaged with the ₱45 local soy sauce, and never swapped. Snapshots keep saved recipes stable even if a lot is later depleted or archived.
+- **Unit conversion**: kg↔g and L↔ml only (10 kg rice at ₱650 → 100 g line = ₱6.50; 1 L soy sauce at ₱180 → 10 ml = ₱1.80). Incompatible units (e.g. ml into a kg lot, pack into anything else) are rejected with a friendly message — never silently miscomputed.
+- **Custom cost lines**: when an ingredient is not in the pool, the owner types a name and cost. Custom lines are flagged, included in recipe cost, and clearly marked as not deducted from and not checked against grocery stock.
+- **Makeable quantity + bottleneck**: computed live from current lot remaining quantities (lines sharing one lot are aggregated first). Example: rice supports 10 batches but soy sauce only 3 → makeable 15 sushi, bottleneck soy sauce. Custom lines never limit makeable quantity.
+- The Recipes screen (Owner Home quick action, Inventory, and Grocery Pool links) shows summary metrics (active, average cost per unit, low-makeable, custom-cost recipes), recipe cards with per-batch/per-unit cost, makeable badge, bottleneck, production-mode badge (Prepared before selling / Cook upon order), and a create form with a searchable lot picker (name, brand, source), live line-cost and batch-cost previews, custom-cost lines, strict number parsing, and a duplicate-save lock. Recipe + lines save in one SQLite transaction.
+- Insights adds a Recipes metric (active count + low-makeable count). Pure costing math lives in `src/domain/recipeCosting.ts`, verified by `npm run check:recipes`.
+- Production mode is informational for now: `cook_upon_order` recipes do not change kiosk behavior yet.
+
+### Phase 8C+8D deferred
+
+- Ingredient deduction (production per stall or cook-upon-order).
+- Cook-upon-order COGS estimation and shortfall logging at sale time.
+- Editing recipe ingredient lines after save (archive and recreate for now).
+- General unit conversion (pack sizes, cups); fixed costs; consolidated reports.
+
+## Previous Phase
+
 Android Phase 8A+8B: Food Business Engine Plan + Grocery Pool Foundation.
 
 Phase 8A produced the full Food Business Engine architecture plan in [`docs/food-business-engine.md`](docs/food-business-engine.md) — grocery pool, ingredient lots, recipe builder, per-stall production, cook-upon-order, fixed costs, and consolidated reporting, phased 8B through 8G.
@@ -77,6 +101,7 @@ npm install
 npm run typecheck
 npm run lint
 npm run check:pricing
+npm run check:recipes
 npm run start
 ```
 
@@ -145,6 +170,11 @@ Migration `004_grocery_pool` adds:
 - `ingredients`
 - `ingredient_lots`
 - `ingredient_movements`
+
+Migration `005_recipes` adds:
+
+- `recipes`
+- `recipe_ingredient_lines`
 
 ## Fresh Mode
 
