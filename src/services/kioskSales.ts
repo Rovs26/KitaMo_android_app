@@ -1,17 +1,26 @@
 import { openKitamoDatabase } from "@/db/client";
 import { runMigrations } from "@/db/migrations";
 import type { LocalDataCounts } from "@/db/schema";
-import { getLocalDataCounts, type RepositoryDatabase } from "@/db/repositories";
+import {
+  getAverageProducedCostByProduct,
+  getLocalDataCounts,
+  listIngredientLotsForBusiness,
+  listRecipeLinesForRecipe,
+  type RepositoryDatabase,
+} from "@/db/repositories";
 import { buildReceiptText } from "@/domain/receipts";
 import {
+  makeIngredientMovementId,
   makeMovementId,
   makeQueueItemId,
   makeReceiptId,
   makeSaleId,
   makeSaleItemId,
+  makeSaleUsageId,
 } from "@/domain/ids";
+import { planOrderCogs, type OrderCogsLine, type OrderCogsPlan } from "@/domain/orderCogs";
 import { calculateCartSubtotal, calculateLineTotal } from "@/domain/pricing";
-import type { Branch, Business, PaymentMethod, Product } from "@/domain/types";
+import type { Branch, Business, PaymentMethod, Product, SaleCogsSource } from "@/domain/types";
 import type { KioskCartItem } from "@/state/kioskStore";
 
 import { loadOwnerSetupStatus } from "./ownerSetup";
@@ -26,6 +35,7 @@ export type KioskContext = {
   pendingQueueCount: number;
   mode: "fresh" | "demo";
   counts: LocalDataCounts;
+  cookUponOrderRecipeByProductId: Record<string, { recipeId: string; outputQuantity: number }>;
 };
 
 export type CompleteKioskSaleInput = {
@@ -151,6 +161,37 @@ export async function loadKioskContext(db: RepositoryDatabase = openKitamoDataba
     setupMessage = "Add products in Owner Inventory first.";
   }
 
+  const cookUponOrderRecipeByProductId: Record<string, { recipeId: string; outputQuantity: number }> = {};
+  if (status.activeBusiness) {
+    const recipeRows = await db.getAllAsync<{
+      id: string;
+      output_product_id: string;
+      production_mode: string;
+      output_quantity: number;
+    }>(
+      `
+        SELECT id, output_product_id, production_mode, output_quantity
+        FROM recipes
+        WHERE business_id = ? AND is_active = 1 AND deleted_at IS NULL
+        ORDER BY created_at ASC
+      `,
+      [status.activeBusiness.id],
+    );
+
+    // Later rows overwrite earlier ones, so the latest active recipe decides
+    // the product's production mode.
+    for (const row of recipeRows) {
+      if (row.production_mode === "cook_upon_order") {
+        cookUponOrderRecipeByProductId[row.output_product_id] = {
+          recipeId: row.id,
+          outputQuantity: row.output_quantity,
+        };
+      } else {
+        delete cookUponOrderRecipeByProductId[row.output_product_id];
+      }
+    }
+  }
+
   return {
     dbReady: status.dbReady,
     activeBusiness: status.activeBusiness,
@@ -161,6 +202,7 @@ export async function loadKioskContext(db: RepositoryDatabase = openKitamoDataba
     pendingQueueCount: status.pendingQueueCount,
     mode: status.mode,
     counts: status.counts,
+    cookUponOrderRecipeByProductId,
   };
 }
 
@@ -190,6 +232,76 @@ export async function completeKioskSale(
     pricing: calculateLineTotal(item),
   }));
   const subtotal = calculateCartSubtotal(input.cartItems);
+
+  // COGS planning (pre-transaction reads; all writes stay inside the transaction).
+  const cookRecipeMap = context.cookUponOrderRecipeByProductId;
+  const averageProducedCost = await getAverageProducedCostByProduct(activeBusiness.id, db);
+
+  type ItemCogs = {
+    cogsTotal: number;
+    cogsPerUnit: number;
+    source: SaleCogsSource;
+    isEstimated: boolean;
+    relatedRecipeId: string | null;
+    cookedToOrder: boolean;
+    orderPlan: OrderCogsPlan | null;
+  };
+
+  const cogsByIndex: ItemCogs[] = [];
+  const hasCookItems = input.cartItems.some((item) => item.cookedToOrder && cookRecipeMap[item.productId]);
+  const lots = hasCookItems ? await listIngredientLotsForBusiness(activeBusiness.id, db) : [];
+  const lotById = new Map(lots.map((lot) => [lot.id, lot]));
+  const remainingByLot = new Map(
+    lots.filter((lot) => lot.status !== "archived").map((lot) => [lot.id, lot.remainingQuantity]),
+  );
+
+  for (const { item } of pricedItems) {
+    const cookRecipe = item.cookedToOrder ? cookRecipeMap[item.productId] : undefined;
+
+    if (cookRecipe) {
+      const recipeLines = await listRecipeLinesForRecipe(cookRecipe.recipeId, db);
+      const orderLines: OrderCogsLine[] = recipeLines.map((line) => {
+        const lot = line.ingredientLotId ? lotById.get(line.ingredientLotId) : undefined;
+        return {
+          label: line.sourceLabelSnapshot ?? line.customName ?? "Ingredient",
+          isCustom: line.isCustom,
+          quantity: line.quantity,
+          unit: line.unit,
+          lotId: line.ingredientLotId,
+          ingredientId: line.ingredientId,
+          lotUnit: lot?.unit ?? null,
+          lotCostPerUnit: lot?.costPerUnit ?? null,
+          lotRemainingQuantity: lot && lot.status !== "archived" ? lot.remainingQuantity : 0,
+          costOverride: line.costOverride,
+          lineCostSnapshot: line.lineCostSnapshot,
+        };
+      });
+
+      const orderPlan = planOrderCogs(orderLines, cookRecipe.outputQuantity, item.quantity, remainingByLot);
+      cogsByIndex.push({
+        cogsTotal: orderPlan.cogsTotal,
+        cogsPerUnit: item.quantity > 0 ? orderPlan.cogsTotal / item.quantity : 0,
+        source: orderPlan.isEstimated ? "cook_upon_order_estimated" : "cook_upon_order_actual",
+        isEstimated: orderPlan.isEstimated,
+        relatedRecipeId: cookRecipe.recipeId,
+        cookedToOrder: true,
+        orderPlan,
+      });
+      continue;
+    }
+
+    const averageCost = averageProducedCost.get(item.productId);
+    const cogsPerUnit = averageCost ?? item.unitCost;
+    cogsByIndex.push({
+      cogsTotal: cogsPerUnit * item.quantity,
+      cogsPerUnit,
+      source: averageCost !== undefined ? "production_average" : "simple",
+      isEstimated: false,
+      relatedRecipeId: null,
+      cookedToOrder: false,
+      orderPlan: null,
+    });
+  }
   const discount = Math.max(0, input.discountAmount ?? 0);
   if (discount > subtotal) {
     throw new Error("Discount cannot be greater than the cart subtotal.");
@@ -250,34 +362,40 @@ export async function completeKioskSale(
       ],
     );
 
-    for (const { item, pricing } of pricedItems) {
+    for (const [itemIndex, { item, pricing }] of pricedItems.entries()) {
       if (item.quantity <= 0) {
         throw new Error(`${item.name} has an invalid quantity.`);
       }
 
-      const updateResult = await txn.runAsync(
-        `
-          UPDATE products
-          SET stock_qty = stock_qty - ?, updated_at = ?, sync_status = ?
-          WHERE id = ? AND business_id = ? AND deleted_at IS NULL AND stock_qty >= ?
-        `,
-        [item.quantity, timestamp, "local", item.productId, activeBusiness.id, item.quantity],
-      );
+      const cogs = cogsByIndex[itemIndex];
 
-      if (updateResult.changes !== 1) {
-        throw new Error(`${item.name} does not have enough stock for this sale.`);
+      if (!cogs.cookedToOrder) {
+        const updateResult = await txn.runAsync(
+          `
+            UPDATE products
+            SET stock_qty = stock_qty - ?, updated_at = ?, sync_status = ?
+            WHERE id = ? AND business_id = ? AND deleted_at IS NULL AND stock_qty >= ?
+          `,
+          [item.quantity, timestamp, "local", item.productId, activeBusiness.id, item.quantity],
+        );
+
+        if (updateResult.changes !== 1) {
+          throw new Error(`${item.name} does not have enough stock for this sale.`);
+        }
       }
 
+      const saleItemId = makeSaleItemId();
       await txn.runAsync(
         `
           INSERT INTO sale_items (
             id, sale_id, business_id, branch_id, product_id, name, quantity,
             unit_price, unit_cost, line_total, bundle_applied, discount_amount,
+            cogs_total, cogs_per_unit, cogs_source, cogs_is_estimated, related_recipe_id,
             created_at, updated_at, sync_status, deleted_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
-          makeSaleItemId(),
+          saleItemId,
           saleId,
           activeBusiness.id,
           activeBranch.id,
@@ -289,6 +407,11 @@ export async function completeKioskSale(
           pricing.lineTotal,
           pricing.bundleApplied ? 1 : 0,
           0,
+          cogs.cogsTotal,
+          cogs.cogsPerUnit,
+          cogs.source,
+          cogs.isEstimated ? 1 : 0,
+          cogs.relatedRecipeId,
           timestamp,
           timestamp,
           "local",
@@ -312,14 +435,90 @@ export async function completeKioskSale(
           item.quantity,
           `Kiosk sale ${transactionNo}`,
           saleId,
-          item.unitCost,
-          item.unitCost * item.quantity,
+          cogs.cogsPerUnit,
+          cogs.cogsTotal,
           timestamp,
           timestamp,
           "local",
           null,
         ],
       );
+
+      if (cogs.orderPlan) {
+        for (const deduction of cogs.orderPlan.deductions) {
+          // Best effort inside the sale: deduct what the lot still has, but a
+          // cook-upon-order sale never fails because grocery stock moved.
+          await txn.runAsync(
+            `
+              UPDATE ingredient_lots
+              SET remaining_quantity = remaining_quantity - ?,
+                status = CASE WHEN remaining_quantity - ? <= 0.000000001 THEN 'depleted' ELSE status END,
+                updated_at = ?, sync_status = 'local'
+              WHERE id = ? AND business_id = ? AND deleted_at IS NULL AND status != 'archived'
+                AND remaining_quantity + 0.000000001 >= ?
+            `,
+            [deduction.quantity, deduction.quantity, timestamp, deduction.lotId, activeBusiness.id, deduction.quantity],
+          );
+
+          await txn.runAsync(
+            `
+              INSERT INTO ingredient_movements (
+                id, business_id, ingredient_id, lot_id, movement_type, quantity, unit,
+                unit_cost, total_cost, reason, created_at, updated_at, sync_status, deleted_at
+              ) VALUES (
+                ?, ?, (SELECT ingredient_id FROM ingredient_lots WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+              )
+            `,
+            [
+              makeIngredientMovementId(),
+              activeBusiness.id,
+              deduction.lotId,
+              deduction.lotId,
+              "recipe_usage",
+              deduction.quantity,
+              deduction.unit,
+              deduction.quantity > 0 ? deduction.cost / deduction.quantity : 0,
+              deduction.cost,
+              `Kiosk sale ${transactionNo}`,
+              timestamp,
+              timestamp,
+              "local",
+              null,
+            ],
+          );
+        }
+
+        for (const usage of cogs.orderPlan.usages) {
+          await txn.runAsync(
+            `
+              INSERT INTO sale_ingredient_usages (
+                id, business_id, sale_id, sale_item_id, recipe_id, ingredient_id, ingredient_lot_id,
+                quantity_used, unit, line_cost, is_estimated, shortfall_quantity,
+                source_label_snapshot, created_at, updated_at, sync_status, deleted_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+              makeSaleUsageId(),
+              activeBusiness.id,
+              saleId,
+              saleItemId,
+              cogs.relatedRecipeId,
+              usage.ingredientId,
+              usage.lotId,
+              usage.quantityUsed,
+              usage.unit,
+              usage.lineCost,
+              usage.isEstimated ? 1 : 0,
+              usage.shortfallQuantity,
+              usage.label,
+              timestamp,
+              timestamp,
+              "local",
+              null,
+            ],
+          );
+        }
+      }
     }
 
     await txn.runAsync(

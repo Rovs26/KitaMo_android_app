@@ -1,6 +1,6 @@
 # KitaMo Food Business Engine — Architecture Plan
 
-Status: Phase 8A planning document. Phase 8B implemented the Grocery Pool and Ingredient Inventory foundation (sections 5–6). Phase 8C+8D implemented the Recipe Builder with selected-lot costing, custom-cost lines, makeable quantity, and bottleneck detection (sections 7–9). Phase 9 implemented production per stall with ingredient deduction (section 10, without transfers). Cook-upon-order, fixed costs, and consolidated reporting remain design-only.
+Status: Phase 8A planning document. Phase 8B implemented the Grocery Pool foundation (sections 5–6). Phase 8C+8D implemented the Recipe Builder with selected-lot costing (sections 7–9). Phase 9 implemented production per stall with ingredient deduction (section 10). Phase 10+11 implemented cook-upon-order COGS at sale time (section 11) and the finished-goods lifecycle — unsold value, spoilage value, and transfers (section 12). Fixed costs and consolidated reporting (sections 13–14) remain design-only.
 
 ## 1. Executive summary
 
@@ -153,18 +153,23 @@ As built:
 - **Design deviation from the original sketch**: production BLOCKS on insufficient selected lots with a friendly "Not enough X. Need A, available B." message instead of estimating through the shortfall. Production is planned ahead of time, so the owner can restock or adjust; the no-blocking estimation rule is reserved for cook-upon-order at the point of sale (§11).
 - Finished goods live under the stall (existing `products.stock_qty` per branch) until sold/spoiled/transferred; transfers remain deferred. Pure planning math lives in `src/domain/productionMath.ts`, verified by `npm run check:production`.
 
-## 11. Cook-upon-order design (Phase 8E)
+## 11. Cook-upon-order design (shipped in Phase 10)
 
-- A product flag (`cooked_to_order`) marks items with no meaningful stock count.
-- Kiosk sale of such items skips the stock guard (sells freely) and, post-sale, writes a `cost_estimates` row: recipe-based COGS using preferred lots when available, else the ingredient's most recent cost history, else the recipe's custom costs.
-- If any ingredient had no pool stock, the estimate records a `shortfall` flag and the missing lines — the owner sees "estimated, may kulang sa pool" in reports instead of being blocked at the counter.
-- Pool deduction happens only for lines that actually had stock; estimation covers the rest. Never negative, never blocking.
+As built (design deviation: mode is derived from the latest active recipe instead of a product flag, and COGS lands on `sale_items` + `sale_ingredient_usages` instead of a separate `cost_estimates` table):
 
-## 12. Unsold goods / spoilage / transfer design
+- A product whose latest active recipe has `production_mode = 'cook_upon_order'` sells made-to-order: the Sell screen shows a "Made to order" badge, cart and checkout skip the finished-stock guard, and finished stock is never decremented for these items.
+- Checkout computes recipe COGS per sold item inside the existing single sale transaction. Each line deducts what its selected lot actually has (never other lots, never negative); the missing part is estimated at the same lot's price; a fully missing lot falls back to the line's save-time snapshot cost. Custom lines scale in cost and never deduct.
+- `sale_items` carries `cogs_total/per_unit/source/is_estimated`; `sale_ingredient_usages` records per-line used quantity, shortfall quantity, cost, and label. Estimation is surfaced in Insights as a friendly note, never as a block at the counter.
+- Pure math in `src/domain/orderCogs.ts`, verified by `npm run check:cogs`. Lots drained by one cart item are seen as drained by the next (shared working map).
+- Prepared-before-selling items get COGS from the average produced unit cost (`production_average`), falling back to the owner-entered product cost (`simple`). FIFO cost layers remain deferred.
 
-- Unsold finished goods remain on the stall's product stock (already true today).
-- Spoilage stays the existing Nasayang flow; when recipes exist, spoiled finished goods will also surface the lost ingredient cost in reports (no new writes needed — batch cost already known).
-- Transfers (Phase 8D+): a `transfer` movement pair moving finished-good quantity from one branch's product row to another's, one transaction, with a friendly "Ilipat sa ibang stall" action. Until then, owners re-record stock via existing flows.
+## 12. Unsold goods / spoilage / transfer design (shipped in Phase 11)
+
+As built:
+
+- Unsold finished goods remain on the stall's product stock; their value = stock × average produced unit cost, shown in Insights.
+- Spoilage (Nasayang) values the loss at the average produced unit cost when production history exists, else the owner-entered product cost; recorded on the spoilage movement's cost fields.
+- Transfers: the Transfers screen moves quantity between stalls in one transaction — source product decremented (guarded), a same-named product on the destination stall incremented (cloned if absent), a `product_transfers` row records the moved value, and paired `transfer_out`/`transfer_in` movements land in Records with "Lipat" badges.
 
 ## 13. Fixed cost design (Phase 8F)
 
@@ -186,9 +191,9 @@ As built:
 | **8B (shipped)** | Grocery Pool foundation | ingredients/lots/movements tables, grocery repos + service, Grocery Pool screen, Home/Insights hooks |
 | **8C+8D (shipped)** | Recipe Builder + costing | recipes + recipe_ingredient_lines, searchable lot picker, custom-cost lines, selected-lot costing, makeable quantity + bottleneck (no deduction) |
 | **9 (shipped)** | Production per stall | production_batches + usages, selected-lot deduction with blocking shortfalls, fractional batches, COGS per stall (transfers deferred) |
-| Next | Cook-upon-order | no-block selling for cook_upon_order recipes, cost_estimates + shortfall logging, history-price fallback |
-| Later | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
-| Later | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases; transfers between stalls |
+| **10+11 (shipped)** | Selling COGS + lifecycle | cook-upon-order no-block COGS with shortfall records, prepared-goods average COGS, unsold value, spoilage value, transfers |
+| Next | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
+| Later | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases; FIFO cost layers |
 
 Each phase is independently shippable and keeps all earlier flows intact.
 

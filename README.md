@@ -4,6 +4,34 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 10+11: Selling COGS and Finished Goods Lifecycle.
+
+Every kiosk sale now records its cost of goods sold, cook-upon-order products sell without ever being blocked by missing inventory, and finished goods have a full lifecycle: produced → sold / spoiled / transferred, with value following the goods.
+
+### Selling COGS (Phase 10)
+
+- Migration `007_selling_cogs` adds COGS columns to `sale_items` (`cogs_total`, `cogs_per_unit`, `cogs_source`, `cogs_is_estimated`, `related_recipe_id` — all additive, old sales stay valid) plus `sale_ingredient_usages` (per-sale ingredient usage and shortfall records) and `product_transfers`.
+- **Product mode is derived from the latest active recipe**: a product whose latest active recipe is `cook_upon_order` sells made-to-order; everything else is prepared-before-selling. No product-table change.
+- **Cook-upon-order sales never block.** The Sell screen shows a "Made to order" badge and allows adding at zero stock; checkout computes recipe COGS per item: each line deducts what its selected lot actually has (never negative, never other lots), any missing part is estimated at that same lot's price, and a fully missing lot falls back to the recipe's save-time snapshot price. Actual and estimated parts are recorded per line in `sale_ingredient_usages` with shortfall quantities; the sale item is marked `cook_upon_order_actual` or `cook_upon_order_estimated`. Finished stock is not touched for made-to-order items. All of this happens inside the existing single checkout transaction — duplicate-tap protection, bundle pricing, receipt totals, and the pending-save queue are unchanged.
+- **Prepared-before-selling COGS** uses the average produced unit cost from production batches (`production_average`); products with no production history fall back to their owner-entered cost (`simple`). Exact FIFO cost layers are a documented deferral — averages keep checkout simple and safe.
+- Verified by `npm run check:cogs` (22 assertions: full-stock actual, partial actual/estimated split, snapshot fallback, custom-line scaling, shared-lot draining across items, lots never negative, gross profit math).
+
+### Finished goods lifecycle (Phase 11)
+
+- **Unsold goods value**: stock on hand × average produced cost per product, shown in Insights ("Unsold goods").
+- **Spoilage value**: Nasayang now values the loss at the average produced unit cost when production history exists (owner-entered cost otherwise) — same guards as before, still one transaction, still never negative.
+- **Transfers**: the new Transfers screen (from Inventory) moves finished goods between stalls: pick a product, destination stall, quantity — one transaction decrements the source, increments a same-named product on the destination stall (cloning the product row there if none exists, noted in the result), records the transfer with its moved value, and writes paired `transfer_out`/`transfer_in` movements. Negative stock blocked; needs at least two stalls.
+- Records shows transfer movements with "Lipat in/out" badges; Insights adds COGS today, Gross profit (benta minus puhunan), Unsold goods, and Sayang today metrics, plus a friendly "Estimated cost used" note when cook-upon-order sales had to estimate ("Inventory was low, kaya recent price ang ginamit ni KitaMo."). Home's Tubo now uses real COGS automatically.
+
+### Phase 10+11 deferred
+
+- Fixed costs and consolidated per-stall/business profit reports (next phases).
+- FIFO production cost layers (average produced cost is the documented MVP).
+- Editing/undoing transfers; transferring shared (no-stall) products.
+- Cloud sync, as always.
+
+## Previous Phase
+
 Android Phase 9: Production per Stall with Ingredient Deduction.
 
 Owners can now record recipe-based production: pick a stall, pick a recipe, enter how many pieces were produced, and save. One SQLite transaction deducts the required ingredient quantities from the recipe's selected Grocery Pool lots, increases the finished product's stock, records the production batch with its COGS assigned to the chosen stall, and writes ingredient-usage and product stock-in movements. This is for prepared-before-selling products; cook-upon-order COGS stays deferred.
@@ -127,6 +155,7 @@ npm run lint
 npm run check:pricing
 npm run check:recipes
 npm run check:production
+npm run check:cogs
 npm run start
 ```
 
@@ -205,6 +234,11 @@ Migration `006_production` adds:
 
 - `production_batches`
 - `production_ingredient_usages`
+
+Migration `007_selling_cogs` adds COGS columns to `sale_items` plus:
+
+- `sale_ingredient_usages`
+- `product_transfers`
 
 ## Fresh Mode
 

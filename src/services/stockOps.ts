@@ -3,6 +3,7 @@ import { runMigrations } from "@/db/migrations";
 import {
   createOwnerAlert,
   getActiveOwnerAlertForProduct,
+  getAverageProducedCostByProduct,
   getProductById,
   type RepositoryDatabase,
 } from "@/db/repositories";
@@ -217,7 +218,11 @@ export async function recordSpoilage(
 
   const reason = input.reason?.trim() || "Nasayang / spoilage";
   const timestamp = new Date().toISOString();
-  const lossCost = product.cost * input.quantity;
+  // Spoilage loss is valued at the average produced unit cost when the product
+  // has production history; otherwise the owner-entered product cost.
+  const averageCosts = await getAverageProducedCostByProduct(business.id, db);
+  const lossUnitCost = averageCosts.get(product.id) ?? product.cost;
+  const lossCost = lossUnitCost * input.quantity;
 
   await db.withExclusiveTransactionAsync(async (txn) => {
     const updateResult = await txn.runAsync(
@@ -249,7 +254,7 @@ export async function recordSpoilage(
         input.quantity,
         reason,
         null,
-        product.cost,
+        lossUnitCost,
         lossCost,
         timestamp,
         timestamp,

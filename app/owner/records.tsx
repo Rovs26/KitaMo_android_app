@@ -48,6 +48,14 @@ function movementBadge(movementType: string, linkedSaleId: string | null): { lab
     return { label: "Nasayang", tone: "danger" };
   }
 
+  if (movementType === "transfer_in") {
+    return { label: "Lipat in", tone: "primary" };
+  }
+
+  if (movementType === "transfer_out") {
+    return { label: "Lipat out", tone: "neutral" };
+  }
+
   if (linkedSaleId) {
     return { label: "Sale", tone: "success" };
   }

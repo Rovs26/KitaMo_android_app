@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "check:pricing": "tsc src/domain/pricing.ts --outDir node_modules/.cache/kitamo-pricing-check --module commonjs --target es2020 --skipLibCheck && node scripts/check-pricing.js",
     "check:recipes": "tsc src/domain/recipeCosting.ts --outDir node_modules/.cache/kitamo-recipe-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-recipe-costing.js",
-    "check:production": "tsc src/domain/productionMath.ts --outDir node_modules/.cache/kitamo-production-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-production-math.js"
+    "check:production": "tsc src/domain/productionMath.ts --outDir node_modules/.cache/kitamo-production-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-production-math.js",
+    "check:cogs": "tsc src/domain/orderCogs.ts --outDir node_modules/.cache/kitamo-cogs-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-order-cogs.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

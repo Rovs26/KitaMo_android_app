@@ -153,6 +153,37 @@ export async function getTodayProductionTotals(
   };
 }
 
+/**
+ * Average produced unit cost per product (total production cost / total output).
+ * Used as the prepared-before-selling COGS source; FIFO cost layers are a
+ * documented later upgrade.
+ */
+export async function getAverageProducedCostByProduct(businessId: string, db?: RepositoryDatabase) {
+  const rows = await getRepositoryDatabase(db).getAllAsync<{
+    output_product_id: string;
+    total_cost: number | null;
+    total_output: number | null;
+  }>(
+    `
+      SELECT output_product_id, SUM(total_batch_cost) AS total_cost, SUM(output_quantity) AS total_output
+      FROM production_batches
+      WHERE business_id = ? AND deleted_at IS NULL AND output_product_id IS NOT NULL
+      GROUP BY output_product_id
+    `,
+    [businessId],
+  );
+
+  const averages = new Map<string, number>();
+  for (const row of rows) {
+    const output = row.total_output ?? 0;
+    if (output > 0) {
+      averages.set(row.output_product_id, (row.total_cost ?? 0) / output);
+    }
+  }
+
+  return averages;
+}
+
 export async function countProductionBatches(db?: RepositoryDatabase) {
   const row = await getRepositoryDatabase(db).getFirstAsync<{ count: number }>(
     "SELECT COUNT(*) AS count FROM production_batches WHERE deleted_at IS NULL",

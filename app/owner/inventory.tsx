@@ -341,6 +341,7 @@ export default function OwnerInventoryScreen() {
       <View style={styles.twoColumn}>
         <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
         <SecondaryButton href="/owner/recipes" label="Recipes" />
+        <SecondaryButton href="/owner/transfers" label="Transfers" />
       </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>

@@ -137,6 +137,11 @@ export async function createSale(input: CreateSaleInput, db?: RepositoryDatabase
         lineTotal: itemInput.lineTotal,
         bundleApplied: itemInput.bundleApplied,
         discountAmount: itemInput.discountAmount,
+        cogsTotal: itemInput.unitCost * itemInput.quantity,
+        cogsPerUnit: itemInput.unitCost,
+        cogsSource: "simple",
+        cogsIsEstimated: false,
+        relatedRecipeId: null,
         createdAt,
         updatedAt: createdAt,
         syncStatus: "local",
@@ -148,8 +153,9 @@ export async function createSale(input: CreateSaleInput, db?: RepositoryDatabase
           INSERT INTO sale_items (
             id, sale_id, business_id, branch_id, product_id, name, quantity,
             unit_price, unit_cost, line_total, bundle_applied, discount_amount,
+            cogs_total, cogs_per_unit, cogs_source, cogs_is_estimated, related_recipe_id,
             created_at, updated_at, sync_status, deleted_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           item.id,
@@ -164,6 +170,11 @@ export async function createSale(input: CreateSaleInput, db?: RepositoryDatabase
           item.lineTotal,
           toInteger(item.bundleApplied),
           item.discountAmount,
+          item.cogsTotal,
+          item.cogsPerUnit,
+          item.cogsSource,
+          toInteger(item.cogsIsEstimated),
+          item.relatedRecipeId,
           item.createdAt,
           item.updatedAt,
           item.syncStatus,

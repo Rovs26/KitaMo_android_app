@@ -84,9 +84,27 @@ export default function OwnerInsightsScreen() {
           <View style={styles.metricGrid}>
             <MetricCard detail="Today" icon="K" label="Today's Kita" tone="primary" value={formatPeso(snapshot.today.salesTotal)} />
             <MetricCard detail="Today" icon="T" label="Transactions" tone="success" value={String(snapshot.today.transactionCount)} />
+            <MetricCard detail="Puhunan ng nabenta today" icon="C" label="COGS" tone="danger" value={formatPeso(snapshot.today.costTotal)} />
+            <MetricCard
+              detail="Benta minus puhunan today"
+              icon="G"
+              label="Gross profit"
+              tone="success"
+              value={formatPeso(Math.max(0, snapshot.today.salesTotal - snapshot.today.costTotal))}
+            />
             <MetricCard detail="Today" icon="A" label="Average sale" tone="neutral" value={formatPeso(snapshot.today.averageSale)} />
             <MetricCard detail="Pending saves" icon="P" label="Pending" tone="accent" value={String(snapshot.pendingQueueCount)} />
           </View>
+
+          {snapshot.lifecycle.estimatedCogsCountToday > 0 ? (
+            <Card>
+              <Text style={[styles.itemTitle, { color: palette.text }]}>Estimated cost used</Text>
+              <Text style={[styles.body, { color: palette.mutedText }]}>
+                Inventory was low sa {snapshot.lifecycle.estimatedCogsCountToday} benta today, kaya recent price ang ginamit ni
+                KitaMo. I-check ang Grocery Pool kapag may time.
+              </Text>
+            </Card>
+          ) : null}
 
           <Card>
             <Text style={[styles.sectionTitle, { color: palette.text }]}>Payment breakdown</Text>
@@ -135,6 +153,20 @@ export default function OwnerInsightsScreen() {
               label="Production"
               tone="primary"
               value={formatPeso(production?.totalCost ?? 0)}
+            />
+            <MetricCard
+              detail="Halaga ng hindi pa nabebenta"
+              icon="U"
+              label="Unsold goods"
+              tone="neutral"
+              value={formatPeso(snapshot?.lifecycle.unsoldFinishedValue ?? 0)}
+            />
+            <MetricCard
+              detail={`${snapshot?.lifecycle.transferCountToday ?? 0} transfer${(snapshot?.lifecycle.transferCountToday ?? 0) === 1 ? "" : "s"} today`}
+              icon="S"
+              label="Sayang today"
+              tone={(snapshot?.lifecycle.spoilageLossToday ?? 0) > 0 ? "warning" : "success"}
+              value={formatPeso(snapshot?.lifecycle.spoilageLossToday ?? 0)}
             />
           </View>
 

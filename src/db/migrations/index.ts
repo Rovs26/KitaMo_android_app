@@ -8,6 +8,7 @@ import { ownerAlertFieldsMigration } from "./003_owner_alert_fields";
 import { groceryPoolMigration } from "./004_grocery_pool";
 import { recipesMigration } from "./005_recipes";
 import { productionMigration } from "./006_production";
+import { sellingCogsMigration } from "./007_selling_cogs";
 
 export type Migration = {
   id: string;
@@ -21,6 +22,7 @@ const migrations: Migration[] = [
   groceryPoolMigration,
   recipesMigration,
   productionMigration,
+  sellingCogsMigration,
 ];
 
 type MigrationRow = {

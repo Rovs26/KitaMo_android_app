@@ -62,6 +62,13 @@ export type LocalInventoryMovementRecord = {
   createdAt: string;
 };
 
+export type LifecycleSummary = {
+  estimatedCogsCountToday: number;
+  spoilageLossToday: number;
+  transferCountToday: number;
+  unsoldFinishedValue: number;
+};
+
 export type LocalAnalyticsSnapshot = {
   mode: OwnerSetupMode;
   hasBusiness: boolean;
@@ -77,6 +84,7 @@ export type LocalAnalyticsSnapshot = {
   recentMovements: LocalInventoryMovementRecord[];
   pendingQueueCount: number;
   activeAlertCount: number;
+  lifecycle: LifecycleSummary;
 };
 
 type CountRow = {
@@ -225,7 +233,7 @@ export async function getTodaySalesSummary(
 
   const costRow = await db.getFirstAsync<{ cost_total: number | null }>(
     `
-      SELECT COALESCE(SUM(si.unit_cost * si.quantity), 0) AS cost_total
+      SELECT COALESCE(SUM(COALESCE(si.cogs_total, si.unit_cost * si.quantity)), 0) AS cost_total
       FROM sale_items si
       JOIN sales s ON s.id = si.sale_id AND s.deleted_at IS NULL
       WHERE s.business_id = ? AND s.happened_at >= ? AND s.happened_at < ? AND si.deleted_at IS NULL
@@ -462,6 +470,72 @@ export async function listRecentInventoryMovements(
   return rows.map(mapMovement);
 }
 
+export async function getLifecycleSummary(
+  businessId?: string | null,
+  db: RepositoryDatabase = openKitamoDatabase(),
+): Promise<LifecycleSummary> {
+  await runMigrations(db);
+
+  if (!businessId) {
+    return { estimatedCogsCountToday: 0, spoilageLossToday: 0, transferCountToday: 0, unsoldFinishedValue: 0 };
+  }
+
+  const { startIso, endIso } = getTodayBounds();
+
+  const estimatedRow = await db.getFirstAsync<CountRow>(
+    `
+      SELECT COUNT(*) AS count
+      FROM sale_items si
+      JOIN sales s ON s.id = si.sale_id AND s.deleted_at IS NULL
+      WHERE s.business_id = ? AND s.happened_at >= ? AND s.happened_at < ?
+        AND si.cogs_is_estimated = 1 AND si.deleted_at IS NULL
+    `,
+    [businessId, startIso, endIso],
+  );
+
+  const spoilageRow = await db.getFirstAsync<{ total: number | null }>(
+    `
+      SELECT COALESCE(SUM(total_cost), 0) AS total
+      FROM inventory_movements
+      WHERE business_id = ? AND movement_type = 'spoilage'
+        AND created_at >= ? AND created_at < ? AND deleted_at IS NULL
+    `,
+    [businessId, startIso, endIso],
+  );
+
+  const transferRow = await db.getFirstAsync<CountRow>(
+    `
+      SELECT COUNT(*) AS count
+      FROM product_transfers
+      WHERE business_id = ? AND created_at >= ? AND created_at < ? AND deleted_at IS NULL
+    `,
+    [businessId, startIso, endIso],
+  );
+
+  const unsoldRow = await db.getFirstAsync<{ total: number | null }>(
+    `
+      SELECT COALESCE(SUM(p.stock_qty * (pb.total_cost / pb.total_output)), 0) AS total
+      FROM products p
+      JOIN (
+        SELECT output_product_id, SUM(total_batch_cost) AS total_cost, SUM(output_quantity) AS total_output
+        FROM production_batches
+        WHERE business_id = ? AND deleted_at IS NULL AND output_product_id IS NOT NULL
+        GROUP BY output_product_id
+        HAVING SUM(output_quantity) > 0
+      ) pb ON pb.output_product_id = p.id
+      WHERE p.business_id = ? AND p.deleted_at IS NULL AND p.stock_qty > 0
+    `,
+    [businessId, businessId],
+  );
+
+  return {
+    estimatedCogsCountToday: estimatedRow?.count ?? 0,
+    spoilageLossToday: spoilageRow?.total ?? 0,
+    transferCountToday: transferRow?.count ?? 0,
+    unsoldFinishedValue: unsoldRow?.total ?? 0,
+  };
+}
+
 export async function getLocalAnalyticsSnapshot(
   filter: SalesRecordFilter = "today",
   db: RepositoryDatabase = openKitamoDatabase(),
@@ -475,6 +549,7 @@ export async function getLocalAnalyticsSnapshot(
   const recentSales = await listLocalSaleRecords(filter, businessId, db);
   const recentMovements = await listRecentInventoryMovements(businessId, db);
   const activeAlertCount = businessId ? await countActiveOwnerAlerts(businessId, db) : 0;
+  const lifecycle = await getLifecycleSummary(businessId, db);
 
   return {
     mode: status.mode,
@@ -491,5 +566,6 @@ export async function getLocalAnalyticsSnapshot(
     recentMovements,
     pendingQueueCount: recordsSummary.pendingQueueCount,
     activeAlertCount,
+    lifecycle,
   };
 }

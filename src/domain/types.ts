@@ -74,6 +74,8 @@ export type Sale = LocalEntity & {
   notes: string | null;
 };
 
+export type SaleCogsSource = "simple" | "production_average" | "cook_upon_order_actual" | "cook_upon_order_estimated";
+
 export type SaleItem = LocalEntity & {
   saleId: string;
   businessId: string;
@@ -86,6 +88,11 @@ export type SaleItem = LocalEntity & {
   lineTotal: number;
   bundleApplied: boolean;
   discountAmount: number;
+  cogsTotal: number | null;
+  cogsPerUnit: number | null;
+  cogsSource: SaleCogsSource | null;
+  cogsIsEstimated: boolean;
+  relatedRecipeId: string | null;
 };
 
 export type InventoryMovementType =
@@ -94,6 +101,8 @@ export type InventoryMovementType =
   | "manual_adjustment"
   | "cooked"
   | "spoilage"
+  | "transfer_in"
+  | "transfer_out"
   | "return_to_supplier"
   | "customer_return";
 

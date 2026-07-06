@@ -16,7 +16,9 @@ export type LocalIdKind =
   | "recipe"
   | "recipe_line"
   | "production_batch"
-  | "production_usage";
+  | "production_usage"
+  | "sale_usage"
+  | "transfer";
 
 function shortRandom() {
   return Math.random().toString(36).slice(2, 8);
@@ -44,3 +46,5 @@ export const makeRecipeId = () => makeLocalId("recipe");
 export const makeRecipeLineId = () => makeLocalId("recipe_line");
 export const makeProductionBatchId = () => makeLocalId("production_batch");
 export const makeProductionUsageId = () => makeLocalId("production_usage");
+export const makeSaleUsageId = () => makeLocalId("sale_usage");
+export const makeTransferId = () => makeLocalId("transfer");

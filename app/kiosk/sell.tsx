@@ -53,7 +53,8 @@ export default function KioskSellScreen() {
   );
 
   function addToCart(product: Product) {
-    const result = addProductToCart(product);
+    const cookedToOrder = Boolean(context?.cookUponOrderRecipeByProductId[product.id]);
+    const result = addProductToCart(product, cookedToOrder);
     setMessage(result.ok ? `${product.name} added to cart.` : (result.reason ?? "Could not add product."));
   }
 
@@ -91,7 +92,12 @@ export default function KioskSellScreen() {
         ) : null}
 
         {context?.products.map((product) => (
-          <ProductRow key={product.id} product={product} onAdd={() => addToCart(product)} />
+          <ProductRow
+            cookedToOrder={Boolean(context.cookUponOrderRecipeByProductId[product.id])}
+            key={product.id}
+            product={product}
+            onAdd={() => addToCart(product)}
+          />
         ))}
       </Card>
 
@@ -153,14 +159,15 @@ export default function KioskSellScreen() {
 
 type ProductRowProps = {
   product: Product;
+  cookedToOrder: boolean;
   onAdd: () => void;
 };
 
-function ProductRow({ product, onAdd }: ProductRowProps) {
+function ProductRow({ product, cookedToOrder, onAdd }: ProductRowProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const lowStock = isLowStock(product.stockQty, product.lowStockThreshold);
-  const outOfStock = product.stockQty <= 0;
+  const outOfStock = product.stockQty <= 0 && !cookedToOrder;
   const bundleLabel = hasBundlePricing(product) ? bundleLabelFor(product.bundleQuantity, product.bundlePrice, product.bundleLabel) : null;
 
   return (
@@ -179,13 +186,14 @@ function ProductRow({ product, onAdd }: ProductRowProps) {
       <View style={styles.productText}>
         <Text style={[styles.itemTitle, { color: palette.text }]}>{product.name}</Text>
         <Text style={[styles.body, { color: palette.mutedText }]}>
-          {product.stockQty} {product.unitType} | {formatMoney(product.price)}
+          {cookedToOrder ? `Luto kapag may order | ${formatMoney(product.price)}` : `${product.stockQty} ${product.unitType} | ${formatMoney(product.price)}`}
         </Text>
         {bundleLabel ? <Text style={[styles.bundleOffer, { color: palette.warning }]}>{bundleLabel}</Text> : null}
       </View>
       <View style={styles.badges}>
+        {cookedToOrder ? <Pill label="Made to order" tone="accent" /> : null}
         {outOfStock ? <Pill label="Out" tone="danger" /> : null}
-        {!outOfStock && lowStock ? <Pill label="Low" tone="warning" /> : null}
+        {!outOfStock && !cookedToOrder && lowStock ? <Pill label="Low" tone="warning" /> : null}
         {!outOfStock ? <Text style={[styles.addText, { color: palette.primary }]}>Add</Text> : null}
       </View>
     </Pressable>

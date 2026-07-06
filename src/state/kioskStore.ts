@@ -16,6 +16,7 @@ export type KioskCartItem = {
   bundlePrice: number | null;
   bundleLabel: string | null;
   quantity: number;
+  cookedToOrder: boolean;
 };
 
 type AddProductResult = {
@@ -28,7 +29,7 @@ type KioskState = {
   activeShiftId: string | null;
   lastSaleId: string | null;
   lastReceiptText: string | null;
-  addProductToCart: (product: Product) => AddProductResult;
+  addProductToCart: (product: Product, cookedToOrder?: boolean) => AddProductResult;
   incrementCartItem: (productId: string) => AddProductResult;
   decrementCartItem: (productId: string) => void;
   removeCartItem: (productId: string) => void;
@@ -42,13 +43,13 @@ export const useKioskStore = create<KioskState>((set, get) => ({
   activeShiftId: null,
   lastSaleId: null,
   lastReceiptText: null,
-  addProductToCart: (product) => {
-    if (product.stockQty <= 0) {
+  addProductToCart: (product, cookedToOrder = false) => {
+    if (!cookedToOrder && product.stockQty <= 0) {
       return { ok: false, reason: `${product.name} is out of stock.` };
     }
 
     const currentItem = get().cartItems.find((item) => item.productId === product.id);
-    if (currentItem && currentItem.quantity >= product.stockQty) {
+    if (currentItem && !cookedToOrder && currentItem.quantity >= product.stockQty) {
       return { ok: false, reason: `Only ${product.stockQty} ${product.unitType} available.` };
     }
 
@@ -64,6 +65,7 @@ export const useKioskStore = create<KioskState>((set, get) => ({
                 bundleQuantity: product.bundleQuantity,
                 bundlePrice: product.bundlePrice,
                 bundleLabel: product.bundleLabel,
+                cookedToOrder,
               }
             : item,
         ),
@@ -88,6 +90,7 @@ export const useKioskStore = create<KioskState>((set, get) => ({
           bundlePrice: product.bundlePrice,
           bundleLabel: product.bundleLabel,
           quantity: 1,
+          cookedToOrder,
         },
       ],
     }));
@@ -100,7 +103,7 @@ export const useKioskStore = create<KioskState>((set, get) => ({
       return { ok: false, reason: "Cart item not found." };
     }
 
-    if (currentItem.quantity >= currentItem.stockQty) {
+    if (!currentItem.cookedToOrder && currentItem.quantity >= currentItem.stockQty) {
       return { ok: false, reason: `Only ${currentItem.stockQty} ${currentItem.unitType} available.` };
     }
 
