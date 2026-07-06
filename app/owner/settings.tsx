@@ -14,6 +14,11 @@ import {
 } from "@/db/repositories";
 import type { Branch, BusinessType } from "@/domain/types";
 import { loadOwnerSetupStatus, setActiveBranch, setActiveBusiness, type OwnerSetupStatus } from "@/services/ownerSetup";
+import {
+  getSupabaseConfigStatus,
+  getSupabaseConnectionCopy,
+  type SupabaseConnectionStatus,
+} from "@/services/supabaseConnection";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
@@ -78,6 +83,9 @@ export default function OwnerSettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
+  // Non-network snapshot only: reflects whether cloud sync is configured.
+  // A live connection check exists in the service but is not run here.
+  const [cloudStatus] = useState<SupabaseConnectionStatus>(() => getSupabaseConfigStatus().status);
   const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
   const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -406,6 +414,14 @@ export default function OwnerSettingsScreen() {
       {status ? <PilotStatusCard status={status} /> : null}
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <View style={styles.cloudHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Cloud Sync</Text>
+          <Pill label={getSupabaseConnectionCopy(cloudStatus)} tone={cloudStatus === "connected" ? "success" : cloudStatus === "error" ? "danger" : "neutral"} />
+        </View>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Local-first pilot. Cloud sync coming soon.</Text>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Data & Privacy</Text>
         <Text style={[styles.body, { color: palette.mutedText }]}>Your pilot data stays on this phone until sync is added.</Text>
         <SecondaryButton href="/owner/pilot-guide" label="Open Pilot Guide" />
@@ -551,6 +567,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.md,
+  },
+  cloudHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
   },
   summaryText: {
     flex: 1,

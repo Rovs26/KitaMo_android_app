@@ -4,6 +4,38 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Release + Supabase Preparation.
+
+Permanent package name set for Play upload, plus an **optional** Supabase cloud foundation that the app never depends on.
+
+### Package name (permanent)
+
+`android.package` = **`ph.kitamo.app`** — clean production id, no `.pilot` suffix. All docs updated. It becomes immutable on first upload and carries through Internal → Closed → Production.
+
+### Supabase foundation (optional, not active)
+
+- Added `@supabase/supabase-js` and verified the Android bundle still exports cleanly (grew ~0.8 MB).
+- `src/config/supabase.ts` reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` from the environment. **No secrets are hardcoded; no service-role key is ever used.** With the env vars absent (the default), it reports "disabled", creates no client, and makes **zero network requests** — the app runs exactly as before, fully local-first.
+- `src/services/supabaseConnection.ts` reports a status (`disabled` / `configured` / `connected` / `error`) and only touches the network when configured *and* explicitly called. It gates nothing.
+- Settings shows a read-only **Cloud Sync** card: "Local-first pilot. Cloud sync coming soon." (status pill reads "Not configured" until env vars are set). No sync is implemented.
+- Config template: [`.env.example`](.env.example) (copy to `.env`, which is gitignored). **Do not commit `.env`; never put a service-role key in the app.**
+
+### Supabase planning docs (`docs/supabase/`)
+
+- [`schema-plan.md`](docs/supabase/schema-plan.md) — planned Postgres tables + standard sync columns.
+- [`rls-plan.md`](docs/supabase/rls-plan.md) — owner/manager/seller/viewer roles, `business_id`/`stall_id` scoping.
+- [`local-to-cloud-sync-plan.md`](docs/supabase/local-to-cloud-sync-plan.md) — UUIDs, upsert-by-id, conservative conflicts. SQLite stays authoritative.
+
+### Build commands (manual, when ready)
+
+```sh
+eas login
+eas build:configure          # writes extra.eas.projectId to app.json — commit it
+eas build -p android --profile production   # produces the .aab for Play
+```
+
+## Previous Phase
+
 Chapter 2 Phase 7: Google Play Internal Testing Upload Preparation.
 
 Upload materials and the manual Play Console path are prepared. Nothing is uploaded or published; no build was run.
@@ -12,9 +44,9 @@ Upload materials and the manual Play Console path are prepared. Nothing is uploa
 
 **Internal Testing is the target** (up to 100 email testers, instant, no review wait) — not public production. A new personal Play Console account generally needs Closed Testing with ≥12 testers for 14 continuous days before production unlocks. Google Play only *distributes* the app; KitaMo has no backend, so "publishing" just means making the installable app available to chosen testers. Full plan: [`docs/release/google-play-internal-testing-execution.md`](docs/release/google-play-internal-testing-execution.md).
 
-### DECISION REQUIRED before first upload — package name
+### Package name — decided: `ph.kitamo.app`
 
-`android.package` is `ph.kitamo.pilot` and **becomes permanent and immutable on first upload** (and is the same package across Internal → Closed → Production). If this app should become the real production KitaMo, change it to `ph.kitamo` / `ph.kitamo.app` **before uploading**; if it's a throwaway pilot, keep it. **This was not changed automatically** — it's your irreversible call. Details in the execution doc.
+`android.package` is now the permanent production id `ph.kitamo.app` (no `.pilot` suffix). It becomes immutable on first upload and carries through Internal → Closed → Production. The app title `KitaMo (Pilot)` stays editable in the Console.
 
 ### Config audit (clean)
 
@@ -77,7 +109,7 @@ All materials for Google Play **internal testing** are drafted — nothing has b
 
 ### Config audit result
 
-- `app.json`: display name **KitaMo (Pilot)**, package `ph.kitamo.pilot`, version `0.1.0` / versionCode `1`, portrait, keyboard resize, `permissions: []`. The built manifest carries only framework-level `INTERNET` (unused by app features at runtime), `ACCESS_NETWORK_STATE` (online/offline badge), and `VIBRATE` (haptics). **No camera, location, contacts, microphone, Bluetooth, or storage permissions.**
+- `app.json`: display name **KitaMo (Pilot)**, package `ph.kitamo.app`, version `0.1.0` / versionCode `1`, portrait, keyboard resize, `permissions: []`. The built manifest carries only framework-level `INTERNET` (unused by app features at runtime), `ACCESS_NETWORK_STATE` (online/offline badge), and `VIBRATE` (haptics). **No camera, location, contacts, microphone, Bluetooth, or storage permissions.**
 - Dependency audit: no analytics, ads, crash-reporting, auth, or payment SDKs; the app's own code makes zero network requests.
 - `eas.json` profiles ready (development/preview/production). Still manual before the first build: `eas login` + `eas build:configure` (writes the EAS project id — needs the owner's Expo account), real icon/splash assets, and a hosted privacy policy URL.
 
@@ -104,7 +136,7 @@ The app is now pilot-ready: full-engine QA pass, seller-facing pilot guide, test
 
 ### Android build readiness (Phase 16)
 
-- `app.json`: Android package `ph.kitamo.pilot`, `versionCode` 1, explicit empty `permissions` (the app requests nothing beyond defaults), keyboard resize mode. Icon/splash still use Expo placeholders — real branding assets are a pre-publishing task.
+- `app.json`: Android package `ph.kitamo.app`, `versionCode` 1, explicit empty `permissions` (the app requests nothing beyond defaults), keyboard resize mode. Icon/splash still use Expo placeholders — real branding assets are a pre-publishing task.
 - Minimal `eas.json` with `development` (dev client APK), `preview` (internal APK), and `production` (app bundle) profiles. **No build has been run and nothing is published** — see Build commands below.
 
 ### Build commands (documented, not executed)

@@ -22,20 +22,13 @@ How KitaMo reaches testers on Google Play, and why Internal Testing is the corre
 - Even without that gate, production goes through Google review (hours to days). Internal Testing is instant and is where pilot feedback should come from anyway.
 - Nothing about KitaMo's value needs public production for the pilot — the sellers you hand-pick install from an internal opt-in link.
 
-## DECISION REQUIRED BEFORE FIRST UPLOAD — package name
+## Package name — DECIDED: `ph.kitamo.app`
 
-The Android **package name is permanent and immutable once the first bundle is uploaded** to any track. It also *is* the app's identity across Internal → Closed → Production (they are tracks of one app, one package).
+The Android **package name is permanent and immutable once the first bundle is uploaded** to any track, and *is* the app's identity across Internal → Closed → Production (one app, one package).
 
-Current value: `ph.kitamo.pilot` (in `app.json` → `android.package`).
+Decision made: `android.package` is now **`ph.kitamo.app`** (a clean, production-ready id — no `.pilot` suffix baked in). This is the package you upload tonight and the one that carries through to production; do not change it again after the first upload.
 
-Consequences of uploading with `ph.kitamo.pilot`:
-
-- The production app forever carries `.pilot` in its package ID (invisible to users, but unchangeable).
-- You could **not** later ship "the real KitaMo" under `ph.kitamo` as an update to this same listing — that would be a **separate** Play app, losing this listing's testers, history, and any reviews, and restarting the closed-testing clock.
-
-**Recommendation:** if this app is intended to become the real production KitaMo, change the package to a clean permanent id — `ph.kitamo` or `ph.kitamo.app` — **before the first upload**. If it is a genuinely throwaway pilot that a fresh app will replace later, `ph.kitamo.pilot` is fine.
-
-This was **not changed automatically** — it is your call because it is irreversible. To change it: set `android.package` in `app.json`, then rebuild. (The user-facing app title is separate and editable in the Play Console at any time; only the package id is permanent.)
+The user-facing app title (`KitaMo (Pilot)`) is separate and editable in the Play Console at any time — only the package id is permanent.
 
 ## Current config snapshot (audited)
 

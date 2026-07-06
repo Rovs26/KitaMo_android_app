@@ -18,7 +18,7 @@
         "backgroundColor": "#F7F1E3"
       },
       "softwareKeyboardLayoutMode": "resize",
-      "package": "ph.kitamo.pilot",
+      "package": "ph.kitamo.app",
       "versionCode": 1,
       "permissions": []
     },

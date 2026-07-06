@@ -4,8 +4,9 @@
 
 ## Audit basis (what the code actually does)
 
-- The app's own logic makes **zero network requests** (verified: no fetch/axios/XHR in `src/` or `app/`; `expo-network` is used only to read connectivity state for the Online/Offline badge).
-- Dependencies: Expo runtime, expo-sqlite (local DB), expo-clipboard, expo-sharing + React Native Share (OS share sheet), expo-haptics, expo-network, expo-router, react-native UI libraries, zod, zustand. **No analytics, ads, crash-reporting, auth, or payment SDKs.**
+- The app's own logic makes **zero network requests in the shipped default configuration** (no fetch/axios/XHR in `src/` or `app/`; `expo-network` only reads connectivity state for the Online/Offline badge).
+- **Supabase is present but inactive.** `@supabase/supabase-js` is bundled as an optional cloud foundation, but it is disabled unless `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set at build time. Those env vars are **not set** for the internal-testing build, so no Supabase client is created and no request is ever made. A network request happens only when (a) the app is built with those env vars AND (b) the connection helper is explicitly invoked. **Until cloud sync/auth actually ships (Chapter 3), answer Data Safety as "no data collected/transmitted."**
+- Dependencies: Expo runtime, expo-sqlite (local DB), expo-clipboard, expo-sharing + React Native Share (OS share sheet), expo-haptics, expo-network, expo-router, react-native UI libraries, zod, zustand, and (inactive) @supabase/supabase-js. **No analytics, ads, crash-reporting, or payment SDKs.**
 - Android permissions in the manifest after build: `INTERNET` (framework default; unused by app features at runtime), `ACCESS_NETWORK_STATE` (online/offline badge), `VIBRATE` (haptics). `android.permissions` in `app.json` adds nothing. No camera, location, contacts, microphone, Bluetooth, or storage permissions.
 
 ## Suggested form answers

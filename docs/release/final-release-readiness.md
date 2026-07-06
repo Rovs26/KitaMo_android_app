@@ -8,7 +8,7 @@ Status as of Chapter 2 Phase 6. This closes the engineering work before Google P
 - Full Food Business Engine implemented (grocery → recipe → production → sale COGS → transfers → spoilage → fixed costs → per-stall & consolidated Kita Report).
 - Finance-manager Home dashboard, Logbook timeline, and simplified Kita Report (Phase 4).
 - Six pure-math check suites plus an end-to-end pilot scenario check — all green.
-- `app.json`: name "KitaMo (Pilot)", package `ph.kitamo.pilot`, version `0.1.0`, versionCode `1`, portrait, `permissions: []`.
+- `app.json`: name "KitaMo (Pilot)", package `ph.kitamo.app`, version `0.1.0`, versionCode `1`, portrait, `permissions: []`.
 - `eas.json` profiles ready (development / preview / production).
 
 ## What is ready

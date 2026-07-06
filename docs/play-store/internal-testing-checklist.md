@@ -13,7 +13,7 @@ Goal: get the first internal-testing build into a small trusted tester group's h
 
 - [ ] Google Play Console developer account created ($25 one-time) under the owner's Google account.
 - [ ] Developer identity verification completed (can take days — start early).
-- [ ] "KitaMo (Pilot)" app created in the Console: App → Create app → App/Game: App, Free, package `ph.kitamo.pilot`.
+- [ ] "KitaMo (Pilot)" app created in the Console: App → Create app → App/Game: App, Free, package `ph.kitamo.app`.
 - [ ] Data Safety form filled using `data-safety-draft.md` (final answers reviewed by the owner).
 - [ ] Content rating questionnaire completed (business/productivity app, no user-generated public content).
 - [ ] Target audience: 18+ (business tool).
@@ -30,7 +30,7 @@ One-time setup (interactive, requires the owner's Expo account — not scripted)
 
 - [ ] `npm install -g eas-cli` and `eas login`.
 - [ ] `eas build:configure` — links the repo to an EAS project (`extra.eas.projectId` gets written to `app.json`; commit that change).
-- [ ] Confirm `app.json` android block: package `ph.kitamo.pilot`, versionCode `1`, version `0.1.0`.
+- [ ] Confirm `app.json` android block: package `ph.kitamo.app`, versionCode `1`, version `0.1.0`.
 
 Build:
 
