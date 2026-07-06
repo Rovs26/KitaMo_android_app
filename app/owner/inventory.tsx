@@ -338,10 +338,19 @@ export default function OwnerInventoryScreen() {
         <MetricCard detail="Cost basis" icon="P" label="Stock Value" tone="success" value={formatPeso(stockValue)} />
       </View>
 
-      <View style={styles.twoColumn}>
-        <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
-        <SecondaryButton href="/owner/recipes" label="Recipes" />
-        <SecondaryButton href="/owner/transfers" label="Transfers" />
+      <View style={styles.linkGrid}>
+        <View style={styles.linkCell}>
+          <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
+        </View>
+        <View style={styles.linkCell}>
+          <SecondaryButton href="/owner/recipes" label="Recipes" />
+        </View>
+        <View style={styles.linkCell}>
+          <SecondaryButton href="/owner/production" label="Production" />
+        </View>
+        <View style={styles.linkCell}>
+          <SecondaryButton href="/owner/transfers" label="Transfers" />
+        </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -795,6 +804,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
+  },
+  linkGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  linkCell: {
+    flexBasis: "47%",
+    flexGrow: 1,
   },
   header: {
     gap: spacing.xs,

@@ -57,7 +57,7 @@ function answerSuggestedQuestion(questionId: string, snapshot: LocalAnalyticsSna
         ? `Yes. You have ${formatCount(snapshot.today.transactionCount, "sale")} today worth ${formatPeso(snapshot.today.salesTotal)}.`
         : "Wala pang benta today. Start selling in Kiosk when ready.";
     default:
-      return "For now, I can answer simple local questions only. Full Lis AI will come later.";
+      return "Simple questions lang muna ang kaya ko, galing sa records ng phone na ito.";
   }
 }
 
@@ -84,7 +84,7 @@ function answerTypedQuestion(question: string, snapshot: LocalAnalyticsSnapshot 
     return answerSuggestedQuestion("today-sales", snapshot);
   }
 
-  return "For now, I can answer simple local questions only. Full Lis AI will come later.";
+  return "Simple questions lang muna ang kaya ko, galing sa records ng phone na ito.";
 }
 
 export default function OwnerAskScreen() {
@@ -92,7 +92,7 @@ export default function OwnerAskScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState("");
-  const [answer, setAnswer] = useState("Tap a question to ask about your local records.");
+  const [answer, setAnswer] = useState("Tap a question to check your local records.");
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
@@ -140,7 +140,7 @@ export default function OwnerAskScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Ask simple questions about your local sales, stock, and records." title="Ask KitaMo" />
+      <AppTopBar subtitle="Quick answers from this phone's local records." title="Local Helper" />
 
       {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
 
@@ -158,6 +158,10 @@ export default function OwnerAskScreen() {
           ))}
         </View>
       </Card>
+
+      <Text style={[styles.message, { color: palette.mutedText }]}>
+        Local helper only — walang AI. Full Lis AI is not enabled in this pilot.
+      </Text>
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Ask a local question</Text>

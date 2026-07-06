@@ -1,4 +1,5 @@
-import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Link, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -134,7 +135,16 @@ export default function OwnerHomeScreen() {
   return (
     <ScreenScroll bottomNav>
       <AppTopBar
-        right={<Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />}
+        right={
+          <View style={styles.topRightRow}>
+            <Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />
+            <Link href="/owner/settings" asChild>
+              <Pressable hitSlop={8} style={[styles.gearButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <Ionicons color={palette.primary} name="settings-outline" size={20} />
+              </Pressable>
+            </Link>
+          </View>
+        }
         subtitle="Magandang araw!"
         title="Home"
       />
@@ -146,6 +156,24 @@ export default function OwnerHomeScreen() {
         <Text style={[styles.businessPillText, { color: palette.text }]} numberOfLines={1}>
           {activeBusiness}
         </Text>
+      </View>
+
+      <View style={styles.primaryActionRow}>
+        <Link href="/kiosk" asChild>
+          <Pressable style={[styles.startSellingButton, { backgroundColor: palette.primary }]}>
+            <Ionicons color={palette.kioskHeaderText} name="storefront-outline" size={22} />
+            <View style={styles.startSellingText}>
+              <Text style={[styles.startSellingTitle, { color: palette.kioskHeaderText }]}>Start Selling</Text>
+              <Text style={[styles.startSellingSub, { color: palette.softAccent }]}>Open Kiosk</Text>
+            </View>
+          </Pressable>
+        </Link>
+        <Link href="/owner/settings" asChild>
+          <Pressable style={[styles.settingsButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Ionicons color={palette.primary} name="settings-outline" size={20} />
+            <Text style={[styles.settingsButtonText, { color: palette.primary }]}>Settings</Text>
+          </Pressable>
+        </Link>
       </View>
 
       <HeroCard>
@@ -242,17 +270,35 @@ export default function OwnerHomeScreen() {
       </Card>
 
       <Card>
-        <SectionHeader title="Quick actions" />
+        <SectionHeader title="Owner Tools" />
         <View style={styles.actionGrid}>
-          <SecondaryButton href="/owner/inventory" label="Add Product" />
-          <PrimaryButton href="/kiosk" label="Open Kiosk" />
-          <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
-          <SecondaryButton href="/owner/recipes" label="Recipes" />
-          <SecondaryButton href="/owner/production" label="Production" />
-          <SecondaryButton href="/owner/reports" label="Reports" />
-          <SecondaryButton href="/owner/fixed-costs" label="Fixed Costs" />
-          <SecondaryButton href="/owner/records" label="Records" />
-          <SecondaryButton href="/owner/settings" label="Settings" />
+          <View style={styles.actionCell}>
+            <PrimaryButton href="/kiosk" label="Start Selling" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/settings" label="Settings" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/inventory" label="Inventory" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/recipes" label="Recipes" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/production" label="Production" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/transfers" label="Transfers" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/fixed-costs" label="Fixed Costs" />
+          </View>
+          <View style={styles.actionCell}>
+            <SecondaryButton href="/owner/reports" label="Profit Reports" />
+          </View>
         </View>
       </Card>
 
@@ -338,9 +384,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   heroValue: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "900",
-    lineHeight: 39,
+    lineHeight: 36,
   },
   heroSubcopy: {
     ...typography.button,
@@ -387,6 +433,66 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
+  },
+  actionCell: {
+    flexBasis: "47%",
+    flexGrow: 1,
+  },
+  topRightRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  gearButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  primaryActionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  startSellingButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    elevation: 2,
+    flex: 2,
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 56,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  startSellingText: {
+    gap: 1,
+  },
+  startSellingTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    lineHeight: 21,
+  },
+  startSellingSub: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
+  },
+  settingsButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    gap: 2,
+    justifyContent: "center",
+    minHeight: 56,
+    paddingHorizontal: spacing.sm,
+  },
+  settingsButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
   },
   recentList: {
     gap: spacing.sm,

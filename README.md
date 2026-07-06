@@ -4,6 +4,29 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 13.5: Mobile Shell, Safe Area, and Navigation UX Fix.
+
+Real-phone testing showed shell problems: content spilling into the Android status bar, the bottom tabs overlapping the system navigation area, hidden save buttons on long screens, and Kiosk/Settings being hard to find. This phase fixes the shell and navigation only — no business logic, schema, or accounting changes.
+
+### Shell and safe area
+
+- The app shell now uses `react-native-safe-area-context` (`SafeAreaProvider` in AppShell; React Native's own `SafeAreaView`, which is a no-op on Android, was the root cause of the status-bar spill). `ScreenScroll` applies the top inset to every screen and pads scroll content past the bottom navigation plus the gesture/nav-bar inset, so the last card or save button on any screen scrolls fully into view.
+- The bottom navigation sits above the Android system navigation using the bottom inset (minimum 10), with slightly tighter icons and a cleaner active indicator. Tabs stay Home / Helper / Records / Inventory / Insights.
+- `android.softwareKeyboardLayoutMode: "resize"` keeps form save buttons visible while typing.
+- Headers are more compact: smaller KitaMo brand mark and screen titles, tighter top-bar spacing — more breathing room without redesigning the visual language.
+
+### Kiosk and Settings discoverability
+
+- Home now has a primary action row right under the business card: a filled forest-green **Start Selling** button ("Open Kiosk") and a **Settings** button — both visible on the first screen without scrolling. A gear icon also sits in the Home header.
+- The quick-actions card is now an **Owner Tools** grid in priority order: Start Selling, Settings, Inventory, Grocery Pool, Recipes, Production, Transfers, Fixed Costs, Profit Reports. Kiosk is intentionally not a bottom tab; Home is the entry point.
+- Inventory's engine links are a proper two-column chip grid (Grocery Pool, Recipes, Production, Transfers).
+
+### Local Helper (formerly "Ask KitaMo")
+
+- The Ask tab is now labeled **Helper**, the screen is titled **Local Helper** with the subtitle "Quick answers from this phone's local records.", and a note states plainly: "Local helper only — walang AI. Full Lis AI is not enabled in this pilot." All copy implying future/current AI was removed. The route and deterministic local answers are unchanged — still no API calls.
+
+## Previous Phase
+
 Android Phase 12+13: Fixed Costs and Profit Reports.
 
 Owners can now track recurring and one-time stall expenses (rent, sweldo, kuryente, tubig, transport, LPG, market fees, internet/load, iba pa) and see true per-stall and whole-business profit.

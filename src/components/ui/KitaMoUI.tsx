@@ -11,6 +11,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes, type ThemePalette } from "@/theme/colors";
@@ -41,12 +42,21 @@ export function formatPeso(value: number) {
   })}`;
 }
 
+// Visual height of the bottom navigation before the safe-area inset is added.
+const BOTTOM_NAV_BASE_HEIGHT = 66;
+
 export function ScreenScroll({ children, bottomNav = false }: PropsWithChildren<{ bottomNav?: boolean }>) {
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 10);
+  const bottomPadding = bottomNav ? BOTTOM_NAV_BASE_HEIGHT + bottomInset + spacing.lg : bottomInset + spacing.lg;
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, bottomNav ? styles.scrollWithNav : null]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.sm, paddingBottom: bottomPadding }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {children}
       </ScrollView>
       {bottomNav ? <OwnerBottomNav /> : null}
@@ -285,22 +295,33 @@ export function EmptyState({ title, description }: { title: string; description?
 function OwnerBottomNav() {
   const pathname = usePathname();
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const tabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
     { href: "/owner", label: "Home", icon: "home-outline", activeIcon: "home", active: pathname === "/owner" },
-    { href: "/owner/ask", label: "Ask", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", active: pathname.includes("/owner/ask") },
+    { href: "/owner/ask", label: "Helper", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", active: pathname.includes("/owner/ask") },
     { href: "/owner/records", label: "Records", icon: "document-text-outline", activeIcon: "document-text", active: pathname.includes("/owner/records") },
     { href: "/owner/inventory", label: "Inventory", icon: "cube-outline", activeIcon: "cube", active: pathname.includes("/owner/inventory") },
     { href: "/owner/insights", label: "Insights", icon: "bar-chart-outline", activeIcon: "bar-chart", active: pathname.includes("/owner/insights") },
   ];
 
   return (
-    <View style={[styles.bottomNav, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <View
+      style={[
+        styles.bottomNav,
+        { backgroundColor: palette.surface, borderColor: palette.border, paddingBottom: Math.max(insets.bottom, 10) },
+      ]}
+    >
       {tabs.map((tab) => (
         <Link key={tab.label} href={tab.href} asChild>
           <Pressable style={styles.bottomNavItem}>
-            <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={22} />
+            <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={21} />
             <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText }]}>{tab.label}</Text>
-            {tab.active ? <View style={[styles.bottomNavIndicator, { backgroundColor: palette.primary }]} /> : null}
+            <View
+              style={[
+                styles.bottomNavIndicator,
+                { backgroundColor: tab.active ? palette.primary : "transparent" },
+              ]}
+            />
           </Pressable>
         </Link>
       ))}
@@ -316,23 +337,18 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 12,
     paddingHorizontal: spacing.md,
-    paddingTop: 10,
-    paddingBottom: spacing.lg,
-  },
-  scrollWithNav: {
-    paddingBottom: 92,
   },
   brand: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: "900",
-    lineHeight: 36,
+    lineHeight: 26,
   },
   topBar: {
     alignItems: "flex-start",
     flexDirection: "row",
     gap: 12,
     justifyContent: "space-between",
-    paddingTop: 2,
+    paddingBottom: spacing.xs,
   },
   topText: {
     flex: 1,
@@ -340,25 +356,25 @@ const styles = StyleSheet.create({
   },
   topRight: {
     alignItems: "flex-end",
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
   eyebrow: {
     ...typography.label,
   },
   pageTitle: {
-    fontSize: 38,
+    fontSize: 28,
     fontWeight: "900",
-    lineHeight: 44,
+    lineHeight: 34,
   },
   pageTitleCompact: {
-    fontSize: 34,
+    fontSize: 24,
     fontWeight: "900",
-    lineHeight: 40,
+    lineHeight: 30,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
-    lineHeight: 22,
+    lineHeight: 20,
   },
   card: {
     borderRadius: 8,
@@ -522,7 +538,6 @@ const styles = StyleSheet.create({
     elevation: 8,
     flexDirection: "row",
     left: 0,
-    paddingBottom: 12,
     paddingHorizontal: spacing.sm,
     paddingTop: 8,
     position: "absolute",
@@ -532,7 +547,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     gap: 3,
-    minHeight: 54,
+    minHeight: 52,
   },
   bottomNavText: {
     fontSize: 11,
@@ -542,6 +557,7 @@ const styles = StyleSheet.create({
   bottomNavIndicator: {
     borderRadius: 2,
     height: 3,
-    width: 28,
+    marginTop: 1,
+    width: 24,
   },
 });

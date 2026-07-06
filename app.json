@@ -16,7 +16,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F7F1E3"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-router"
