@@ -1,6 +1,6 @@
 # KitaMo Food Business Engine — Architecture Plan
 
-Status: Phase 8A planning document. Phase 8B implemented the Grocery Pool foundation (sections 5–6). Phase 8C+8D implemented the Recipe Builder with selected-lot costing (sections 7–9). Phase 9 implemented production per stall with ingredient deduction (section 10). Phase 10+11 implemented cook-upon-order COGS at sale time (section 11) and the finished-goods lifecycle — unsold value, spoilage value, and transfers (section 12). Fixed costs and consolidated reporting (sections 13–14) remain design-only.
+Status: the full engine plan is now implemented. Phase 8B shipped the Grocery Pool (sections 5–6); Phase 8C+8D the Recipe Builder with selected-lot costing (sections 7–9); Phase 9 production per stall with ingredient deduction (section 10); Phase 10+11 cook-upon-order COGS and the finished-goods lifecycle (sections 11–12); Phase 12+13 fixed costs and per-stall/consolidated profit reports (sections 13–14). Remaining deferrals are listed in section 18 and the README.
 
 ## 1. Executive summary
 
@@ -171,18 +171,24 @@ As built:
 - Spoilage (Nasayang) values the loss at the average produced unit cost when production history exists, else the owner-entered product cost; recorded on the spoilage movement's cost fields.
 - Transfers: the Transfers screen moves quantity between stalls in one transaction — source product decremented (guarded), a same-named product on the destination stall incremented (cloned if absent), a `product_transfers` row records the moved value, and paired `transfer_out`/`transfer_in` movements land in Records with "Lipat" badges.
 
-## 13. Fixed cost design (Phase 8F)
+## 13. Fixed cost design (shipped in Phase 12)
 
-- `fixed_costs`: business_id, optional branch_id (null = whole business), label ("Rent", "Gas", "Helper"), amount, period (`daily` / `weekly` / `monthly` / `one-time`), effective dates, notes.
-- Reporting spreads period costs into daily equivalents for the reporting window; stall-scoped costs hit that stall, business costs split by stall sales share (simple proportional rule, documented to the owner).
-- Pure reporting math — fixed costs never touch stock or sale writes.
+As built:
 
-## 14. Per-stall and consolidated reporting design (Phase 8F)
+- `fixed_costs`: business_id, optional branch_id (null = whole business), name, category, amount, frequency (`daily`/`weekly`/`monthly`/`one_time`), anchor due date, optional end date, active/archived. `fixed_cost_payments` records each paid occurrence.
+- Occurrences are computed on the fly from the anchor (pure math in `src/domain/fixedCostSchedule.ts`; monthly clamps to month end). An occurrence is an expense of the period its due date falls in, paid or not; payments are cash-flow visibility. Mark-paid settles the oldest unpaid occurrence and is duplicate-guarded.
+- **Design deviation**: business-wide costs are NOT proportionally split across stalls — they appear only in the consolidated report, labeled. Proportional allocation was judged more confusing than helpful for sellers; revisit if testers ask.
+- Pure reporting math — fixed costs never touch stock or sale writes. Reminders are in-app status only (no push, no background jobs).
 
-- Per stall: benta (existing), ingredient COGS (production runs + cook-upon-order estimates), spoilage cost, fixed costs → tubo per stall.
-- Consolidated: sum of stalls + unallocated pool value snapshot ("groceries still on hand").
-- Estimated vs actual clearly separated: rows sourced from `cost_estimates` are always labeled "tantiya" (estimate); rows from real deductions are actual.
-- Builds on Insights' existing local-summary pattern — no chart library, no cloud.
+## 14. Per-stall and consolidated reporting design (shipped in Phase 13)
+
+As built (`src/services/profitReports.ts`, ranges: today / week / month / all):
+
+- Per stall: revenue, sold COGS, gross profit, the stall's own fixed costs, spoilage loss, net profit, plus informational production spend, unsold goods value, transfer in/out value, best seller, and estimated-COGS count.
+- Consolidated: totals across everything (including rows with no stall), business-wide fixed costs, unsold goods value, remaining grocery value, transfer activity, best stall, top products, and warning counts.
+- Accounting rules enforced in `src/domain/profitMath.ts` (verified by `npm run check:fixedcosts`): net = revenue − sold COGS − fixed costs − spoilage; unsold goods and groceries are inventory, not expenses; transfers never touch profit; production spend is shown but never added to expenses (sold COGS already covers it — no double-counting).
+- Estimated COGS is included in COGS and flagged ("Estimated cost used" warnings), never hidden.
+- Builds on Insights' local-summary pattern — no chart library, no cloud.
 
 ## 15. Phase-by-phase roadmap
 
@@ -192,8 +198,8 @@ As built:
 | **8C+8D (shipped)** | Recipe Builder + costing | recipes + recipe_ingredient_lines, searchable lot picker, custom-cost lines, selected-lot costing, makeable quantity + bottleneck (no deduction) |
 | **9 (shipped)** | Production per stall | production_batches + usages, selected-lot deduction with blocking shortfalls, fractional batches, COGS per stall (transfers deferred) |
 | **10+11 (shipped)** | Selling COGS + lifecycle | cook-upon-order no-block COGS with shortfall records, prepared-goods average COGS, unsold value, spoilage value, transfers |
-| Next | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
-| Later | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases; FIFO cost layers |
+| **12+13 (shipped)** | Fixed costs + reports | fixed_costs + payments, deterministic recurrence, per-stall margin, consolidated profit view |
+| Next | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases; FIFO cost layers; reminders |
 
 Each phase is independently shippable and keeps all earlier flows intact.
 

@@ -9,6 +9,7 @@ import { groceryPoolMigration } from "./004_grocery_pool";
 import { recipesMigration } from "./005_recipes";
 import { productionMigration } from "./006_production";
 import { sellingCogsMigration } from "./007_selling_cogs";
+import { fixedCostsMigration } from "./008_fixed_costs";
 
 export type Migration = {
   id: string;
@@ -23,6 +24,7 @@ const migrations: Migration[] = [
   recipesMigration,
   productionMigration,
   sellingCogsMigration,
+  fixedCostsMigration,
 ];
 
 type MigrationRow = {

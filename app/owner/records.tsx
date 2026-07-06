@@ -119,6 +119,8 @@ export default function OwnerRecordsScreen() {
         <MetricCard detail="Pending saves" icon="P" label="Pending" tone="accent" value={String(snapshot?.recordsSummary.pendingQueueCount ?? 0)} />
       </View>
 
+      <SecondaryButton href="/owner/reports" label="Open Profit Reports" />
+
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Sales records</Text>
         <View style={styles.filterRow}>

@@ -18,7 +18,9 @@ export type LocalIdKind =
   | "production_batch"
   | "production_usage"
   | "sale_usage"
-  | "transfer";
+  | "transfer"
+  | "fixed_cost"
+  | "fixed_cost_payment";
 
 function shortRandom() {
   return Math.random().toString(36).slice(2, 8);
@@ -48,3 +50,5 @@ export const makeProductionBatchId = () => makeLocalId("production_batch");
 export const makeProductionUsageId = () => makeLocalId("production_usage");
 export const makeSaleUsageId = () => makeLocalId("sale_usage");
 export const makeTransferId = () => makeLocalId("transfer");
+export const makeFixedCostId = () => makeLocalId("fixed_cost");
+export const makeFixedCostPaymentId = () => makeLocalId("fixed_cost_payment");

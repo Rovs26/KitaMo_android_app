@@ -4,6 +4,33 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 12+13: Fixed Costs and Profit Reports.
+
+Owners can now track recurring and one-time stall expenses (rent, sweldo, kuryente, tubig, transport, LPG, market fees, internet/load, iba pa) and see true per-stall and whole-business profit.
+
+### Fixed costs (Phase 12)
+
+- Migration `008_fixed_costs` adds `fixed_costs` (name, category, stall or whole-business, amount, frequency, anchor due date, optional end date, active/archived) and `fixed_cost_payments` (one row per paid occurrence). Both covered by Clear Local Data.
+- **Recurrence is computed, never materialized**: occurrences derive deterministically from the anchor date — daily, weekly (every 7 days), monthly (same day, clamped to month end: a Jan 31 rent falls due Feb 28), or one-time — in pure math (`src/domain/fixedCostSchedule.ts`, verified by `npm run check:fixedcosts`). Custom calendars are deferred; use one-time entries for irregular bills.
+- **Mark paid** settles the oldest unpaid occurrence first (overdue before upcoming) and can never pay the same occurrence twice (duplicate guard + tap lock). **Archive** stops future occurrences but keeps payment history.
+- Due soon = next unpaid occurrence within 7 days; overdue = unpaid occurrence in the past. The Fixed Costs screen shows Due soon / Overdue / Paid this month / This-month total; Owner Home shows a compact "Bayarin" notice when anything is due or overdue; Insights shows the month's fixed-cost total. Automatic reminders/push notifications are deferred — status is visible in-app only.
+
+### Profit reports (Phase 13)
+
+- The Profit Reports screen (from Home, Insights, Records, Fixed Costs) supports Today / This week (Mon–Sun) / This month / All local ranges.
+- **Consolidated report**: revenue, sold COGS, gross profit, fixed costs, spoilage loss, net profit, plus informational unsold-goods value, remaining grocery value, transfer activity, best stall, top products, and warnings (estimated COGS, low grocery stock, overdue fixed costs).
+- **Per-stall cards**: revenue, sold COGS, gross profit, that stall's own fixed costs, spoilage, net profit, unsold value, production spend, transfer in/out, best seller, and an estimated-cost badge. Business-wide fixed costs (no stall) count only in the consolidated report and are labeled as such.
+- **Accounting rules** (also in `docs/food-business-engine.md`): sold COGS is recognized at sale (estimated COGS included but flagged); unsold finished goods and remaining groceries are inventory, never expenses; spoilage is a loss when recorded; fixed costs are expenses of the period their due dates fall in (paid or not — payments are cash-flow tracking); transfers move value between stalls and never touch profit; production spend is informational because counting it alongside sold COGS would double-count. Net profit = revenue − sold COGS − fixed costs − spoilage. Pure math in `src/domain/profitMath.ts`.
+
+### Phase 12+13 deferred
+
+- Automatic reminders / push notifications for due bills.
+- Payroll automation, tax reporting, and accounting export.
+- Custom recurrence calendars (every-15th-and-30th etc.).
+- Cloud sync and Play Store release work, as always.
+
+## Previous Phase
+
 Android Phase 10+11: Selling COGS and Finished Goods Lifecycle.
 
 Every kiosk sale now records its cost of goods sold, cook-upon-order products sell without ever being blocked by missing inventory, and finished goods have a full lifecycle: produced → sold / spoiled / transferred, with value following the goods.
@@ -156,6 +183,7 @@ npm run check:pricing
 npm run check:recipes
 npm run check:production
 npm run check:cogs
+npm run check:fixedcosts
 npm run start
 ```
 
@@ -239,6 +267,11 @@ Migration `007_selling_cogs` adds COGS columns to `sale_items` plus:
 
 - `sale_ingredient_usages`
 - `product_transfers`
+
+Migration `008_fixed_costs` adds:
+
+- `fixed_costs`
+- `fixed_cost_payments`
 
 ## Fresh Mode
 

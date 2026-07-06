@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/KitaMoUI";
 import { listActiveOwnerAlerts, resolveOwnerAlert } from "@/db/repositories";
 import type { OwnerAlert, OwnerAlertSeverity } from "@/domain/types";
+import { loadFixedCostsOverview } from "@/services/fixedCosts";
 import { listRecentKioskOrders, type KioskOrderSummary } from "@/services/kioskSales";
 import { getTodaySalesSummary, type TodaySalesSummary } from "@/services/localAnalytics";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
@@ -54,6 +55,7 @@ export default function OwnerHomeScreen() {
   const [today, setToday] = useState<TodaySalesSummary | null>(null);
   const [recentOrders, setRecentOrders] = useState<KioskOrderSummary[]>([]);
   const [alerts, setAlerts] = useState<OwnerAlert[]>([]);
+  const [fixedCostAttention, setFixedCostAttention] = useState<{ overdue: number; dueSoon: number }>({ overdue: 0, dueSoon: 0 });
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const resolveLock = useRef(false);
@@ -73,6 +75,7 @@ export default function OwnerHomeScreen() {
           const nextToday = await getTodaySalesSummary(nextStatus.activeBusiness?.id ?? null);
           const orders = await listRecentKioskOrders(2);
           const nextAlerts = nextStatus.activeBusiness ? await listActiveOwnerAlerts(nextStatus.activeBusiness.id) : [];
+          const fixedOverview = await loadFixedCostsOverview();
           if (!active) {
             return;
           }
@@ -81,6 +84,7 @@ export default function OwnerHomeScreen() {
           setToday(nextToday);
           setRecentOrders(orders);
           setAlerts(nextAlerts);
+          setFixedCostAttention({ overdue: fixedOverview.overdueCount, dueSoon: fixedOverview.dueSoonCount });
           setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
           setActiveBranchId(nextStatus.activeBranch?.id ?? null);
           setCurrentMode("owner");
@@ -185,6 +189,19 @@ export default function OwnerHomeScreen() {
         </Card>
       ) : null}
 
+      {fixedCostAttention.overdue > 0 || fixedCostAttention.dueSoon > 0 ? (
+        <Card>
+          <SectionHeader
+            action={<SecondaryButton href="/owner/fixed-costs" label="Open" />}
+            title="Bayarin"
+          />
+          <Text style={[styles.body, { color: fixedCostAttention.overdue > 0 ? palette.danger : palette.mutedText }]}>
+            {fixedCostAttention.overdue > 0 ? `${fixedCostAttention.overdue} overdue na fixed cost. ` : ""}
+            {fixedCostAttention.dueSoon > 0 ? `${fixedCostAttention.dueSoon} due sa susunod na 7 days.` : ""}
+          </Text>
+        </Card>
+      ) : null}
+
       <Card>
         <SectionHeader
           action={<Pill label={alerts.length > 0 ? `${alerts.length} active` : "All clear"} tone={alerts.length > 0 ? "warning" : "success"} />}
@@ -232,6 +249,8 @@ export default function OwnerHomeScreen() {
           <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
           <SecondaryButton href="/owner/recipes" label="Recipes" />
           <SecondaryButton href="/owner/production" label="Production" />
+          <SecondaryButton href="/owner/reports" label="Reports" />
+          <SecondaryButton href="/owner/fixed-costs" label="Fixed Costs" />
           <SecondaryButton href="/owner/records" label="Records" />
           <SecondaryButton href="/owner/settings" label="Settings" />
         </View>

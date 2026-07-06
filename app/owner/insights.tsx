@@ -2,7 +2,8 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, type DimensionValue, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { loadFixedCostsOverview, type FixedCostsOverview } from "@/services/fixedCosts";
 import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
 import { getLocalAnalyticsSnapshot, type LocalAnalyticsSnapshot, type PaymentBreakdownItem } from "@/services/localAnalytics";
 import { getTodayProductionSummary, type TodayProductionSummary } from "@/services/production";
@@ -24,6 +25,7 @@ export default function OwnerInsightsScreen() {
   const [grocery, setGrocery] = useState<GroceryPoolSnapshot | null>(null);
   const [recipesOverview, setRecipesOverview] = useState<RecipesOverview | null>(null);
   const [production, setProduction] = useState<TodayProductionSummary | null>(null);
+  const [fixedCosts, setFixedCosts] = useState<FixedCostsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -36,10 +38,12 @@ export default function OwnerInsightsScreen() {
       const nextGrocery = await loadGroceryPoolSnapshot();
       const nextRecipes = await loadRecipesOverview();
       const nextProduction = await getTodayProductionSummary();
+      const nextFixedCosts = await loadFixedCostsOverview();
       setSnapshot(nextSnapshot);
       setGrocery(nextGrocery);
       setRecipesOverview(nextRecipes);
       setProduction(nextProduction);
+      setFixedCosts(nextFixedCosts);
       setError(null);
     } catch (loadError) {
       logDevError("OwnerInsights.refresh", loadError);
@@ -66,6 +70,8 @@ export default function OwnerInsightsScreen() {
       <AppTopBar subtitle="Simple local summaries from this phone." title="Insights" />
 
       {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
+
+      <SecondaryButton href="/owner/reports" label="Open Profit Reports" />
 
       {loading ? (
         <Card>
@@ -167,6 +173,13 @@ export default function OwnerInsightsScreen() {
               label="Sayang today"
               tone={(snapshot?.lifecycle.spoilageLossToday ?? 0) > 0 ? "warning" : "success"}
               value={formatPeso(snapshot?.lifecycle.spoilageLossToday ?? 0)}
+            />
+            <MetricCard
+              detail={`${(fixedCosts?.overdueCount ?? 0) > 0 ? `${fixedCosts?.overdueCount} overdue` : "Due this month"}`}
+              icon="F"
+              label="Fixed costs"
+              tone={(fixedCosts?.overdueCount ?? 0) > 0 ? "danger" : "neutral"}
+              value={formatPeso(fixedCosts?.thisMonthTotal ?? 0)}
             />
           </View>
 

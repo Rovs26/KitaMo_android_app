@@ -216,6 +216,44 @@ export type ProductionIngredientUsage = LocalEntity & {
   isCustom: boolean;
 };
 
+export type FixedCostCategory =
+  | "rent"
+  | "wages"
+  | "electricity"
+  | "water"
+  | "transport"
+  | "lpg_gas"
+  | "market_fee"
+  | "internet_load"
+  | "other";
+
+export type FixedCostFrequencyType = "daily" | "weekly" | "monthly" | "one_time";
+
+export type FixedCost = LocalEntity & {
+  businessId: string;
+  branchId: string | null;
+  name: string;
+  category: FixedCostCategory;
+  amount: number;
+  frequency: FixedCostFrequencyType;
+  dueDate: string;
+  startDate: string;
+  endDate: string | null;
+  status: "active" | "archived";
+  notes: string | null;
+};
+
+export type FixedCostPayment = LocalEntity & {
+  businessId: string;
+  fixedCostId: string;
+  branchId: string | null;
+  dueDate: string;
+  paidDate: string | null;
+  amount: number;
+  status: "paid" | "skipped";
+  notes: string | null;
+};
+
 export type OwnerAlertSeverity = "info" | "warning" | "critical";
 export type OwnerAlertStatus = "active" | "resolved";
 
