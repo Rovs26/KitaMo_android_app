@@ -340,13 +340,13 @@ export default function OwnerInventoryScreen() {
 
       <View style={styles.linkGrid}>
         <View style={styles.linkCell}>
-          <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
+          <SecondaryButton href="/owner/grocery" label="Grocery Stock" />
         </View>
         <View style={styles.linkCell}>
           <SecondaryButton href="/owner/recipes" label="Recipes" />
         </View>
         <View style={styles.linkCell}>
-          <SecondaryButton href="/owner/production" label="Production" />
+          <SecondaryButton href="/owner/production" label="Niluto" />
         </View>
         <View style={styles.linkCell}>
           <SecondaryButton href="/owner/transfers" label="Transfers" />
@@ -406,9 +406,9 @@ export default function OwnerInventoryScreen() {
             Ilang piraso ang nadagdag sa paninda? Stock will increase after saving.
           </Text>
           <Text style={[styles.body, { color: palette.mutedText }]}>
-            May recipe na? Use Production para automatic ang ingredients at cost.
+            May recipe na? Use Niluto para automatic ang ingredients at cost.
           </Text>
-          <SecondaryButton href="/owner/production" label="Open Production" />
+          <SecondaryButton href="/owner/production" label="Open Niluto" />
           <ProductPicker
             disabled={cookSaving}
             label="Paninda"

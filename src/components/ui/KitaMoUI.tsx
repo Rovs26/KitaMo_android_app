@@ -299,7 +299,7 @@ function OwnerBottomNav() {
   const tabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
     { href: "/owner", label: "Home", icon: "home-outline", activeIcon: "home", active: pathname === "/owner" },
     { href: "/owner/ask", label: "Helper", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", active: pathname.includes("/owner/ask") },
-    { href: "/owner/records", label: "Records", icon: "document-text-outline", activeIcon: "document-text", active: pathname.includes("/owner/records") },
+    { href: "/owner/records", label: "Logbook", icon: "document-text-outline", activeIcon: "document-text", active: pathname.includes("/owner/records") },
     { href: "/owner/inventory", label: "Inventory", icon: "cube-outline", activeIcon: "cube", active: pathname.includes("/owner/inventory") },
     { href: "/owner/insights", label: "Insights", icon: "bar-chart-outline", activeIcon: "bar-chart", active: pathname.includes("/owner/insights") },
   ];

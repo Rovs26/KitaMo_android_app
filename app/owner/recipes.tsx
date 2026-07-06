@@ -368,7 +368,7 @@ export default function OwnerRecipesScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Create recipes and see the cost per product." title="Recipes" />
+      <AppTopBar subtitle="Gumawa ng recipe at tingnan ang cost per paninda." title="Recipe Cost" />
 
       {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
 
@@ -557,14 +557,14 @@ export default function OwnerRecipesScreen() {
         </View>
 
         <View style={[styles.lineBuilder, { backgroundColor: palette.background, borderColor: palette.border }]}>
-          <Text style={[styles.builderTitle, { color: palette.text }]}>Add ingredient from Grocery Pool</Text>
+          <Text style={[styles.builderTitle, { color: palette.text }]}>Add ingredient from Grocery Stock</Text>
 
           {lots.length === 0 ? (
             <>
               <Text style={[styles.body, { color: palette.mutedText }]}>
-                Walang laman ang Grocery Pool. Add groceries muna, o gumamit ng custom cost sa baba.
+                Walang laman ang Grocery Stock. Add groceries muna, o gumamit ng custom cost sa baba.
               </Text>
-              <SecondaryButton href="/owner/grocery" label="Open Grocery Pool" />
+              <SecondaryButton href="/owner/grocery" label="Open Grocery Stock" />
             </>
           ) : (
             <>
@@ -581,7 +581,7 @@ export default function OwnerRecipesScreen() {
               />
 
               {matchingLots.length === 0 ? (
-                <Text style={[styles.helper, { color: palette.mutedText }]}>Walang tugma sa Grocery Pool.</Text>
+                <Text style={[styles.helper, { color: palette.mutedText }]}>Walang tugma sa Grocery Stock.</Text>
               ) : null}
 
               {matchingLots.map((lot) => {

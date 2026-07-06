@@ -71,7 +71,7 @@ export default function OwnerInsightsScreen() {
 
       {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
 
-      <SecondaryButton href="/owner/reports" label="Open Profit Reports" />
+      <SecondaryButton href="/owner/reports" label="Open Kita Report" />
 
       {loading ? (
         <Card>
@@ -107,7 +107,7 @@ export default function OwnerInsightsScreen() {
               <Text style={[styles.itemTitle, { color: palette.text }]}>Estimated cost used</Text>
               <Text style={[styles.body, { color: palette.mutedText }]}>
                 Inventory was low sa {snapshot.lifecycle.estimatedCogsCountToday} benta today, kaya recent price ang ginamit ni
-                KitaMo. I-check ang Grocery Pool kapag may time.
+                KitaMo. I-check ang Grocery Stock kapag may time.
               </Text>
             </Card>
           ) : null}
@@ -156,7 +156,7 @@ export default function OwnerInsightsScreen() {
             <MetricCard
               detail={`${production?.totalOutput ?? 0} item${(production?.totalOutput ?? 0) === 1 ? "" : "s"} produced today`}
               icon="N"
-              label="Production"
+              label="Niluto"
               tone="primary"
               value={formatPeso(production?.totalCost ?? 0)}
             />

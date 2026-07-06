@@ -8,15 +8,15 @@ import { typography } from "@/theme/typography";
 
 const walkthroughSteps = [
   "Set up your business at stall sa Settings.",
-  "Add grocery items sa Grocery Pool (example: Rice, 10kg, ₱650).",
+  "Add grocery items sa Grocery Stock (example: Rice, 10kg, ₱650).",
   "Add your paninda sa Inventory.",
-  "Create a recipe sa Recipes — piliin ang mga grocery item na gamit mo.",
-  "I-produce para sa stall mo sa Production.",
+  "Create a recipe sa Recipe Cost — piliin ang mga grocery item na gamit mo.",
+  "I-produce para sa stall mo sa Niluto.",
   "Start Selling sa Kiosk — subukan ang cash at GCash.",
-  "Check Records para sa benta, resibo, at stock movements.",
+  "Check Logbook para sa benta, resibo, at stock movements.",
   "Check Insights para sa kita, puhunan, at low stock.",
-  "Add a fixed cost (example: Stall rent, ₱3,000 monthly).",
-  "Open Profit Reports para makita ang tubo per stall at buong negosyo.",
+  "Add a bayarin (example: Stall rent, ₱3,000 monthly).",
+  "Open Kita Report para makita ang tubo per stall at buong negosyo.",
 ];
 
 const trackedItems = [
@@ -24,11 +24,11 @@ const trackedItems = [
   "Paninda at stock",
   "Grocery items at presyo per brand/source",
   "Recipes at cost per piraso",
-  "Production at ingredient usage",
+  "Niluto at ingredient usage",
   "Transfers sa pagitan ng stalls",
   "Nasayang / spoilage",
   "Fixed costs at bayarin",
-  "Profit reports",
+  "Kita Report",
 ];
 
 const notYetItems = [

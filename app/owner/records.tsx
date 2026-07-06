@@ -1,28 +1,35 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
-import type { ProductionBatchWithNames } from "@/db/repositories";
 import {
-  getLocalAnalyticsSnapshot,
-  type LocalAnalyticsSnapshot,
-  type LocalSaleRecord,
-  type SalesRecordFilter,
+  getLogbookDateGroup,
+  listLogbookEvents,
+  logbookDateGroupLabels,
+  type LogbookDateGroup,
+  type LogbookEvent,
+  type LogbookEventFilter,
+  type LogbookEventType,
 } from "@/services/localAnalytics";
-import { listRecentProduction } from "@/services/production";
+import { loadOwnerSetupStatus } from "@/services/ownerSetup";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
-const filters: { id: SalesRecordFilter; label: string }[] = [
-  { id: "today", label: "Today" },
+const filters: { id: LogbookEventFilter; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "cash", label: "Cash" },
-  { id: "digital", label: "GCash/Maya/Bank" },
+  { id: "benta", label: "Benta" },
+  { id: "grocery", label: "Grocery" },
+  { id: "niluto", label: "Niluto" },
+  { id: "bayarin", label: "Bayarin" },
+  { id: "nasayang", label: "Nasayang" },
+  { id: "lipat", label: "Lipat" },
 ];
+
+const dateGroupOrder: LogbookDateGroup[] = ["today", "yesterday", "earlier"];
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-PH", {
@@ -31,59 +38,52 @@ function formatDateTime(value: string) {
   });
 }
 
-function paymentLabel(method: string) {
-  if (method === "bank transfer") {
-    return "Bank";
+function eventTone(eventType: LogbookEventType): "primary" | "success" | "danger" | "neutral" | "warning" | "accent" {
+  if (eventType === "benta") {
+    return "success";
   }
 
-  return method;
-}
-
-function movementBadge(movementType: string, linkedSaleId: string | null): { label: string; tone: "primary" | "success" | "danger" | "neutral" } {
-  if (movementType === "cooked") {
-    return { label: "Niluto", tone: "primary" };
+  if (eventType === "grocery") {
+    return "accent";
   }
 
-  if (movementType === "spoilage") {
-    return { label: "Nasayang", tone: "danger" };
+  if (eventType === "niluto") {
+    return "primary";
   }
 
-  if (movementType === "transfer_in") {
-    return { label: "Lipat in", tone: "primary" };
+  if (eventType === "bayarin") {
+    return "warning";
   }
 
-  if (movementType === "transfer_out") {
-    return { label: "Lipat out", tone: "neutral" };
+  if (eventType === "nasayang") {
+    return "danger";
   }
 
-  if (linkedSaleId) {
-    return { label: "Sale", tone: "success" };
-  }
-
-  if (movementType === "stock_in") {
-    return { label: "Stock in", tone: "success" };
-  }
-
-  return { label: "Stock", tone: "neutral" };
+  return "neutral";
 }
 
 export default function OwnerRecordsScreen() {
-  const [snapshot, setSnapshot] = useState<LocalAnalyticsSnapshot | null>(null);
-  const [productionBatches, setProductionBatches] = useState<ProductionBatchWithNames[]>([]);
-  const [activeFilter, setActiveFilter] = useState<SalesRecordFilter>("today");
-  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+  const [events, setEvents] = useState<LogbookEvent[]>([]);
+  const [activeFilter, setActiveFilter] = useState<LogbookEventFilter>("all");
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [summary, setSummary] = useState({ bentaTotal: 0, bentaCount: 0, eventCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
-  const refresh = useCallback(async (filter: SalesRecordFilter) => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const nextSnapshot = await getLocalAnalyticsSnapshot(filter);
-      const nextProduction = await listRecentProduction(5);
-      setSnapshot(nextSnapshot);
-      setProductionBatches(nextProduction);
+      const status = await loadOwnerSetupStatus();
+      const nextEvents = await listLogbookEvents(status.activeBusiness?.id ?? null);
+      const bentaEvents = nextEvents.filter((event) => event.eventType === "benta");
+      setEvents(nextEvents);
+      setSummary({
+        bentaTotal: bentaEvents.reduce((total, event) => total + (event.amount ?? 0), 0),
+        bentaCount: bentaEvents.length,
+        eventCount: nextEvents.length,
+      });
       setError(null);
     } catch (loadError) {
       logDevError("OwnerRecords.refresh", loadError);
@@ -95,34 +95,57 @@ export default function OwnerRecordsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refresh(activeFilter);
-    }, [activeFilter, refresh]),
+      refresh();
+    }, [refresh]),
   );
 
-  function changeFilter(filter: SalesRecordFilter) {
-    setActiveFilter(filter);
-    setSelectedSaleId(null);
-  }
+  const filteredEvents = useMemo(() => {
+    if (activeFilter === "all") {
+      return events;
+    }
 
-  const selectedSale = snapshot?.recentSales.find((sale) => sale.id === selectedSaleId) ?? null;
+    return events.filter((event) => event.eventType === activeFilter);
+  }, [activeFilter, events]);
+
+  const groupedEvents = useMemo(() => {
+    const groups = new Map<LogbookDateGroup, LogbookEvent[]>();
+    for (const group of dateGroupOrder) {
+      groups.set(group, []);
+    }
+
+    for (const event of filteredEvents) {
+      const group = getLogbookDateGroup(event.happenedAt);
+      groups.get(group)?.push(event);
+    }
+
+    return dateGroupOrder
+      .map((group) => ({ group, events: groups.get(group) ?? [] }))
+      .filter((entry) => entry.events.length > 0);
+  }, [filteredEvents]);
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
+
+  function changeFilter(filter: LogbookEventFilter) {
+    setActiveFilter(filter);
+    setSelectedEventId(null);
+  }
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Lahat ng local sales, resibo, at stock movement." title="Records" />
+      <AppTopBar subtitle="Timeline ng benta, grocery, niluto, bayarin, at iba pa." title="Logbook" />
 
       {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
 
       <View style={styles.summaryGrid}>
-        <MetricCard detail="Today" icon="T" label="Transactions" tone="primary" value={String(snapshot?.recordsSummary.transactionCount ?? 0)} />
-        <MetricCard detail="Today" icon="B" label="Sales" tone="success" value={formatPeso(snapshot?.recordsSummary.salesTotal ?? 0)} />
-        <MetricCard detail="Saved locally" icon="R" label="Receipts" tone="neutral" value={String(snapshot?.recordsSummary.totalReceipts ?? 0)} />
-        <MetricCard detail="Pending saves" icon="P" label="Pending" tone="accent" value={String(snapshot?.recordsSummary.pendingQueueCount ?? 0)} />
+        <MetricCard detail="All events" icon="L" label="Entries" tone="primary" value={String(summary.eventCount)} />
+        <MetricCard detail="Benta records" icon="B" label="Benta" tone="success" value={String(summary.bentaCount)} />
+        <MetricCard detail="Total benta amount" icon="₱" label="Benta total" tone="accent" value={formatPeso(summary.bentaTotal)} />
       </View>
 
-      <SecondaryButton href="/owner/reports" label="Open Profit Reports" />
+      <SecondaryButton href="/owner/reports" label="Open Kita Report" />
 
       <Card>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Sales records</Text>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>Money timeline</Text>
         <View style={styles.filterRow}>
           {filters.map((filter) => {
             const active = activeFilter === filter.id;
@@ -144,90 +167,61 @@ export default function OwnerRecordsScreen() {
           })}
         </View>
 
-        {loading ? <EmptyState description="Reading local sales." title="Loading records" /> : null}
+        {loading ? <EmptyState description="Binabasa ang local logbook." title="Loading logbook" /> : null}
 
-        {!loading && snapshot?.recentSales.length === 0 ? (
+        {!loading && filteredEvents.length === 0 ? (
           <>
-            <EmptyState description="Wala pang records. Start selling in Kiosk." title="No local records yet" />
-            <SecondaryButton href="/kiosk/sell" label="Open Kiosk Sell" />
+            <EmptyState description="Mag-start selling o mag-add ng grocery, niluto, o bayarin." title="Wala pang record sa filter na ito" />
+            <SecondaryButton href="/kiosk" label="Start Selling" />
           </>
         ) : null}
 
-        {snapshot?.recentSales.map((sale) => (
-          <SaleCard
-            key={sale.id}
-            onPress={() => setSelectedSaleId((current) => (current === sale.id ? null : sale.id))}
-            sale={sale}
-            selected={selectedSaleId === sale.id}
-          />
+        {groupedEvents.map(({ group, events: groupEvents }) => (
+          <View key={group} style={styles.dateGroup}>
+            <Text style={[styles.dateGroupTitle, { color: palette.mutedText }]}>{logbookDateGroupLabels[group]}</Text>
+            {groupEvents.map((event) => (
+              <LogbookEventCard
+                event={event}
+                key={event.id}
+                onPress={() => setSelectedEventId((current) => (current === event.id ? null : event.id))}
+                selected={selectedEventId === event.id}
+              />
+            ))}
+          </View>
         ))}
       </Card>
 
-      {selectedSale ? (
+      {selectedEvent?.receiptText ? (
         <Card>
           <View style={styles.receiptHeader}>
             <View style={styles.receiptTitle}>
-              <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt detail</Text>
-              <Text style={[styles.body, { color: palette.mutedText }]}>{selectedSale.transactionNo}</Text>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt</Text>
+              <Text style={[styles.body, { color: palette.mutedText }]}>{selectedEvent.title}</Text>
             </View>
-            <Pill label="Local" tone="success" />
+            <Pill label="Receipt" tone="success" />
           </View>
-          {selectedSale.receiptText ? (
-            <Text style={[styles.receiptText, { color: palette.text }]}>{selectedSale.receiptText}</Text>
-          ) : (
-            <EmptyState description="Receipt text is not available for this sale." title="No receipt text" />
-          )}
+          <Text style={[styles.receiptText, { color: palette.text }]}>{selectedEvent.receiptText}</Text>
         </Card>
       ) : null}
 
-      {productionBatches.length > 0 ? (
+      {selectedEvent && !selectedEvent.receiptText ? (
         <Card>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Niluto / Production</Text>
-          {productionBatches.map((batch) => (
-            <View key={batch.id} style={[styles.movementRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
-              <View style={styles.movementText}>
-                <Text style={[styles.itemTitle, { color: palette.text }]}>
-                  {batch.recipeName}
-                  {batch.outputProductName ? ` → ${batch.outputProductName}` : ""}
-                </Text>
-                <Text style={[styles.body, { color: palette.mutedText }]}>
-                  {batch.outputQuantity} {batch.outputUnit}
-                  {batch.branchName ? ` · ${batch.branchName}` : ""} · {formatPeso(batch.totalBatchCost)}
-                </Text>
-                <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(batch.createdAt)}</Text>
-              </View>
-              <Pill label="Niluto" tone="primary" />
-            </View>
-          ))}
+          <SectionDetail event={selectedEvent} />
         </Card>
       ) : null}
-
-      <Card>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Recent stock movements</Text>
-        {snapshot?.recentMovements.length === 0 ? (
-          <EmptyState description="Stock movement records will appear after Kiosk sales or inventory changes." title="No movement records yet" />
-        ) : null}
-        {snapshot?.recentMovements.slice(0, 8).map((movement) => {
-          const badge = movementBadge(movement.movementType, movement.linkedSaleId);
-          return (
-            <View key={movement.id} style={[styles.movementRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
-              <View style={styles.movementText}>
-                <Text style={[styles.itemTitle, { color: palette.text }]}>{movement.productName}</Text>
-                <Text style={[styles.body, { color: palette.mutedText }]}>
-                  {movement.movementType.replaceAll("_", " ")} · {movement.quantity} {movement.unitType ?? ""}
-                </Text>
-                <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(movement.createdAt)}</Text>
-              </View>
-              <Pill label={badge.label} tone={badge.tone} />
-            </View>
-          );
-        })}
-      </Card>
     </ScreenScroll>
   );
 }
 
-function SaleCard({ sale, selected, onPress }: { sale: LocalSaleRecord; selected: boolean; onPress: () => void }) {
+function LogbookEventCard({
+  event,
+  selected,
+  onPress,
+}: {
+  event: LogbookEvent;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
@@ -235,30 +229,45 @@ function SaleCard({ sale, selected, onPress }: { sale: LocalSaleRecord; selected
     <Pressable
       onPress={onPress}
       style={[
-        styles.saleCard,
+        styles.eventCard,
         {
           backgroundColor: selected ? palette.softPrimary : palette.background,
           borderColor: selected ? palette.primary : palette.border,
         },
       ]}
     >
-      <View style={styles.saleTopRow}>
-        <View style={styles.saleText}>
-          <Text style={[styles.itemTitle, { color: palette.text }]}>{sale.transactionNo}</Text>
-          <Text style={[styles.body, { color: palette.mutedText }]}>{formatDateTime(sale.happenedAt)}</Text>
+      <View style={styles.eventTopRow}>
+        <View style={styles.eventText}>
+          <Text style={[styles.itemTitle, { color: palette.text }]}>{event.title}</Text>
+          <Text style={[styles.body, { color: palette.mutedText }]}>{event.subtitle}</Text>
+          <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(event.happenedAt)}</Text>
         </View>
-        <Text style={[styles.saleAmount, { color: palette.primary }]}>{formatPeso(sale.amount)}</Text>
-      </View>
-      <View style={styles.saleMetaRow}>
-        <Pill label={paymentLabel(sale.paymentMethod)} tone={sale.paymentMethod === "cash" ? "success" : "accent"} />
-        <Text style={[styles.helper, { color: palette.mutedText }]}>
-          {sale.itemCount} item{sale.itemCount === 1 ? "" : "s"}
-        </Text>
-        {sale.externalReferenceNumber ? (
-          <Text style={[styles.helper, { color: palette.mutedText }]}>Ref {sale.externalReferenceNumber}</Text>
+        {event.amount !== null ? (
+          <Text style={[styles.eventAmount, { color: palette.primary }]}>{formatPeso(event.amount)}</Text>
         ) : null}
       </View>
+      <View style={styles.eventMetaRow}>
+        <Pill label={event.label} tone={eventTone(event.eventType)} />
+        {event.receiptText ? <Text style={[styles.helper, { color: palette.mutedText }]}>Tap for receipt</Text> : null}
+      </View>
     </Pressable>
+  );
+}
+
+function SectionDetail({ event }: { event: LogbookEvent }) {
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  return (
+    <View style={styles.detailBlock}>
+      <Text style={[styles.sectionTitle, { color: palette.text }]}>{event.label} detail</Text>
+      <Text style={[styles.body, { color: palette.text }]}>{event.title}</Text>
+      <Text style={[styles.body, { color: palette.mutedText }]}>{event.subtitle}</Text>
+      {event.amount !== null ? (
+        <Text style={[styles.itemTitle, { color: palette.primary }]}>{formatPeso(event.amount)}</Text>
+      ) : null}
+      <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(event.happenedAt)}</Text>
+    </View>
   );
 }
 
@@ -290,19 +299,30 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 17,
   },
-  saleCard: {
+  dateGroup: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  dateGroupTitle: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    lineHeight: 16,
+    textTransform: "uppercase",
+  },
+  eventCard: {
     borderRadius: 8,
     borderWidth: 1,
     gap: spacing.sm,
     padding: 12,
   },
-  saleTopRow: {
+  eventTopRow: {
     alignItems: "flex-start",
     flexDirection: "row",
     gap: spacing.sm,
     justifyContent: "space-between",
   },
-  saleText: {
+  eventText: {
     flex: 1,
     gap: spacing.xs,
   },
@@ -317,12 +337,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 16,
   },
-  saleAmount: {
+  eventAmount: {
     fontSize: 18,
     fontWeight: "900",
     lineHeight: 23,
   },
-  saleMetaRow: {
+  eventMetaRow: {
     alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
@@ -343,16 +363,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  movementRow: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: "row",
+  detailBlock: {
     gap: spacing.sm,
-    padding: 12,
-  },
-  movementText: {
-    flex: 1,
-    gap: spacing.xs,
   },
 });

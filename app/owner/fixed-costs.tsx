@@ -203,7 +203,7 @@ export default function OwnerFixedCostsScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Track rent, wages, bills, and regular stall expenses." title="Fixed Costs" />
+      <AppTopBar subtitle="Rent, sweldo, kuryente, at regular na gastos ng stall." title="Bayarin" />
 
       {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
 
@@ -373,7 +373,7 @@ export default function OwnerFixedCostsScreen() {
         })}
       </Card>
 
-      <SecondaryButton href="/owner/reports" label="Open Profit Reports" />
+      <SecondaryButton href="/owner/reports" label="Open Kita Report" />
     </ScreenScroll>
   );
 }

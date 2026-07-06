@@ -177,7 +177,7 @@ export default function OwnerProductionScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Niluto gamit ang recipe — automatic ang ingredients at cost." title="Production" />
+      <AppTopBar subtitle="Niluto gamit ang recipe — automatic ang ingredients at cost." title="Niluto" />
 
       {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
 
@@ -357,7 +357,7 @@ export default function OwnerProductionScreen() {
             style={[styles.saveButton, { backgroundColor: palette.primary, opacity: saveDisabled ? 0.6 : 1 }]}
           >
             <Text style={[styles.saveButtonText, { color: palette.kioskHeaderText }]}>
-              {saving ? "Saving..." : "Save Production"}
+              {saving ? "Saving..." : "Save Niluto"}
             </Text>
           </Pressable>
         </Card>

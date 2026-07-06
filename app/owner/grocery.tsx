@@ -225,7 +225,7 @@ export default function OwnerGroceryScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Track ingredients and grocery stock before recipe costing." title="Grocery Pool" />
+      <AppTopBar subtitle="I-track ang grocery at sangkap bago ang recipe costing." title="Grocery Stock" />
 
       {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
 

@@ -536,6 +536,250 @@ export async function getLifecycleSummary(
   };
 }
 
+export type LogbookEventType = "benta" | "grocery" | "niluto" | "bayarin" | "nasayang" | "lipat";
+
+export type LogbookEventFilter = "all" | LogbookEventType;
+
+export type LogbookEvent = {
+  id: string;
+  eventType: LogbookEventType;
+  label: string;
+  title: string;
+  subtitle: string;
+  amount: number | null;
+  happenedAt: string;
+  receiptText: string | null;
+  saleId: string | null;
+};
+
+export type LogbookDateGroup = "today" | "yesterday" | "earlier";
+
+const logbookEventLabels: Record<LogbookEventType, string> = {
+  benta: "Benta",
+  grocery: "Grocery",
+  niluto: "Niluto",
+  bayarin: "Bayarin",
+  nasayang: "Nasayang",
+  lipat: "Lipat",
+};
+
+export function getLogbookEventLabel(eventType: LogbookEventType) {
+  return logbookEventLabels[eventType];
+}
+
+export function getLogbookDateGroup(iso: string): LogbookDateGroup {
+  const date = new Date(iso);
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+  if (date >= todayStart) {
+    return "today";
+  }
+
+  if (date >= yesterdayStart) {
+    return "yesterday";
+  }
+
+  return "earlier";
+}
+
+export const logbookDateGroupLabels: Record<LogbookDateGroup, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  earlier: "Earlier",
+};
+
+type GroceryMovementRow = {
+  id: string;
+  ingredient_name: string | null;
+  quantity: number;
+  unit: string;
+  total_cost: number | null;
+  reason: string;
+  created_at: string;
+};
+
+type FixedCostPaymentRow = {
+  id: string;
+  cost_name: string | null;
+  amount: number;
+  paid_date: string;
+  created_at: string;
+};
+
+export async function listLogbookEvents(
+  businessId?: string | null,
+  db: RepositoryDatabase = openKitamoDatabase(),
+): Promise<LogbookEvent[]> {
+  await runMigrations(db);
+
+  if (!businessId) {
+    return [];
+  }
+
+  const events: LogbookEvent[] = [];
+
+  const sales = await listLocalSaleRecords("all", businessId, db);
+  for (const sale of sales) {
+    events.push({
+      id: `sale-${sale.id}`,
+      eventType: "benta",
+      label: logbookEventLabels.benta,
+      title: sale.transactionNo,
+      subtitle: `${sale.itemCount} item${sale.itemCount === 1 ? "" : "s"} · ${paymentLabels[sale.paymentMethod] ?? sale.paymentMethod}`,
+      amount: sale.amount,
+      happenedAt: sale.happenedAt,
+      receiptText: sale.receiptText,
+      saleId: sale.id,
+    });
+  }
+
+  const groceryRows = await db.getAllAsync<GroceryMovementRow>(
+    `
+      SELECT
+        im.id,
+        i.name AS ingredient_name,
+        im.quantity,
+        im.unit,
+        im.total_cost,
+        im.reason,
+        im.created_at
+      FROM ingredient_movements im
+      LEFT JOIN ingredients i ON i.id = im.ingredient_id AND i.deleted_at IS NULL
+      WHERE im.business_id = ? AND im.movement_type = 'purchase' AND im.deleted_at IS NULL
+      ORDER BY im.created_at DESC
+      LIMIT 50
+    `,
+    [businessId],
+  );
+
+  for (const row of groceryRows) {
+    events.push({
+      id: `grocery-${row.id}`,
+      eventType: "grocery",
+      label: logbookEventLabels.grocery,
+      title: row.ingredient_name ?? "Grocery purchase",
+      subtitle: `${row.quantity} ${row.unit}${row.reason ? ` · ${row.reason}` : ""}`,
+      amount: row.total_cost,
+      happenedAt: row.created_at,
+      receiptText: null,
+      saleId: null,
+    });
+  }
+
+  const productionRows = await db.getAllAsync<{
+    id: string;
+    recipe_name: string;
+    output_product_name: string | null;
+    output_quantity: number;
+    output_unit: string;
+    total_batch_cost: number;
+    branch_name: string | null;
+    created_at: string;
+  }>(
+    `
+      SELECT
+        pb.id,
+        pb.recipe_name,
+        p.name AS output_product_name,
+        pb.output_quantity,
+        pb.output_unit,
+        pb.total_batch_cost,
+        b.branch_name,
+        pb.created_at
+      FROM production_batches pb
+      LEFT JOIN products p ON p.id = pb.output_product_id AND p.deleted_at IS NULL
+      LEFT JOIN branches b ON b.id = pb.branch_id AND b.deleted_at IS NULL
+      WHERE pb.business_id = ? AND pb.deleted_at IS NULL
+      ORDER BY pb.created_at DESC
+      LIMIT 50
+    `,
+    [businessId],
+  );
+
+  for (const row of productionRows) {
+    events.push({
+      id: `niluto-${row.id}`,
+      eventType: "niluto",
+      label: logbookEventLabels.niluto,
+      title: row.recipe_name,
+      subtitle: `${row.output_quantity} ${row.output_unit}${row.output_product_name ? ` → ${row.output_product_name}` : ""}${row.branch_name ? ` · ${row.branch_name}` : ""}`,
+      amount: row.total_batch_cost,
+      happenedAt: row.created_at,
+      receiptText: null,
+      saleId: null,
+    });
+  }
+
+  const paymentRows = await db.getAllAsync<FixedCostPaymentRow>(
+    `
+      SELECT
+        fcp.id,
+        fc.name AS cost_name,
+        fcp.amount,
+        fcp.paid_date,
+        fcp.created_at
+      FROM fixed_cost_payments fcp
+      LEFT JOIN fixed_costs fc ON fc.id = fcp.fixed_cost_id AND fc.deleted_at IS NULL
+      WHERE fcp.business_id = ? AND fcp.deleted_at IS NULL
+      ORDER BY fcp.created_at DESC
+      LIMIT 50
+    `,
+    [businessId],
+  );
+
+  for (const row of paymentRows) {
+    events.push({
+      id: `bayarin-${row.id}`,
+      eventType: "bayarin",
+      label: logbookEventLabels.bayarin,
+      title: row.cost_name ?? "Bayarin",
+      subtitle: `Paid ${row.paid_date}`,
+      amount: row.amount,
+      happenedAt: row.created_at,
+      receiptText: null,
+      saleId: null,
+    });
+  }
+
+  const movements = await listRecentInventoryMovements(businessId, db);
+  for (const movement of movements) {
+    if (movement.movementType === "spoilage") {
+      events.push({
+        id: `nasayang-${movement.id}`,
+        eventType: "nasayang",
+        label: logbookEventLabels.nasayang,
+        title: movement.productName,
+        subtitle: `${movement.quantity} ${movement.unitType ?? ""}${movement.reason ? ` · ${movement.reason}` : ""}`,
+        amount: null,
+        happenedAt: movement.createdAt,
+        receiptText: null,
+        saleId: null,
+      });
+      continue;
+    }
+
+    if (movement.movementType === "transfer_in" || movement.movementType === "transfer_out") {
+      events.push({
+        id: `lipat-${movement.id}`,
+        eventType: "lipat",
+        label: logbookEventLabels.lipat,
+        title: movement.productName,
+        subtitle: `${movement.movementType === "transfer_in" ? "Lipat in" : "Lipat out"} · ${movement.quantity} ${movement.unitType ?? ""}`,
+        amount: null,
+        happenedAt: movement.createdAt,
+        receiptText: null,
+        saleId: null,
+      });
+    }
+  }
+
+  return events.sort((left, right) => new Date(right.happenedAt).getTime() - new Date(left.happenedAt).getTime());
+}
+
 export async function getLocalAnalyticsSnapshot(
   filter: SalesRecordFilter = "today",
   db: RepositoryDatabase = openKitamoDatabase(),
