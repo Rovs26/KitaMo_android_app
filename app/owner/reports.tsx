@@ -2,7 +2,7 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { loadFixedCostsOverview } from "@/services/fixedCosts";
 import { loadProfitReport, reportRanges, type ProfitReport, type ReportRange } from "@/services/profitReports";
 import { useThemeStore } from "@/state/themeStore";
@@ -10,12 +10,6 @@ import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
-
-function formatQuantity(value: number) {
-  return value.toLocaleString("en-PH", {
-    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
-  });
-}
 
 export default function OwnerReportsScreen() {
   const { stallId } = useLocalSearchParams<{ stallId?: string }>();

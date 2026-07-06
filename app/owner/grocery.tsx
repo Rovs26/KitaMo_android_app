@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { ingredientUnits } from "@/db/repositories";
 import type { IngredientUnit } from "@/domain/types";
 import { addGroceryPurchase, loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
@@ -47,12 +47,6 @@ function isValidIsoDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   const parsed = new Date(year, month - 1, day);
   return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
-}
-
-function formatQuantity(value: number) {
-  return value.toLocaleString("en-PH", {
-    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
-  });
 }
 
 function formatDate(value: string) {

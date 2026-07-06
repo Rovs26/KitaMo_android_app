@@ -68,8 +68,8 @@ const quickToolGroups: { title: string; tools: { label: string; href: Href }[] }
   {
     title: "Selling",
     tools: [
-      { label: "Start Selling", href: "/kiosk" },
       { label: "Paninda", href: "/owner/inventory" },
+      { label: "Settings", href: "/owner/settings" },
     ],
   },
   {

@@ -42,6 +42,12 @@ export function formatPeso(value: number) {
   })}`;
 }
 
+export function formatQuantity(value: number) {
+  return value.toLocaleString("en-PH", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
+  });
+}
+
 // Visual height of the bottom navigation before the safe-area inset is added.
 const BOTTOM_NAV_BASE_HEIGHT = 66;
 
@@ -92,7 +98,9 @@ export function AppTopBar({ title, subtitle, eyebrow, right, centeredBrand = fal
       <View style={styles.topText}>
         <KitaMoBrand centered={centeredBrand} />
         {eyebrow ? <Text style={[styles.eyebrow, { color: palette.accent }]}>{eyebrow}</Text> : null}
-        <Text style={[titleStyle, { color: palette.text }]}>{title}</Text>
+        <Text maxFontSizeMultiplier={1.3} numberOfLines={2} style={[titleStyle, { color: palette.text }]}>
+          {title}
+        </Text>
         {subtitle ? <Text style={[styles.subtitle, { color: palette.mutedText }]}>{subtitle}</Text> : null}
       </View>
       {right ? <View style={styles.topRight}>{right}</View> : null}

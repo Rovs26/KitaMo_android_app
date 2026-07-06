@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { ingredientUnits } from "@/db/repositories";
 import type { IngredientUnit, Product, RecipeProductionMode } from "@/domain/types";
 import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
@@ -38,12 +38,6 @@ const productionModes: { id: RecipeProductionMode; label: string }[] = [
   { id: "prepared_before_selling", label: "Prepared before selling" },
   { id: "cook_upon_order", label: "Cook upon order" },
 ];
-
-function formatQuantity(value: number) {
-  return value.toLocaleString("en-PH", {
-    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
-  });
-}
 
 export default function OwnerRecipesScreen() {
   const [overview, setOverview] = useState<RecipesOverview | null>(null);

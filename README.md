@@ -4,6 +4,37 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Chapter 2 Phase 6: Final Release Readiness, Refactor, Performance, and Codex Handoff.
+
+Engineering closure after the Phase 4 finance-manager UX. Google Play **Internal Testing** is the next step (nothing published yet).
+
+### What this phase did
+
+- **Phase 4 audit**: confirmed `localAnalytics.ts` is read-only (0 write ops), no SQLite schema changes, and no checkout/recipe/production/COGS/fixed-cost math was rewritten. Seller labels verified consistent (Grocery Stock, Paninda, Recipe Cost, Niluto, Bayarin, Logbook, Kita Report, Puhunan / Cost, Natirang paninda, Nasayang).
+- **Safe refactor**: extracted the identical `formatQuantity` helper (was copy-pasted in six screens) into `src/components/ui/KitaMoUI.tsx`; removed the redundant third "Start Selling" entry on Home. No logic touched.
+- **Performance/usability**: dashboard reads kept sequential on the shared SQLite handle (SDK 54 safety); screen titles now cap large-font scaling at 1.3× and wrap instead of overflowing. FlatList intentionally avoided inside `ScreenScroll` (nested-scroll hazard; pilot lists are small) — see the Codex handoff doc.
+- **Release docs**: [`docs/release/final-release-readiness.md`](docs/release/final-release-readiness.md) and [`docs/release/codex-ui-handoff.md`](docs/release/codex-ui-handoff.md).
+
+### Phase 4 recap (finance-manager UX)
+
+Home is now a finance dashboard (Today's Money grid, Quick Add, per-stall performance cards, Needs Attention, grouped Quick Tools); Records became the **Logbook** money timeline (benta/grocery/niluto/bayarin/nasayang/lipat, date-grouped); the **Kita Report** leads with `Tubo = Benta − Puhunan − Bayarin − Nasayang` and moves COGS into Advanced details.
+
+### Next: Google Play Internal Testing
+
+Draft materials are in `docs/play-store/`; the manual upload path is in the release-readiness doc. Do not publish until real-phone QA and the Data Safety REVIEW items are complete.
+
+### Codex handoff
+
+If Codex (or another agent) does UI polish next, it must read [`docs/release/codex-ui-handoff.md`](docs/release/codex-ui-handoff.md): safe vs off-limits files, labels to preserve, and the check commands that prove business logic wasn't touched.
+
+### Moved to Chapter 3
+
+- **Bluetooth printing** (no longer Chapter 2).
+- Supabase / any backend, cloud sync, and accounts/auth.
+- Real Lis AI, OCR/camera, payment gateway, Customer Mode, LGU dashboard.
+
+## Previous Phase
+
 Chapter 2 Phase 3: Play Store Internal Testing Preparation.
 
 All materials for Google Play **internal testing** are drafted — nothing has been uploaded or published, and no Play Console action has been taken.

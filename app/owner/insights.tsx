@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, type DimensionValue, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { loadFixedCostsOverview, type FixedCostsOverview } from "@/services/fixedCosts";
 import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
 import { getLocalAnalyticsSnapshot, type LocalAnalyticsSnapshot, type PaymentBreakdownItem } from "@/services/localAnalytics";
@@ -13,12 +13,6 @@ import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
-
-function formatQuantity(value: number) {
-  return value.toLocaleString("en-PH", {
-    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
-  });
-}
 
 export default function OwnerInsightsScreen() {
   const [snapshot, setSnapshot] = useState<LocalAnalyticsSnapshot | null>(null);

@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { listTransferableProducts, recordTransfer, type TransferableProduct, type TransferResult } from "@/services/transfers";
 import { useThemeStore } from "@/state/themeStore";
@@ -11,12 +11,6 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, getUserSafeErrorMessage, logDevError } from "@/utils/errors";
 import { numbersOnlyMessage, parseRequiredNumber } from "@/utils/numberInput";
-
-function formatQuantity(value: number) {
-  return value.toLocaleString("en-PH", {
-    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
-  });
-}
 
 export default function OwnerTransfersScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
