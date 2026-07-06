@@ -2,11 +2,22 @@
 
 Draft copy for the Play Console listing. Internal testing shows the listing to testers only; refine before any public track.
 
+## Required assets and field limits (Play Console)
+
+- **App name** — max 30 chars. "KitaMo" (6) or "KitaMo (Pilot)" (14) both fit.
+- **Short description** — max 80 chars.
+- **Full description** — max 4,000 chars.
+- **App icon** — 512×512 PNG, 32-bit. (App uses an Expo placeholder now — real icon required before upload.)
+- **Feature graphic** — 1024×500 PNG/JPG. Required. Not yet created.
+- **Phone screenshots** — minimum 2, recommended 4+ (up to 8); see `screenshot-plan.md`.
+- **Support email** — required (placeholder below).
+- **Privacy policy URL** — required, public (host `privacy-policy-draft.md`).
+
 ## App name
 
 KitaMo (Pilot)
 
-(Drop "(Pilot)" when leaving the pilot stage.)
+(Drop "(Pilot)" when leaving the pilot stage. Max 30 chars.)
 
 ## Short description (max 80 chars)
 

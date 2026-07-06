@@ -4,6 +4,32 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Chapter 2 Phase 7: Google Play Internal Testing Upload Preparation.
+
+Upload materials and the manual Play Console path are prepared. Nothing is uploaded or published; no build was run.
+
+### Release route
+
+**Internal Testing is the target** (up to 100 email testers, instant, no review wait) — not public production. A new personal Play Console account generally needs Closed Testing with ≥12 testers for 14 continuous days before production unlocks. Google Play only *distributes* the app; KitaMo has no backend, so "publishing" just means making the installable app available to chosen testers. Full plan: [`docs/release/google-play-internal-testing-execution.md`](docs/release/google-play-internal-testing-execution.md).
+
+### DECISION REQUIRED before first upload — package name
+
+`android.package` is `ph.kitamo.pilot` and **becomes permanent and immutable on first upload** (and is the same package across Internal → Closed → Production). If this app should become the real production KitaMo, change it to `ph.kitamo` / `ph.kitamo.app` **before uploading**; if it's a throwaway pilot, keep it. **This was not changed automatically** — it's your irreversible call. Details in the execution doc.
+
+### Config audit (clean)
+
+versionName `0.1.0`, versionCode `1`, `permissions: []`, Expo SDK 54 → target API 35. No forbidden-capability dependencies, zero network calls in app code, no ads/analytics/auth/payment/Bluetooth/camera/location SDKs. `eas.json` `production` profile builds an `.aab` (required by Play).
+
+### New docs
+
+- [`docs/release/google-play-internal-testing-execution.md`](docs/release/google-play-internal-testing-execution.md) — release route + package decision
+- [`docs/release/play-console-upload-checklist.md`](docs/release/play-console-upload-checklist.md) — 14-step manual upload path + versionCode discipline
+- [`docs/release/play-console-app-content-checklist.md`](docs/release/play-console-app-content-checklist.md) — Data Safety, App Access (no login), permissions, financial-category REVIEW
+- [`docs/release/tester-plan.md`](docs/release/tester-plan.md) — 5–10 seller testers, 12–15 total, 2-month night-market pilot
+- [`docs/roadmap/chapter-3-supabase-plan.md`](docs/roadmap/chapter-3-supabase-plan.md) — high-level backend direction (not implemented)
+
+## Previous Phase
+
 Chapter 2 Phase 6: Final Release Readiness, Refactor, Performance, and Codex Handoff.
 
 Engineering closure after the Phase 4 finance-manager UX. Google Play **Internal Testing** is the next step (nothing published yet).
