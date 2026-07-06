@@ -234,15 +234,15 @@ export default function OwnerHomeScreen() {
         try {
           const nextStatus = await loadOwnerSetupStatus();
           const businessId = nextStatus.activeBusiness?.id ?? null;
-          const [nextToday, nextReport, nextGrocery, nextRecipes, orders, nextAnalytics, fixedOverview] = await Promise.all([
-            getTodaySalesSummary(businessId),
-            loadProfitReport("today"),
-            loadGroceryPoolSnapshot(),
-            loadRecipesOverview(),
-            listRecentKioskOrders(2),
-            getLocalAnalyticsSnapshot("today"),
-            loadFixedCostsOverview(),
-          ]);
+          // Sequential on purpose: concurrent reads on the shared SQLite handle
+          // have caused native prepared-statement errors on SDK 54.
+          const nextToday = await getTodaySalesSummary(businessId);
+          const nextReport = await loadProfitReport("today");
+          const nextGrocery = await loadGroceryPoolSnapshot();
+          const nextRecipes = await loadRecipesOverview();
+          const orders = await listRecentKioskOrders(2);
+          const nextAnalytics = await getLocalAnalyticsSnapshot("today");
+          const fixedOverview = await loadFixedCostsOverview();
           const nextAlerts = businessId ? await listActiveOwnerAlerts(businessId) : [];
 
           if (!active) {
