@@ -4,6 +4,30 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Chapter 2 Phase 3: Play Store Internal Testing Preparation.
+
+All materials for Google Play **internal testing** are drafted — nothing has been uploaded or published, and no Play Console action has been taken.
+
+### Internal testing documents (`docs/play-store/`)
+
+- [`internal-testing-checklist.md`](docs/play-store/internal-testing-checklist.md) — Console account, signing, EAS build, upload, tester list, smoke test, next-build/rollback process.
+- [`store-listing-draft.md`](docs/play-store/store-listing-draft.md) — name, descriptions, category, keywords, honest not-yet list, placeholders for support email/privacy URL.
+- [`privacy-policy-draft.md`](docs/play-store/privacy-policy-draft.md) — plain-language local-first policy (draft, not legal advice; must be hosted at a URL before submission).
+- [`data-safety-draft.md`](docs/play-store/data-safety-draft.md) — conservative Play Data Safety answer guide grounded in a code/dependency audit, with **REVIEW** flags for anything to confirm against the final build.
+- [`internal-tester-guide.md`](docs/play-store/internal-tester-guide.md) — install steps, 10-step Taglish test scenario, bug format, known limitations.
+- [`screenshot-plan.md`](docs/play-store/screenshot-plan.md) — 11 shots with purpose, captions, and exact data setup.
+- [`release-notes-internal.md`](docs/play-store/release-notes-internal.md) — 0.1.0 (1) internal release notes.
+
+### Config audit result
+
+- `app.json`: display name **KitaMo (Pilot)**, package `ph.kitamo.pilot`, version `0.1.0` / versionCode `1`, portrait, keyboard resize, `permissions: []`. The built manifest carries only framework-level `INTERNET` (unused by app features at runtime), `ACCESS_NETWORK_STATE` (online/offline badge), and `VIBRATE` (haptics). **No camera, location, contacts, microphone, Bluetooth, or storage permissions.**
+- Dependency audit: no analytics, ads, crash-reporting, auth, or payment SDKs; the app's own code makes zero network requests.
+- `eas.json` profiles ready (development/preview/production). Still manual before the first build: `eas login` + `eas build:configure` (writes the EAS project id — needs the owner's Expo account), real icon/splash assets, and a hosted privacy policy URL.
+
+**Caution: do not publish.** Upload only after real-phone QA, the Data Safety REVIEW items, and Play Console pre-launch checks are complete.
+
+## Previous Phase
+
 Android Phase 14+15+16: QA Hardening, Seller Pilot Readiness, and Android Build Readiness.
 
 The app is now pilot-ready: full-engine QA pass, seller-facing pilot guide, tester checklist, and Android build configuration (without publishing).
