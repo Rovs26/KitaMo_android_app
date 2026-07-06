@@ -27,6 +27,7 @@ export default function OwnerLayout() {
       <Stack.Screen name="transfers" options={{ title: "Transfers" }} />
       <Stack.Screen name="fixed-costs" options={{ title: "Fixed Costs" }} />
       <Stack.Screen name="reports" options={{ title: "Profit Reports" }} />
+      <Stack.Screen name="pilot-guide" options={{ title: "Pilot Guide" }} />
       <Stack.Screen name="insights" options={{ title: "Insights" }} />
       <Stack.Screen name="settings" options={{ title: "Settings" }} />
     </Stack>

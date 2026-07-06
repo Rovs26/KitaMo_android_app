@@ -4,6 +4,40 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 14+15+16: QA Hardening, Seller Pilot Readiness, and Android Build Readiness.
+
+The app is now pilot-ready: full-engine QA pass, seller-facing pilot guide, tester checklist, and Android build configuration (without publishing).
+
+### QA hardening (Phase 14)
+
+- Full-flow audit across first launch, setup, Grocery Pool, Recipes, Production, Kiosk, cook-upon-order COGS, transfers, spoilage, fixed costs, Records, Insights, and Reports. Fixes:
+  - Production now offers **prepared-before-selling recipes only** (as designed) — cook-upon-order recipes are costed automatically at sale time and never hold finished stock; producing them ahead would have created stock that never decremented. A friendly note explains this when only cook-upon-order recipes exist.
+  - Kiosk Stock shows a **"Made to order"** badge for cook-upon-order products instead of a misleading "Out of stock" + Notify Owner.
+- A banned-word sweep confirms no SQLite/schema/migration/queue/debug/Phase wording in seller-visible strings; all 22 local tables are covered by Clear Local Data; fresh/demo boundaries re-verified (fresh empty, demo only via Try Demo Data, no auto-seeded engine data).
+- New `npm run check:pilot`: one end-to-end pure-math story — grocery purchase → recipe costing → production scaling → bundle-priced sale → sold COGS → cook-upon-order partial-stock estimation → daily fixed cost → gross and net profit — chained across all six domain modules.
+
+### Seller pilot readiness (Phase 15)
+
+- In-app **Pilot Guide** (Settings → Data & Privacy → Open Pilot Guide): what KitaMo tracks, a 10-step walkthrough, what is not in the pilot, and the privacy note "This pilot stores data on this device only."
+- Tester document: [`docs/pilot/android-seller-pilot-checklist.md`](docs/pilot/android-seller-pilot-checklist.md) — setup, scenario checklist with expected results, feedback questions, and a bug-report format.
+
+### Android build readiness (Phase 16)
+
+- `app.json`: Android package `ph.kitamo.pilot`, `versionCode` 1, explicit empty `permissions` (the app requests nothing beyond defaults), keyboard resize mode. Icon/splash still use Expo placeholders — real branding assets are a pre-publishing task.
+- Minimal `eas.json` with `development` (dev client APK), `preview` (internal APK), and `production` (app bundle) profiles. **No build has been run and nothing is published** — see Build commands below.
+
+### Build commands (documented, not executed)
+
+```sh
+# one-time: npm install -g eas-cli && eas login
+eas build -p android --profile preview   # internal test APK
+eas build -p android --profile production  # Play-ready app bundle (later)
+```
+
+Play Store listing, signing decisions, and real app icons remain deferred until the pilot ends.
+
+## Previous Phase
+
 Android Phase 13.5: Mobile Shell, Safe Area, and Navigation UX Fix.
 
 Real-phone testing showed shell problems: content spilling into the Android status bar, the bottom tabs overlapping the system navigation area, hidden save buttons on long screens, and Kiosk/Settings being hard to find. This phase fixes the shell and navigation only — no business logic, schema, or accounting changes.

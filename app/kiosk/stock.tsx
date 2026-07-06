@@ -106,6 +106,7 @@ export default function KioskStockScreen() {
 
         {context?.products.map((product) => (
           <StockRow
+            cookedToOrder={Boolean(context.cookUponOrderRecipeByProductId[product.id])}
             key={product.id}
             notifying={notifyingProductId === product.id}
             notifyDisabled={notifyingProductId !== null}
@@ -121,17 +122,18 @@ export default function KioskStockScreen() {
 
 type StockRowProps = {
   product: Product;
+  cookedToOrder: boolean;
   ownerNotified: boolean;
   notifying: boolean;
   notifyDisabled: boolean;
   onNotify: () => void;
 };
 
-function StockRow({ product, ownerNotified, notifying, notifyDisabled, onNotify }: StockRowProps) {
+function StockRow({ product, cookedToOrder, ownerNotified, notifying, notifyDisabled, onNotify }: StockRowProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-  const outOfStock = product.stockQty <= 0;
-  const lowStock = !outOfStock && isLowStock(product.stockQty, product.lowStockThreshold);
+  const outOfStock = product.stockQty <= 0 && !cookedToOrder;
+  const lowStock = !outOfStock && !cookedToOrder && isLowStock(product.stockQty, product.lowStockThreshold);
   const needsAttention = outOfStock || lowStock;
 
   return (
@@ -144,7 +146,11 @@ function StockRow({ product, ownerNotified, notifying, notifyDisabled, onNotify 
           </Text>
         </View>
         <View style={styles.badges}>
-          <Pill label={outOfStock ? "Out of stock" : lowStock ? "Low stock" : "Good"} tone={outOfStock ? "danger" : lowStock ? "warning" : "success"} />
+          {cookedToOrder ? (
+            <Pill label="Made to order" tone="accent" />
+          ) : (
+            <Pill label={outOfStock ? "Out of stock" : lowStock ? "Low stock" : "Good"} tone={outOfStock ? "danger" : lowStock ? "warning" : "success"} />
+          )}
           <Text style={[styles.price, { color: palette.text }]}>{formatPeso(product.price)}</Text>
         </View>
       </View>

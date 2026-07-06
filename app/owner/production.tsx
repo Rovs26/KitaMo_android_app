@@ -74,8 +74,20 @@ export default function OwnerProductionScreen() {
   );
 
   const branches = status?.branches ?? [];
+  // Production is for prepared-before-selling recipes; cook-upon-order items
+  // are costed automatically at sale time and never hold finished stock.
   const activeRecipes = useMemo(
-    () => (overview?.items ?? []).filter((item) => item.recipe.isActive && item.lines.length > 0),
+    () =>
+      (overview?.items ?? []).filter(
+        (item) => item.recipe.isActive && item.lines.length > 0 && item.recipe.productionMode === "prepared_before_selling",
+      ),
+    [overview?.items],
+  );
+  const cookOnlyRecipes = useMemo(
+    () =>
+      (overview?.items ?? []).some(
+        (item) => item.recipe.isActive && item.lines.length > 0 && item.recipe.productionMode === "cook_upon_order",
+      ),
     [overview?.items],
   );
   const selectedItem = activeRecipes.find((item) => item.recipe.id === selectedRecipeId) ?? null;
@@ -184,7 +196,18 @@ export default function OwnerProductionScreen() {
 
       {overview && hasBusiness && activeRecipes.length === 0 ? (
         <Card>
-          <EmptyState description="Example: Sushi, cookies, brownies." title="Create a recipe first before recording production." />
+          <EmptyState
+            description={
+              cookOnlyRecipes
+                ? "Ang mga cook-upon-order na recipe ay awtomatikong kinukuwenta sa Kiosk sale — hindi na kailangang i-produce dito."
+                : "Example: Sushi, cookies, brownies."
+            }
+            title={
+              cookOnlyRecipes
+                ? "Walang prepared-before-selling na recipe."
+                : "Create a recipe first before recording production."
+            }
+          />
           <SecondaryButton href="/owner/recipes" label="Open Recipes" />
         </Card>
       ) : null}

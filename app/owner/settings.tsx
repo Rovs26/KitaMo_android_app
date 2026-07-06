@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
-import { AppTopBar, Card, IconBadge, Pill, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, IconBadge, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { showLocalDataVerificationPanel } from "@/config/devTools";
 import {
   createBranch,
@@ -408,6 +408,7 @@ export default function OwnerSettingsScreen() {
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Data & Privacy</Text>
         <Text style={[styles.body, { color: palette.mutedText }]}>Your pilot data stays on this phone until sync is added.</Text>
+        <SecondaryButton href="/owner/pilot-guide" label="Open Pilot Guide" />
       </View>
 
       {__DEV__ && showLocalDataVerificationPanel ? <LocalDataVerificationPanel /> : null}

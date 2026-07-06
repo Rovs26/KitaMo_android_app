@@ -215,6 +215,10 @@ Each phase is independently shippable and keeps all earlier flows intact.
 - **Double-tap on Add grocery**: same synchronous lock pattern as checkout/cook/spoilage.
 - **Pool value drift** once deduction lands: movements table is the audit trail to reconcile against.
 
+## 16.5 Pilot test path (Phase 15)
+
+The seller pilot walkthrough lives in two places: the in-app Pilot Guide (Settings → Data & Privacy) and `docs/pilot/android-seller-pilot-checklist.md` for testers. The canonical path: setup → groceries → products → recipe → production → kiosk sale (bundle + cook-upon-order + estimated-cost case) → records → insights → fixed cost → profit reports. `npm run check:pilot` verifies the same story's math end to end.
+
 ## 17. Test strategy
 
 - Keep `npm run typecheck`, `npm run lint`, `npm run check:pricing` green every phase.
