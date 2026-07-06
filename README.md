@@ -4,6 +4,30 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
+Android Phase 9: Production per Stall with Ingredient Deduction.
+
+Owners can now record recipe-based production: pick a stall, pick a recipe, enter how many pieces were produced, and save. One SQLite transaction deducts the required ingredient quantities from the recipe's selected Grocery Pool lots, increases the finished product's stock, records the production batch with its COGS assigned to the chosen stall, and writes ingredient-usage and product stock-in movements. This is for prepared-before-selling products; cook-upon-order COGS stays deferred.
+
+### Production (Phase 9)
+
+- Migration `006_production` adds `production_batches` (stall, recipe, output product, quantity, batch multiplier, total cost, cost per unit) and `production_ingredient_usages` (per-line usage with lot, quantity, cost, and label snapshots). The existing simple `recipe_batches`/Niluto flow is untouched; both tables are covered by Clear Local Data.
+- **Fractional batches supported**: producing 12 pieces from a 5-per-batch recipe scales every ingredient and cost by 2.4. Verified by `npm run check:production` (multiplier, scaled deductions like 100 g/batch × 2 batches = 0.2 kg from a kg lot, cost scaling, shortfall blocking, exact-remaining allowance, shared-lot aggregation, unit rejection).
+- **Deduction rules**: only the recipe's selected lots are touched — never other lots of the same ingredient. Lines sharing one lot are combined before the availability check. If a selected lot is short, production is blocked with a friendly message ("Not enough Soy sauce (Kikkoman). Need 20 ml, available 10 ml.") — production plans ahead, so unlike future cook-upon-order it must block. Lot remaining quantities can reach exactly zero (lot flips to depleted) but never negative, guarded both in the plan and again at the SQL level inside the transaction.
+- **Custom cost lines** scale into production COGS but never deduct grocery stock, with the note shown in the preview.
+- **Stall assignment**: the batch, its COGS, and the product stock-in movement are recorded under the selected stall; unsold finished goods stay on that stall's product until sold, spoiled, or transferred (transfers still deferred). No manual grocery allocation exists anywhere.
+- The Production screen (Owner Home, Inventory's Niluto section, and Recipes link to it) shows stall and recipe pickers, the recipe's cost/makeable/bottleneck details, and a live preview of ingredient requirements, shortfalls, total cost, cost per unit, and the resulting stock increase. Save is disabled while the plan has shortfalls or unit issues; duplicate taps are locked; a "Latest production" summary card appears after saving.
+- Producing above a product's low-stock threshold auto-resolves its active low-stock alert (same rule as the simple Niluto flow). Low grocery stock stays visible in the Grocery Pool and Insights.
+- Records shows a "Niluto / Production" card with recent batches (recipe → product, quantity, stall, cost); the product stock-in also appears under stock movements with the Niluto badge. Insights adds a Production metric (today's production COGS + items produced).
+
+### Phase 9 deferred
+
+- Cook-upon-order selling and COGS estimation/shortfall logging at sale time.
+- Finished-goods transfers between stalls.
+- Fixed costs and consolidated profit reports.
+- Ingredient-level low-stock alerts in the owner alert system (Grocery Pool shows low stock for now).
+
+## Previous Phase
+
 Android Phase 8C+8D: Recipe Builder and Recipe Costing.
 
 Owners can now create recipes for sellable products, picking specific ingredient lots from the Grocery Pool — the exact brand and source, not an average. Recipe costing, makeable quantity, and bottleneck detection are live. No ingredient deduction happens yet: saving or costing a recipe never changes grocery stock.
@@ -102,6 +126,7 @@ npm run typecheck
 npm run lint
 npm run check:pricing
 npm run check:recipes
+npm run check:production
 npm run start
 ```
 
@@ -175,6 +200,11 @@ Migration `005_recipes` adds:
 
 - `recipes`
 - `recipe_ingredient_lines`
+
+Migration `006_production` adds:
+
+- `production_batches`
+- `production_ingredient_usages`
 
 ## Fresh Mode
 

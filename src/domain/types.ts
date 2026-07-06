@@ -181,6 +181,32 @@ export type RecipeIngredientLine = LocalEntity & {
   notes: string | null;
 };
 
+export type ProductionBatch = LocalEntity & {
+  businessId: string;
+  branchId: string | null;
+  recipeId: string | null;
+  outputProductId: string | null;
+  recipeName: string;
+  outputQuantity: number;
+  outputUnit: IngredientUnit;
+  batchMultiplier: number;
+  totalBatchCost: number;
+  costPerOutputUnit: number;
+  notes: string | null;
+};
+
+export type ProductionIngredientUsage = LocalEntity & {
+  businessId: string;
+  productionBatchId: string;
+  ingredientId: string | null;
+  ingredientLotId: string | null;
+  quantityUsed: number;
+  unit: IngredientUnit;
+  lineCost: number;
+  sourceLabelSnapshot: string | null;
+  isCustom: boolean;
+};
+
 export type OwnerAlertSeverity = "info" | "warning" | "critical";
 export type OwnerAlertStatus = "active" | "resolved";
 

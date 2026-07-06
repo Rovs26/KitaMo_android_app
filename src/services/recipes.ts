@@ -247,7 +247,7 @@ export async function createRecipeWithLines(
   };
 }
 
-function toCostingLines(lines: RecipeIngredientLine[], lotMap: Map<string, IngredientLotWithName>): CostingLine[] {
+export function buildCostingLines(lines: RecipeIngredientLine[], lotMap: Map<string, IngredientLotWithName>): CostingLine[] {
   return lines.map((line) => {
     if (line.isCustom || !line.ingredientLotId) {
       return {
@@ -309,7 +309,7 @@ export async function loadRecipesOverview(db: RepositoryDatabase = openKitamoDat
   const items: RecipeOverviewItem[] = recipes.map((recipe) => {
     const lines = linesByRecipe.get(recipe.id) ?? [];
     const batchCost = lines.reduce((total, line) => total + line.lineCostSnapshot, 0);
-    const makeable = calculateMakeableQuantity(toCostingLines(lines, lotMap), recipe.outputQuantity);
+    const makeable = calculateMakeableQuantity(buildCostingLines(lines, lotMap), recipe.outputQuantity);
 
     return {
       recipe,

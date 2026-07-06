@@ -1,6 +1,6 @@
 # KitaMo Food Business Engine — Architecture Plan
 
-Status: Phase 8A planning document. Phase 8B implemented the Grocery Pool and Ingredient Inventory foundation (sections 5–6). Phase 8C+8D implemented the Recipe Builder with selected-lot costing, custom-cost lines, makeable quantity, and bottleneck detection (sections 7–9, without ingredient deduction). Production per stall, cook-upon-order, fixed costs, and consolidated reporting remain design-only.
+Status: Phase 8A planning document. Phase 8B implemented the Grocery Pool and Ingredient Inventory foundation (sections 5–6). Phase 8C+8D implemented the Recipe Builder with selected-lot costing, custom-cost lines, makeable quantity, and bottleneck detection (sections 7–9). Phase 9 implemented production per stall with ingredient deduction (section 10, without transfers). Cook-upon-order, fixed costs, and consolidated reporting remain design-only.
 
 ## 1. Executive summary
 
@@ -143,12 +143,15 @@ As built:
 - Stored on `recipe_ingredients` as a custom line (no ingredient row is force-created, so the pool stays honest).
 - Later purchases of the same name can be linked by the owner ("use pool item from now on") — a one-field update from custom line to ingredient_id line.
 
-## 10. Production per stall design (Phase 8D)
+## 10. Production per stall design (shipped in Phase 9)
 
-- `production_runs`: business_id, branch_id (stall), recipe_id, batches, output product_id, output quantity, produced_at, total_ingredient_cost, notes.
-- One transaction: deduct each recipe line from lots (preferred lot first, then FIFO across that ingredient's active lots), write `recipe_usage` ingredient movements, insert the production run, increase finished product stock at the stall, write a `cooked` inventory movement, update `recipe_batches` for continuity with the existing Niluto flow.
-- Deduction can drive lots to exactly 0 (status `depleted`) but never negative; if the pool is short, the run still saves using recent-price estimation for the missing part and logs a shortfall note (production mirrors the no-blocking rule).
-- Finished goods then live under the stall (existing `products.stock_qty` per branch) until sold/spoiled/transferred — no change to kiosk sale logic.
+As built:
+
+- `production_batches`: business_id, branch_id (stall), recipe_id, output_product_id, recipe_name snapshot, output quantity/unit, batch_multiplier (fractional allowed — 12 pcs from a 5-per-batch recipe = 2.4 batches, everything scales linearly), total_batch_cost, cost_per_output_unit, notes. `production_ingredient_usages` records each line's scaled quantity, cost, lot, and label snapshot.
+- One transaction: insert the batch, deduct each selected lot (lines sharing a lot aggregated first), write `recipe_usage` ingredient movements, insert usage rows, increase finished product stock, write a `cooked` inventory movement under the stall, and auto-resolve the product's low-stock alert when restocked above threshold. The existing simple `recipe_batches`/Niluto flow is untouched and remains available for products without recipes.
+- Deduction only touches the recipe's selected lots — never other lots of the same ingredient, and never a FIFO fallback (the owner picked the brand on purpose). Lots can hit exactly 0 (status `depleted`) but never negative, guarded in the plan and again at the SQL level.
+- **Design deviation from the original sketch**: production BLOCKS on insufficient selected lots with a friendly "Not enough X. Need A, available B." message instead of estimating through the shortfall. Production is planned ahead of time, so the owner can restock or adjust; the no-blocking estimation rule is reserved for cook-upon-order at the point of sale (§11).
+- Finished goods live under the stall (existing `products.stock_qty` per branch) until sold/spoiled/transferred; transfers remain deferred. Pure planning math lives in `src/domain/productionMath.ts`, verified by `npm run check:production`.
 
 ## 11. Cook-upon-order design (Phase 8E)
 
@@ -182,10 +185,10 @@ As built:
 | --- | --- | --- |
 | **8B (shipped)** | Grocery Pool foundation | ingredients/lots/movements tables, grocery repos + service, Grocery Pool screen, Home/Insights hooks |
 | **8C+8D (shipped)** | Recipe Builder + costing | recipes + recipe_ingredient_lines, searchable lot picker, custom-cost lines, selected-lot costing, makeable quantity + bottleneck (no deduction) |
-| 8E | Production per stall | production_runs, pool deduction with FIFO + selected lot, batch cost onto stall goods, transfers |
-| 8F | Cook-upon-order | no-block selling for cook_upon_order recipes, cost_estimates + shortfall logging, history-price fallback |
-| 8G | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
-| 8H | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases |
+| **9 (shipped)** | Production per stall | production_batches + usages, selected-lot deduction with blocking shortfalls, fractional batches, COGS per stall (transfers deferred) |
+| Next | Cook-upon-order | no-block selling for cook_upon_order recipes, cost_estimates + shortfall logging, history-price fallback |
+| Later | Fixed costs + reports | fixed_costs, per-stall margin, consolidated profit view |
+| Later | Polish/QA | end-to-end hardening pass over the engine, copy, edge cases; transfers between stalls |
 
 Each phase is independently shippable and keeps all earlier flows intact.
 

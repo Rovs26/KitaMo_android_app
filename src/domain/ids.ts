@@ -14,7 +14,9 @@ export type LocalIdKind =
   | "ingredient_lot"
   | "ingredient_movement"
   | "recipe"
-  | "recipe_line";
+  | "recipe_line"
+  | "production_batch"
+  | "production_usage";
 
 function shortRandom() {
   return Math.random().toString(36).slice(2, 8);
@@ -40,3 +42,5 @@ export const makeIngredientLotId = () => makeLocalId("ingredient_lot");
 export const makeIngredientMovementId = () => makeLocalId("ingredient_movement");
 export const makeRecipeId = () => makeLocalId("recipe");
 export const makeRecipeLineId = () => makeLocalId("recipe_line");
+export const makeProductionBatchId = () => makeLocalId("production_batch");
+export const makeProductionUsageId = () => makeLocalId("production_usage");

@@ -395,6 +395,10 @@ export default function OwnerInventoryScreen() {
           <Text style={[styles.body, { color: palette.mutedText }]}>
             Ilang piraso ang nadagdag sa paninda? Stock will increase after saving.
           </Text>
+          <Text style={[styles.body, { color: palette.mutedText }]}>
+            May recipe na? Use Production para automatic ang ingredients at cost.
+          </Text>
+          <SecondaryButton href="/owner/production" label="Open Production" />
           <ProductPicker
             disabled={cookSaving}
             label="Paninda"

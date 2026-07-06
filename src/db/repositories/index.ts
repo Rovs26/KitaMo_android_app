@@ -6,6 +6,7 @@ export * from "./ingredients";
 export * from "./inventoryMovements";
 export * from "./ownerAlerts";
 export * from "./pilotDataReset";
+export * from "./productionBatches";
 export * from "./products";
 export * from "./recipeIngredientLines";
 export * from "./recipes";

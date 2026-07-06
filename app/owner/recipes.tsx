@@ -372,6 +372,8 @@ export default function OwnerRecipesScreen() {
 
       {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
 
+      <SecondaryButton href="/owner/production" label="Record production gamit ang recipe" />
+
       <View style={styles.metricGrid}>
         <MetricCard detail="Saved recipes" icon="R" label="Active" tone="primary" value={String(overview?.activeCount ?? 0)} />
         <MetricCard

@@ -3,12 +3,14 @@ import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import type { ProductionBatchWithNames } from "@/db/repositories";
 import {
   getLocalAnalyticsSnapshot,
   type LocalAnalyticsSnapshot,
   type LocalSaleRecord,
   type SalesRecordFilter,
 } from "@/services/localAnalytics";
+import { listRecentProduction } from "@/services/production";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
@@ -59,6 +61,7 @@ function movementBadge(movementType: string, linkedSaleId: string | null): { lab
 
 export default function OwnerRecordsScreen() {
   const [snapshot, setSnapshot] = useState<LocalAnalyticsSnapshot | null>(null);
+  const [productionBatches, setProductionBatches] = useState<ProductionBatchWithNames[]>([]);
   const [activeFilter, setActiveFilter] = useState<SalesRecordFilter>("today");
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +73,9 @@ export default function OwnerRecordsScreen() {
     setLoading(true);
     try {
       const nextSnapshot = await getLocalAnalyticsSnapshot(filter);
+      const nextProduction = await listRecentProduction(5);
       setSnapshot(nextSnapshot);
+      setProductionBatches(nextProduction);
       setError(null);
     } catch (loadError) {
       logDevError("OwnerRecords.refresh", loadError);
@@ -162,6 +167,28 @@ export default function OwnerRecordsScreen() {
           ) : (
             <EmptyState description="Receipt text is not available for this sale." title="No receipt text" />
           )}
+        </Card>
+      ) : null}
+
+      {productionBatches.length > 0 ? (
+        <Card>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Niluto / Production</Text>
+          {productionBatches.map((batch) => (
+            <View key={batch.id} style={[styles.movementRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
+              <View style={styles.movementText}>
+                <Text style={[styles.itemTitle, { color: palette.text }]}>
+                  {batch.recipeName}
+                  {batch.outputProductName ? ` → ${batch.outputProductName}` : ""}
+                </Text>
+                <Text style={[styles.body, { color: palette.mutedText }]}>
+                  {batch.outputQuantity} {batch.outputUnit}
+                  {batch.branchName ? ` · ${batch.branchName}` : ""} · {formatPeso(batch.totalBatchCost)}
+                </Text>
+                <Text style={[styles.helper, { color: palette.mutedText }]}>{formatDateTime(batch.createdAt)}</Text>
+              </View>
+              <Pill label="Niluto" tone="primary" />
+            </View>
+          ))}
         </Card>
       ) : null}
 

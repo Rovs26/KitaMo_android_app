@@ -231,6 +231,7 @@ export default function OwnerHomeScreen() {
           <PrimaryButton href="/kiosk" label="Open Kiosk" />
           <SecondaryButton href="/owner/grocery" label="Grocery Pool" />
           <SecondaryButton href="/owner/recipes" label="Recipes" />
+          <SecondaryButton href="/owner/production" label="Production" />
           <SecondaryButton href="/owner/records" label="Records" />
           <SecondaryButton href="/owner/settings" label="Settings" />
         </View>
