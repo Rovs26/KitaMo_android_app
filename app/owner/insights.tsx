@@ -82,18 +82,18 @@ export default function OwnerInsightsScreen() {
       {snapshot && hasSales ? (
         <>
           <View style={styles.metricGrid}>
-            <MetricCard detail="Today" icon="K" label="Today's Kita" tone="primary" value={formatPeso(snapshot.today.salesTotal)} />
-            <MetricCard detail="Today" icon="T" label="Transactions" tone="success" value={String(snapshot.today.transactionCount)} />
-            <MetricCard detail="Puhunan ng nabenta today" icon="C" label="COGS" tone="danger" value={formatPeso(snapshot.today.costTotal)} />
+            <MetricCard detail="Today" iconName="cash-outline" label="Today's Kita" tone="primary" value={formatPeso(snapshot.today.salesTotal)} />
+            <MetricCard detail="Today" iconName="receipt-outline" label="Transactions" tone="success" value={String(snapshot.today.transactionCount)} />
+            <MetricCard detail="Puhunan ng nabenta today" iconName="wallet-outline" label="COGS" tone="danger" value={formatPeso(snapshot.today.costTotal)} />
             <MetricCard
               detail="Benta minus puhunan today"
-              icon="G"
+              iconName="trending-up"
               label="Gross profit"
               tone="success"
               value={formatPeso(Math.max(0, snapshot.today.salesTotal - snapshot.today.costTotal))}
             />
-            <MetricCard detail="Today" icon="A" label="Average sale" tone="neutral" value={formatPeso(snapshot.today.averageSale)} />
-            <MetricCard detail="Pending saves" icon="P" label="Pending" tone="accent" value={String(snapshot.pendingQueueCount)} />
+            <MetricCard detail="Today" iconName="calculator-outline" label="Average sale" tone="neutral" value={formatPeso(snapshot.today.averageSale)} />
+            <MetricCard detail="Pending saves" iconName="sync-outline" label="Pending" tone="accent" value={String(snapshot.pendingQueueCount)} />
           </View>
 
           {snapshot.lifecycle.estimatedCogsCountToday > 0 ? (
@@ -130,47 +130,47 @@ export default function OwnerInsightsScreen() {
       {snapshot && !loading ? (
         <>
           <View style={styles.metricGrid}>
-            <MetricCard detail="Active items" icon="I" label="Products" tone="success" value={String(snapshot.lowStock.productCount)} />
-            <MetricCard detail="Need review" icon="L" label="Low stock" tone={snapshot.lowStock.lowStockCount > 0 ? "warning" : "success"} value={String(snapshot.lowStock.lowStockCount)} />
-            <MetricCard detail="Owner alerts" icon="A" label="Alerts" tone={snapshot.activeAlertCount > 0 ? "warning" : "success"} value={String(snapshot.activeAlertCount)} />
+            <MetricCard detail="Active items" iconName="cube-outline" label="Products" tone="success" value={String(snapshot.lowStock.productCount)} />
+            <MetricCard detail="Need review" iconName="warning-outline" label="Low stock" tone={snapshot.lowStock.lowStockCount > 0 ? "warning" : "success"} value={String(snapshot.lowStock.lowStockCount)} />
+            <MetricCard detail="Owner alerts" iconName="alert-circle-outline" label="Alerts" tone={snapshot.activeAlertCount > 0 ? "warning" : "success"} value={String(snapshot.activeAlertCount)} />
             <MetricCard
               detail={`${grocery?.lowStockIngredients.length ?? 0} low-stock ingredient${(grocery?.lowStockIngredients.length ?? 0) === 1 ? "" : "s"}`}
-              icon="G"
+              iconName="basket-outline"
               label="Grocery"
               tone={(grocery?.lowStockIngredients.length ?? 0) > 0 ? "warning" : "primary"}
               value={formatPeso(grocery?.totalRemainingValue ?? 0)}
             />
             <MetricCard
               detail={`${recipesOverview?.lowMakeableCount ?? 0} low makeable`}
-              icon="R"
+              iconName="restaurant-outline"
               label="Recipes"
               tone={(recipesOverview?.lowMakeableCount ?? 0) > 0 ? "warning" : "success"}
               value={String(recipesOverview?.activeCount ?? 0)}
             />
             <MetricCard
               detail={`${production?.totalOutput ?? 0} item${(production?.totalOutput ?? 0) === 1 ? "" : "s"} produced today`}
-              icon="N"
+              iconName="flame-outline"
               label="Niluto"
               tone="primary"
               value={formatPeso(production?.totalCost ?? 0)}
             />
             <MetricCard
               detail="Halaga ng hindi pa nabebenta"
-              icon="U"
+              iconName="cube-outline"
               label="Unsold goods"
               tone="neutral"
               value={formatPeso(snapshot?.lifecycle.unsoldFinishedValue ?? 0)}
             />
             <MetricCard
               detail={`${snapshot?.lifecycle.transferCountToday ?? 0} transfer${(snapshot?.lifecycle.transferCountToday ?? 0) === 1 ? "" : "s"} today`}
-              icon="S"
+              iconName="trash-outline"
               label="Sayang today"
               tone={(snapshot?.lifecycle.spoilageLossToday ?? 0) > 0 ? "warning" : "success"}
               value={formatPeso(snapshot?.lifecycle.spoilageLossToday ?? 0)}
             />
             <MetricCard
               detail={`${(fixedCosts?.overdueCount ?? 0) > 0 ? `${fixedCosts?.overdueCount} overdue` : "Due this month"}`}
-              icon="F"
+              iconName="alert-circle-outline"
               label="Fixed costs"
               tone={(fixedCosts?.overdueCount ?? 0) > 0 ? "danger" : "neutral"}
               value={formatPeso(fixedCosts?.thisMonthTotal ?? 0)}

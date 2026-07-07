@@ -15,11 +15,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes, type ThemePalette } from "@/theme/colors";
+import { radius } from "@/theme/radius";
+import { shadows } from "@/theme/shadows";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 
 type Tone = "primary" | "accent" | "success" | "warning" | "danger" | "neutral";
-type IoniconName = ComponentProps<typeof Ionicons>["name"];
+export type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 const toneStyles = {
   primary: (palette: ThemePalette) => ({ backgroundColor: palette.softPrimary, color: palette.primary, borderColor: palette.border }),
@@ -110,12 +112,12 @@ export function AppTopBar({ title, subtitle, eyebrow, right, centeredBrand = fal
 
 export function Card({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) {
   const palette = usePalette();
-  return <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, style]}>{children}</View>;
+  return <View style={[styles.card, { backgroundColor: palette.surface }, shadows.card, style]}>{children}</View>;
 }
 
 export function HeroCard({ children }: PropsWithChildren) {
   const palette = usePalette();
-  return <View style={[styles.heroCard, { backgroundColor: palette.primary }]}>{children}</View>;
+  return <View style={[styles.heroCard, { backgroundColor: palette.primary }, shadows.hero]}>{children}</View>;
 }
 
 export function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
@@ -138,23 +140,39 @@ export function Pill({ label, tone = "neutral" }: { label: string; tone?: Tone }
   );
 }
 
-export function IconBadge({ label, tone = "primary", size = "md" }: { label: string; tone?: Tone; size?: "sm" | "md" | "lg" }) {
+// Accepts a modern Ionicon (`icon`) or a legacy letter/emoji (`label`).
+// Ionicon wins when both are given, so screens can migrate gradually.
+export function IconBadge({
+  label,
+  icon,
+  tone = "primary",
+  size = "md",
+}: {
+  label?: string;
+  icon?: IoniconName;
+  tone?: Tone;
+  size?: "sm" | "md" | "lg";
+}) {
   const palette = usePalette();
   const toneStyle = toneStyles[tone](palette);
-  const dimension = size === "lg" ? 50 : size === "sm" ? 32 : 40;
+  const dimension = size === "lg" ? 46 : size === "sm" ? 30 : 38;
+  const iconSize = size === "lg" ? 24 : size === "sm" ? 16 : 20;
   return (
     <View
       style={[
         styles.iconBadge,
         {
           backgroundColor: toneStyle.backgroundColor,
-          borderColor: toneStyle.borderColor,
           height: dimension,
           width: dimension,
         },
       ]}
     >
-      <Text style={[styles.iconBadgeText, { color: toneStyle.color, fontSize: size === "lg" ? 22 : 16 }]}>{label}</Text>
+      {icon ? (
+        <Ionicons color={toneStyle.color} name={icon} size={iconSize} />
+      ) : (
+        <Text style={[styles.iconBadgeText, { color: toneStyle.color, fontSize: size === "lg" ? 20 : 15 }]}>{label ?? ""}</Text>
+      )}
     </View>
   );
 }
@@ -165,20 +183,30 @@ type MetricCardProps = {
   detail?: string;
   tone?: Tone;
   icon?: string;
+  iconName?: IoniconName;
 };
 
-export function MetricCard({ label, value, detail, tone = "primary", icon = "₱" }: MetricCardProps) {
+export function MetricCard({ label, value, detail, tone = "primary", icon = "₱", iconName }: MetricCardProps) {
   const palette = usePalette();
   return (
     <Card style={styles.metricCard}>
       <View style={styles.metricHeader}>
-        <IconBadge label={icon} tone={tone} />
-        <Text style={[styles.metricLabel, { color: palette.text }]}>{label}</Text>
+        <IconBadge icon={iconName} label={iconName ? undefined : icon} size="sm" tone={tone} />
+        <Text numberOfLines={1} style={[styles.metricLabel, { color: palette.mutedText }]}>
+          {label}
+        </Text>
       </View>
-      <Text style={[styles.metricValue, { color: tone === "danger" ? palette.danger : tone === "accent" ? palette.accent : palette.primary }]}>
+      <Text
+        numberOfLines={1}
+        style={[styles.metricValue, { color: tone === "danger" ? palette.danger : tone === "accent" ? palette.accent : palette.text }]}
+      >
         {value}
       </Text>
-      {detail ? <Text style={[styles.metricDetail, { color: palette.mutedText }]}>{detail}</Text> : null}
+      {detail ? (
+        <Text numberOfLines={1} style={[styles.metricDetail, { color: palette.mutedText }]}>
+          {detail}
+        </Text>
+      ) : null}
     </Card>
   );
 }
@@ -290,8 +318,8 @@ export function ListRow({ title, subtitle, amount, badge, badgeTone = "neutral",
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   const palette = usePalette();
   return (
-    <View style={[styles.emptyState, { backgroundColor: palette.softPrimary, borderColor: palette.border }]}>
-      <IconBadge label="K" tone="primary" size="lg" />
+    <View style={[styles.emptyState, { backgroundColor: palette.softPrimary }]}>
+      <IconBadge icon="sparkles-outline" tone="primary" size="lg" />
       <View style={styles.emptyText}>
         <Text style={[styles.emptyTitle, { color: palette.text }]}>{title}</Text>
         {description ? <Text style={[styles.emptyDescription, { color: palette.mutedText }]}>{description}</Text> : null}
@@ -322,14 +350,12 @@ function OwnerBottomNav() {
       {tabs.map((tab) => (
         <Link key={tab.label} href={tab.href} asChild>
           <Pressable style={styles.bottomNavItem}>
-            <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={21} />
-            <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText }]}>{tab.label}</Text>
-            <View
-              style={[
-                styles.bottomNavIndicator,
-                { backgroundColor: tab.active ? palette.primary : "transparent" },
-              ]}
-            />
+            <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
+              <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
+            </View>
+            <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
+              {tab.label}
+            </Text>
           </Pressable>
         </Link>
       ))}
@@ -370,30 +396,27 @@ const styles = StyleSheet.create({
     ...typography.label,
   },
   pageTitle: {
-    fontSize: 28,
-    fontWeight: "900",
-    lineHeight: 34,
-  },
-  pageTitleCompact: {
-    fontSize: 24,
-    fontWeight: "900",
+    fontSize: 25,
+    fontWeight: "800",
     lineHeight: 30,
   },
+  pageTitleCompact: {
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 27,
+  },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: 18,
   },
   card: {
-    borderRadius: 8,
-    borderWidth: 1,
-    elevation: 1,
-    gap: 12,
-    padding: 14,
+    borderRadius: radius.lg,
+    gap: spacing.sm,
+    padding: spacing.md,
   },
   heroCard: {
-    borderRadius: 8,
-    elevation: 2,
+    borderRadius: radius.xl,
     gap: spacing.sm,
     overflow: "hidden",
     padding: spacing.md,
@@ -405,24 +428,24 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    ...typography.heading,
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 21,
   },
   pill: {
     alignSelf: "flex-start",
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: radius.pill,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
-    lineHeight: 16,
+    lineHeight: 15,
   },
   iconBadge: {
     alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: radius.md,
     justifyContent: "center",
   },
   iconBadgeText: {
@@ -430,34 +453,36 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   metricCard: {
-    flexBasis: "48%",
+    flexBasis: "47%",
     flexGrow: 1,
-    minHeight: 118,
-    justifyContent: "space-between",
+    gap: 6,
+    padding: spacing.sm + 2,
   },
   metricHeader: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   metricLabel: {
-    ...typography.button,
+    fontSize: 12,
+    fontWeight: "600",
     flex: 1,
+    lineHeight: 16,
   },
   metricValue: {
-    fontSize: 26,
-    fontWeight: "900",
-    lineHeight: 31,
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 25,
   },
   metricDetail: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 15,
   },
   primaryButton: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: radius.md,
     justifyContent: "center",
-    minHeight: 44,
+    minHeight: 46,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
@@ -466,7 +491,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     justifyContent: "center",
     minHeight: 42,
@@ -485,7 +510,7 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   input: {
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     fontSize: 15,
     lineHeight: 20,
@@ -495,12 +520,11 @@ const styles = StyleSheet.create({
   },
   listRow: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
-    elevation: 1,
     flexDirection: "row",
-    gap: 12,
-    padding: 12,
+    gap: spacing.sm,
+    padding: spacing.sm + 2,
   },
   listText: {
     flex: 1,
@@ -524,11 +548,10 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: radius.md,
     flexDirection: "row",
     gap: spacing.md,
-    padding: 12,
+    padding: spacing.md,
   },
   emptyText: {
     flex: 1,
@@ -541,31 +564,31 @@ const styles = StyleSheet.create({
     ...typography.body,
   },
   bottomNav: {
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     bottom: 0,
     elevation: 8,
     flexDirection: "row",
     left: 0,
     paddingHorizontal: spacing.sm,
-    paddingTop: 8,
+    paddingTop: 6,
     position: "absolute",
     right: 0,
   },
   bottomNavItem: {
     alignItems: "center",
     flex: 1,
-    gap: 3,
-    minHeight: 52,
+    gap: 2,
+    minHeight: 50,
+  },
+  bottomNavIconWrap: {
+    alignItems: "center",
+    borderRadius: radius.pill,
+    height: 30,
+    justifyContent: "center",
+    width: 46,
   },
   bottomNavText: {
-    fontSize: 11,
-    fontWeight: "800",
+    fontSize: 10.5,
     lineHeight: 14,
-  },
-  bottomNavIndicator: {
-    borderRadius: 2,
-    height: 3,
-    marginTop: 1,
-    width: 24,
   },
 });

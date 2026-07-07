@@ -55,43 +55,13 @@ const severityTones: Record<OwnerAlertSeverity, "neutral" | "warning" | "danger"
 };
 
 const quickAddShortcuts: { label: string; href: Href; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { label: "Start Selling", href: "/kiosk", icon: "storefront-outline" },
-  { label: "Add Grocery", href: "/owner/grocery", icon: "basket-outline" },
-  { label: "Add Product", href: "/owner/inventory", icon: "cube-outline" },
-  { label: "Add Recipe", href: "/owner/recipes", icon: "restaurant-outline" },
-  { label: "Add Niluto", href: "/owner/production", icon: "flame-outline" },
-  { label: "Add Bayarin", href: "/owner/fixed-costs", icon: "receipt-outline" },
-  { label: "Kita Report", href: "/owner/reports", icon: "bar-chart-outline" },
-];
-
-const quickToolGroups: { title: string; tools: { label: string; href: Href }[] }[] = [
-  {
-    title: "Selling",
-    tools: [
-      { label: "Paninda", href: "/owner/inventory" },
-      { label: "Settings", href: "/owner/settings" },
-    ],
-  },
-  {
-    title: "Costing",
-    tools: [
-      { label: "Grocery Stock", href: "/owner/grocery" },
-      { label: "Recipe Cost", href: "/owner/recipes" },
-      { label: "Niluto", href: "/owner/production" },
-      { label: "Lipat", href: "/owner/transfers" },
-    ],
-  },
-  {
-    title: "Money",
-    tools: [{ label: "Bayarin", href: "/owner/fixed-costs" }],
-  },
-  {
-    title: "Reports",
-    tools: [
-      { label: "Kita Report", href: "/owner/reports" },
-      { label: "Logbook", href: "/owner/records" },
-    ],
-  },
+  { label: "Sell", href: "/kiosk", icon: "cash-outline" },
+  { label: "Grocery", href: "/owner/grocery", icon: "basket-outline" },
+  { label: "Product", href: "/owner/inventory", icon: "cube-outline" },
+  { label: "Recipe", href: "/owner/recipes", icon: "restaurant-outline" },
+  { label: "Niluto", href: "/owner/production", icon: "flame-outline" },
+  { label: "Bayarin", href: "/owner/fixed-costs", icon: "alert-circle-outline" },
+  { label: "Report", href: "/owner/reports", icon: "stats-chart-outline" },
 ];
 
 function formatAlertTime(value: string) {
@@ -404,9 +374,9 @@ export default function OwnerHomeScreen() {
       </HeroCard>
 
       <View style={styles.metricGrid}>
-        <MetricCard detail={`${today?.transactionCount ?? 0} benta today`} icon="B" label="Benta" tone="primary" value={formatPeso(salesTotal)} />
-        <MetricCard detail="Puhunan ng nabenta today" icon="P" label="Puhunan / Cost" tone="danger" value={formatPeso(costTotal)} />
-        <MetricCard detail="Benta − puhunan − bayarin − nasayang" icon="T" label="Tubo" tone="success" value={formatPeso(tuboToday)} />
+        <MetricCard detail={`${today?.transactionCount ?? 0} benta today`} iconName="cash-outline" label="Benta" tone="primary" value={formatPeso(salesTotal)} />
+        <MetricCard detail="Puhunan ng nabenta today" iconName="wallet-outline" label="Puhunan / Cost" tone="danger" value={formatPeso(costTotal)} />
+        <MetricCard detail="Benta − puhunan − bayarin − nasayang" iconName="trending-up" label="Tubo" tone="success" value={formatPeso(tuboToday)} />
         <MetricCard
           detail={
             fixedCostAttention.overdue > 0
@@ -417,19 +387,19 @@ export default function OwnerHomeScreen() {
                   ? `${formatPeso(bayarinToday)} today`
                   : "Walang due na bayarin"
           }
-          icon="!"
+          iconName="alert-circle-outline"
           label="Bayarin"
           tone={fixedCostAttention.overdue > 0 ? "danger" : fixedCostAttention.dueSoon > 0 ? "warning" : "neutral"}
           value={fixedCostAttention.overdue + fixedCostAttention.dueSoon > 0 ? String(fixedCostAttention.overdue + fixedCostAttention.dueSoon) : formatPeso(bayarinToday)}
         />
         <MetricCard
           detail={`${grocery?.lowStockIngredients.length ?? 0} low stock`}
-          icon="G"
+          iconName="basket-outline"
           label="Grocery value"
           tone="accent"
           value={formatPeso(grocery?.totalRemainingValue ?? 0)}
         />
-        <MetricCard detail="Natitirang paninda sa stock" icon="N" label="Natirang paninda" tone="neutral" value={formatPeso(unsoldGoodsValue)} />
+        <MetricCard detail="Natitirang paninda sa stock" iconName="cube-outline" label="Natirang paninda" tone="neutral" value={formatPeso(unsoldGoodsValue)} />
       </View>
 
       {nasayangToday > 0 ? (
@@ -528,22 +498,6 @@ export default function OwnerHomeScreen() {
           </View>
         </Card>
       ) : null}
-
-      <Card>
-        <SectionHeader title="Quick Tools" />
-        {quickToolGroups.map((group) => (
-          <View key={group.title} style={styles.toolGroup}>
-            <Text style={[styles.toolGroupTitle, { color: palette.mutedText }]}>{group.title}</Text>
-            <View style={styles.actionGrid}>
-              {group.tools.map((tool) => (
-                <View key={tool.label} style={styles.actionCell}>
-                  <SecondaryButton href={tool.href} label={tool.label} />
-                </View>
-              ))}
-            </View>
-          </View>
-        ))}
-      </Card>
 
       <Card>
         <SectionHeader action={<SecondaryButton href="/owner/records" label="Logbook" />} title="Recent benta" />
@@ -813,26 +767,6 @@ const styles = StyleSheet.create({
   attentionText: {
     ...typography.body,
     flex: 1,
-  },
-  actionGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  actionCell: {
-    flexBasis: "47%",
-    flexGrow: 1,
-  },
-  toolGroup: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  toolGroupTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-    lineHeight: 16,
-    textTransform: "uppercase",
   },
   topRightRow: {
     alignItems: "center",

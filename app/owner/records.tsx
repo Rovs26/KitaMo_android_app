@@ -137,9 +137,9 @@ export default function OwnerRecordsScreen() {
       {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
 
       <View style={styles.summaryGrid}>
-        <MetricCard detail="All events" icon="L" label="Entries" tone="primary" value={String(summary.eventCount)} />
-        <MetricCard detail="Benta records" icon="B" label="Benta" tone="success" value={String(summary.bentaCount)} />
-        <MetricCard detail="Total benta amount" icon="₱" label="Benta total" tone="accent" value={formatPeso(summary.bentaTotal)} />
+        <MetricCard detail="All events" iconName="document-text-outline" label="Entries" tone="primary" value={String(summary.eventCount)} />
+        <MetricCard detail="Benta records" iconName="cash-outline" label="Benta" tone="success" value={String(summary.bentaCount)} />
+        <MetricCard detail="Total benta amount" iconName="wallet-outline" label="Benta total" tone="accent" value={formatPeso(summary.bentaTotal)} />
       </View>
 
       <SecondaryButton href="/owner/reports" label="Open Kita Report" />
