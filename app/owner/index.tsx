@@ -317,23 +317,11 @@ export default function OwnerHomeScreen() {
             </Pressable>
           </View>
         }
-        subtitle="Magandang araw!"
+        subtitle={setupComplete ? `${activeBusiness} · ${activeBranch}` : "Magandang araw!"}
         title="Home"
       />
 
       {error ? <Text style={[styles.error, { color: palette.danger }]}>{error}</Text> : null}
-
-      <View style={[styles.businessPill, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <IconBadge label="S" size="sm" tone="primary" />
-        <View style={styles.businessCopy}>
-          <Text numberOfLines={1} style={[styles.businessPillText, { color: palette.text }]}>
-            {activeBusiness}
-          </Text>
-          <Text numberOfLines={1} style={[styles.stallPillText, { color: palette.mutedText }]}>
-            {activeBranch}
-          </Text>
-        </View>
-      </View>
 
       <Pressable onPress={() => router.push("/kiosk")} style={[styles.startSellingButton, { backgroundColor: palette.primary }]}>
         <View style={[styles.startSellingIcon, { backgroundColor: palette.softAccent }]}>
@@ -350,13 +338,11 @@ export default function OwnerHomeScreen() {
         <SectionHeader title="Quick Add" />
         <View style={styles.quickAddGrid}>
           {quickAddShortcuts.map((shortcut) => (
-            <Pressable
-              key={shortcut.label}
-              onPress={() => router.push(shortcut.href)}
-              style={[styles.quickAddCell, { backgroundColor: palette.background, borderColor: palette.border }]}
-            >
-              <Ionicons color={palette.primary} name={shortcut.icon} size={20} />
-              <Text numberOfLines={1} style={[styles.quickAddLabel, { color: palette.text }]}>
+            <Pressable key={shortcut.label} onPress={() => router.push(shortcut.href)} style={styles.quickAddCell}>
+              <View style={[styles.quickAddIcon, { backgroundColor: palette.softPrimary }]}>
+                <Ionicons color={palette.primary} name={shortcut.icon} size={18} />
+              </View>
+              <Text numberOfLines={1} style={[styles.quickAddLabel, { color: palette.mutedText }]}>
                 {shortcut.label}
               </Text>
             </Pressable>
@@ -599,29 +585,6 @@ const styles = StyleSheet.create({
   error: {
     ...typography.body,
   },
-  businessPill: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: spacing.sm,
-    maxWidth: "100%",
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-  },
-  businessCopy: {
-    flexShrink: 1,
-    gap: 1,
-  },
-  businessPillText: {
-    ...typography.button,
-  },
-  stallPillText: {
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 16,
-  },
   heroTop: {
     alignItems: "center",
     flexDirection: "row",
@@ -690,25 +653,24 @@ const styles = StyleSheet.create({
   },
   quickAddGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+    gap: 2,
   },
   quickAddCell: {
     alignItems: "center",
-    borderRadius: radius.md,
-    borderWidth: 1,
-    flexBasis: "22.5%",
-    flexGrow: 0,
+    flex: 1,
     gap: 4,
-    minHeight: 60,
+  },
+  quickAddIcon: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    height: 40,
     justifyContent: "center",
-    paddingHorizontal: 4,
-    paddingVertical: spacing.sm,
+    width: 40,
   },
   quickAddLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    lineHeight: 14,
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 13,
     textAlign: "center",
   },
   stallList: {

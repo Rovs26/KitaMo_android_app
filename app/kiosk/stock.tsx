@@ -82,7 +82,7 @@ export default function KioskStockScreen() {
   }
 
   return (
-    <ScreenScroll>
+    <ScreenScroll kioskNav>
       <AppTopBar
         subtitle={context?.activeBusiness ? `${context.activeBusiness.businessName} · quick stock view` : "Quick stock view for the selling counter."}
         title={context?.activeBranch?.branchName ?? "Stock check"}

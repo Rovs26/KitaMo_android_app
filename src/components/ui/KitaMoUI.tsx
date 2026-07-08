@@ -53,11 +53,16 @@ export function formatQuantity(value: number) {
 // Visual height of the bottom navigation before the safe-area inset is added.
 const BOTTOM_NAV_BASE_HEIGHT = 66;
 
-export function ScreenScroll({ children, bottomNav = false }: PropsWithChildren<{ bottomNav?: boolean }>) {
+export function ScreenScroll({
+  children,
+  bottomNav = false,
+  kioskNav = false,
+}: PropsWithChildren<{ bottomNav?: boolean; kioskNav?: boolean }>) {
   const palette = usePalette();
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 10);
-  const bottomPadding = bottomNav ? BOTTOM_NAV_BASE_HEIGHT + bottomInset + spacing.lg : bottomInset + spacing.lg;
+  const hasNav = bottomNav || kioskNav;
+  const bottomPadding = hasNav ? BOTTOM_NAV_BASE_HEIGHT + bottomInset + spacing.lg : bottomInset + spacing.lg;
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
@@ -68,6 +73,7 @@ export function ScreenScroll({ children, bottomNav = false }: PropsWithChildren<
         {children}
       </ScrollView>
       {bottomNav ? <OwnerBottomNav /> : null}
+      {kioskNav ? <KioskBottomNav /> : null}
     </View>
   );
 }
@@ -350,6 +356,39 @@ function OwnerBottomNav() {
             </Text>
           </Pressable>
         </Link>
+      ))}
+    </View>
+  );
+}
+
+function KioskBottomNav() {
+  const pathname = usePathname();
+  const palette = usePalette();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const tabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
+    { href: "/kiosk/sell", label: "Sell", icon: "cart-outline", activeIcon: "cart", active: pathname.includes("/kiosk/sell") || pathname.includes("/kiosk/checkout") },
+    { href: "/kiosk/orders", label: "Orders", icon: "receipt-outline", activeIcon: "receipt", active: pathname.includes("/kiosk/orders") },
+    { href: "/kiosk/stock", label: "Stock", icon: "cube-outline", activeIcon: "cube", active: pathname.includes("/kiosk/stock") },
+    { href: "/kiosk/shift", label: "Shift", icon: "time-outline", activeIcon: "time", active: pathname.includes("/kiosk/shift") },
+  ];
+
+  return (
+    <View
+      style={[
+        styles.bottomNav,
+        { backgroundColor: palette.surface, borderColor: palette.border, paddingBottom: Math.max(insets.bottom, 10) },
+      ]}
+    >
+      {tabs.map((tab) => (
+        <Pressable key={tab.label} onPress={() => router.replace(tab.href)} style={styles.bottomNavItem}>
+          <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
+            <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
+          </View>
+          <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
+            {tab.label}
+          </Text>
+        </Pressable>
       ))}
     </View>
   );

@@ -45,7 +45,7 @@ export default function KioskShiftScreen() {
   );
 
   return (
-    <ScreenScroll>
+    <ScreenScroll kioskNav>
       <AppTopBar subtitle="Lahat ng benta na naka-save sa phone na ito." title="Shift Summary" />
 
       {message ? <Text style={[styles.body, { color: palette.danger }]}>{message}</Text> : null}

@@ -11,6 +11,7 @@ import { loadKioskContext, type KioskContext } from "@/services/kioskSales";
 import { useKioskStore } from "@/state/kioskStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
+import { radius } from "@/theme/radius";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
@@ -68,7 +69,7 @@ export default function KioskSellScreen() {
   const total = calculateCartSubtotal(cartItems);
 
   return (
-    <ScreenScroll>
+    <ScreenScroll kioskNav>
       <AppTopBar subtitle="Tap a product to add it to the cart." title={context?.activeBranch?.branchName ?? "Sell"} />
 
       {context?.setupMessage ? (
@@ -91,14 +92,16 @@ export default function KioskSellScreen() {
           <EmptyState description="Add products in Owner Inventory first." title="No paninda yet" />
         ) : null}
 
-        {context?.products.map((product) => (
-          <ProductRow
-            cookedToOrder={Boolean(context.cookUponOrderRecipeByProductId[product.id])}
-            key={product.id}
-            product={product}
-            onAdd={() => addToCart(product)}
-          />
-        ))}
+        <View style={styles.productGrid}>
+          {context?.products.map((product) => (
+            <ProductTile
+              cookedToOrder={Boolean(context.cookUponOrderRecipeByProductId[product.id])}
+              key={product.id}
+              product={product}
+              onAdd={() => addToCart(product)}
+            />
+          ))}
+        </View>
       </Card>
 
       <Card>
@@ -157,13 +160,13 @@ export default function KioskSellScreen() {
   );
 }
 
-type ProductRowProps = {
+type ProductTileProps = {
   product: Product;
   cookedToOrder: boolean;
   onAdd: () => void;
 };
 
-function ProductRow({ product, cookedToOrder, onAdd }: ProductRowProps) {
+function ProductTile({ product, cookedToOrder, onAdd }: ProductTileProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const lowStock = isLowStock(product.stockQty, product.lowStockThreshold);
@@ -175,7 +178,7 @@ function ProductRow({ product, cookedToOrder, onAdd }: ProductRowProps) {
       disabled={outOfStock}
       onPress={onAdd}
       style={[
-        styles.productRow,
+        styles.productTile,
         {
           backgroundColor: palette.background,
           borderColor: palette.border,
@@ -183,19 +186,23 @@ function ProductRow({ product, cookedToOrder, onAdd }: ProductRowProps) {
         },
       ]}
     >
-      <View style={styles.productText}>
-        <Text style={[styles.itemTitle, { color: palette.text }]}>{product.name}</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>
-          {cookedToOrder ? `Luto kapag may order | ${formatMoney(product.price)}` : `${product.stockQty} ${product.unitType} | ${formatMoney(product.price)}`}
+      <View style={styles.tileTop}>
+        <Text numberOfLines={2} style={[styles.tileName, { color: palette.text }]}>
+          {product.name}
         </Text>
-        {bundleLabel ? <Text style={[styles.bundleOffer, { color: palette.warning }]}>{bundleLabel}</Text> : null}
-      </View>
-      <View style={styles.badges}>
         {cookedToOrder ? <Pill label="Made to order" tone="accent" /> : null}
         {outOfStock ? <Pill label="Out" tone="danger" /> : null}
         {!outOfStock && !cookedToOrder && lowStock ? <Pill label="Low" tone="warning" /> : null}
-        {!outOfStock ? <Text style={[styles.addText, { color: palette.primary }]}>Add</Text> : null}
       </View>
+      <Text style={[styles.tilePrice, { color: palette.primary }]}>{formatMoney(product.price)}</Text>
+      <Text numberOfLines={1} style={[styles.tileMeta, { color: palette.mutedText }]}>
+        {cookedToOrder ? "Luto kapag may order" : `${product.stockQty} ${product.unitType}`}
+      </Text>
+      {bundleLabel ? (
+        <Text numberOfLines={1} style={[styles.bundleOffer, { color: palette.warning }]}>
+          {bundleLabel}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -242,36 +249,43 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.heading,
   },
-  productRow: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
+  productGrid: {
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    padding: 12,
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
-  productText: {
-    flex: 1,
+  productTile: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexBasis: "47%",
+    flexGrow: 1,
     gap: spacing.xs,
+    minHeight: 96,
+    padding: spacing.sm + 2,
+  },
+  tileTop: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.xs,
+    justifyContent: "space-between",
+  },
+  tileName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 18,
+  },
+  tilePrice: {
+    fontSize: 18,
+    fontWeight: "900",
+    lineHeight: 22,
+  },
+  tileMeta: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
   },
   itemTitle: {
-    ...typography.button,
-  },
-  badges: {
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  badge: {
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 16,
-    overflow: "hidden",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  addText: {
     ...typography.button,
   },
   cartHeader: {

@@ -80,7 +80,7 @@ export default function KioskOrdersScreen() {
   }
 
   return (
-    <ScreenScroll>
+    <ScreenScroll kioskNav>
       <AppTopBar subtitle="Recent sales and receipts." title="Orders" />
 
       {message ? <Text style={[styles.body, { color: palette.text }]}>{message}</Text> : null}

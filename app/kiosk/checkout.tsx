@@ -1,8 +1,8 @@
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, formatPeso, IconBadge, Pill, PrimaryButton, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, formatPeso, IconBadge, PrimaryButton, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { calculateCartSubtotal, calculateLineTotal } from "@/domain/pricing";
 import type { PaymentMethod } from "@/domain/types";
 import { completeKioskSale, type CompletedKioskSale } from "@/services/kioskSales";
@@ -53,6 +53,7 @@ export default function KioskCheckoutScreen() {
     setMessageIsError(true);
   }
 
+  const router = useRouter();
   const subtotal = calculateCartSubtotal(cartItems);
   const discount = parseMoney(discountAmount);
   const discountInvalid = discount === null;
@@ -130,43 +131,38 @@ export default function KioskCheckoutScreen() {
   }
 
   return (
-    <ScreenScroll>
+    <ScreenScroll kioskNav>
       <AppTopBar subtitle="Review payment and save the receipt." title="Complete sale" />
 
       {message ? <Text style={[styles.message, { color: messageIsError ? palette.danger : palette.text }]}>{message}</Text> : null}
 
       {completedSale ? (
-        <Card>
-          <View style={styles.receiptHeader}>
-            <IconBadge label="R" tone="success" />
-            <View style={styles.receiptTitleWrap}>
-              <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt</Text>
-              <Text style={[styles.body, { color: palette.mutedText }]}>{completedSale.transactionNo}</Text>
+        <>
+          <Card>
+            <View style={styles.receiptHeader}>
+              <IconBadge icon="receipt-outline" tone="success" />
+              <View style={styles.receiptTitleWrap}>
+                <Text style={[styles.sectionTitle, { color: palette.text }]}>Receipt</Text>
+                <Text style={[styles.body, { color: palette.mutedText }]}>{completedSale.transactionNo}</Text>
+              </View>
+              <Pressable hitSlop={8} onPress={() => router.replace("/kiosk/sell")}>
+                <Text style={[styles.editLink, { color: palette.primary }]}>Edit</Text>
+              </Pressable>
             </View>
-            <Pill label="Local" tone="success" />
-          </View>
-          <View style={[styles.totalCard, { backgroundColor: palette.softPrimary, borderColor: palette.border }]}>
-            <Text style={[styles.body, { color: palette.mutedText }]}>Total paid</Text>
-            <Text style={[styles.totalAmount, { color: palette.primary }]}>{formatMoney(completedSale.total)}</Text>
-          </View>
-          <Text style={[styles.receiptText, { color: palette.text }]}>{completedSale.receiptText}</Text>
-          <View style={styles.inlineActions}>
-            <SmallButton disabled={saving} label="Copy receipt" onPress={copyReceipt} />
-            <SmallButton disabled={saving} label="Share receipt" onPress={shareReceipt} />
-          </View>
-          <View style={styles.inlineActions}>
-            <Link href="/kiosk/sell" asChild>
-              <Pressable style={[styles.secondaryAction, { borderColor: palette.border }]}>
-                <Text style={[styles.secondaryActionText, { color: palette.primary }]}>Back to Sell</Text>
-              </Pressable>
-            </Link>
-            <Link href="/kiosk/orders" asChild>
-              <Pressable style={[styles.secondaryAction, { borderColor: palette.border }]}>
-                <Text style={[styles.secondaryActionText, { color: palette.primary }]}>View Orders</Text>
-              </Pressable>
-            </Link>
-          </View>
-        </Card>
+            <View style={[styles.totalCard, { backgroundColor: palette.softPrimary, borderColor: palette.border }]}>
+              <Text style={[styles.body, { color: palette.mutedText }]}>Total paid</Text>
+              <Text style={[styles.totalAmount, { color: palette.primary }]}>{formatMoney(completedSale.total)}</Text>
+            </View>
+            <Text style={[styles.receiptText, { color: palette.text }]}>{completedSale.receiptText}</Text>
+            <View style={styles.inlineActions}>
+              <SmallButton disabled={saving} label="Copy receipt" onPress={copyReceipt} />
+              <SmallButton disabled={saving} label="Share receipt" onPress={shareReceipt} />
+            </View>
+          </Card>
+
+          <PrimaryButton label="Bagong benta" onPress={() => router.replace("/kiosk/sell")} />
+          <SecondaryButton href="/kiosk/orders" label="Tingnan ang Orders" />
+        </>
       ) : (
         <>
           <Card>
@@ -478,18 +474,10 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm,
   },
-  secondaryAction: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    minHeight: 40,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  secondaryActionText: {
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 18,
+  editLink: {
+    fontSize: 15,
+    fontWeight: "800",
+    lineHeight: 20,
   },
   smallButton: {
     alignItems: "center",

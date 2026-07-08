@@ -1,6 +1,6 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { AppTopBar, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { createProduct, updateProduct } from "@/db/repositories";
@@ -86,6 +86,7 @@ export default function OwnerInventoryScreen() {
   const spoilageLock = useRef(false);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const router = useRouter();
 
   function setNotice(text: string) {
     setMessage(text);
@@ -376,7 +377,7 @@ export default function OwnerInventoryScreen() {
         {status?.products.map((product) => {
           const lowStock = product.stockQty <= product.lowStockThreshold;
           return (
-            <View key={product.id} style={[styles.productRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
+            <View key={product.id} style={[styles.productRow, { backgroundColor: palette.background }]}>
               <View style={styles.productHeader}>
                 <View style={styles.productText}>
                   <Text style={[styles.productName, { color: palette.text }]}>{product.name}</Text>
@@ -384,7 +385,12 @@ export default function OwnerInventoryScreen() {
                     Stock: {product.stockQty} {product.unitType} · Price: {formatPeso(product.price)}
                   </Text>
                 </View>
-                <Pill label={product.stockQty <= 0 ? "Out" : lowStock ? "Low stock" : "Good"} tone={product.stockQty <= 0 ? "danger" : lowStock ? "warning" : "success"} />
+                <View style={styles.productHeaderRight}>
+                  <Pressable disabled={saving} hitSlop={8} onPress={() => editProduct(product)}>
+                    <Text style={[styles.editLink, { color: palette.primary, opacity: saving ? 0.5 : 1 }]}>Edit</Text>
+                  </Pressable>
+                  <Pill label={product.stockQty <= 0 ? "Out" : lowStock ? "Low stock" : "Good"} tone={product.stockQty <= 0 ? "danger" : lowStock ? "warning" : "success"} />
+                </View>
               </View>
               <View style={styles.productMetaGrid}>
                 <Text style={[styles.productMeta, { color: palette.mutedText }]}>Cost {formatPeso(product.cost)}</Text>
@@ -392,7 +398,6 @@ export default function OwnerInventoryScreen() {
                 <Text style={[styles.productMeta, { color: palette.mutedText }]}>{product.category}</Text>
               </View>
               {product.bundleLabel ? <Text style={[styles.body, { color: palette.mutedText }]}>Bundle: {product.bundleLabel}</Text> : null}
-              <SmallButton disabled={saving} label="Edit" onPress={() => editProduct(product)} />
             </View>
           );
         })}
@@ -401,28 +406,28 @@ export default function OwnerInventoryScreen() {
       {products.length > 0 ? (
         <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: palette.text }]}>Niluto / Produced</Text>
+            <View style={styles.sectionHeaderText}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>Niluto ngayon</Text>
+              <Text style={[styles.sectionHint, { color: palette.mutedText }]}>Idagdag sa stock ang bagong luto</Text>
+            </View>
             <Pill label="Stock in" tone="success" />
           </View>
-          <Text style={[styles.body, { color: palette.mutedText }]}>
-            Ilang piraso ang nadagdag sa paninda? Stock will increase after saving.
-          </Text>
-          <Text style={[styles.body, { color: palette.mutedText }]}>
-            May recipe na? Use Niluto para automatic ang ingredients at cost.
-          </Text>
-          <SecondaryButton href="/owner/production" label="Open Niluto" />
-          <ProductPicker
-            disabled={cookSaving}
-            label="Paninda"
-            onSelect={(productId) => setCookForm((form) => ({ ...form, productId }))}
-            products={products}
-            selectedId={cookForm.productId}
-          />
+
+          <View style={styles.stockField}>
+            <Text style={[styles.fieldLabel, { color: palette.text }]}>Anong paninda?</Text>
+            <ProductChips
+              disabled={cookSaving}
+              onSelect={(productId) => setCookForm((form) => ({ ...form, productId }))}
+              products={products}
+              selectedId={cookForm.productId}
+            />
+          </View>
+
           <View style={styles.twoColumn}>
             <FormField
               editable={!cookSaving}
               keyboardType="decimal-pad"
-              label="Dami (quantity)"
+              label="Ilang piraso?"
               onChangeText={(quantity) => setCookForm((form) => ({ ...form, quantity }))}
               placeholder="0"
               value={cookForm.quantity}
@@ -435,34 +440,44 @@ export default function OwnerInventoryScreen() {
               value={cookForm.note}
             />
           </View>
+
           {cookMessage ? (
             <Text style={[styles.body, { color: cookIsError ? palette.danger : palette.text }]}>{cookMessage}</Text>
           ) : null}
-          <ActionButton disabled={cookSaving} label={cookSaving ? "Saving..." : "Save Niluto"} onPress={saveCookedBatch} />
+
+          <ActionButton disabled={cookSaving} label={cookSaving ? "Saving..." : "I-save ang niluto"} onPress={saveCookedBatch} />
+
+          <Pressable hitSlop={6} onPress={() => router.push("/owner/production")} style={styles.recipeLink}>
+            <Text style={[styles.recipeLinkText, { color: palette.primary }]}>May recipe? Buksan ang Niluto para automatic ang sangkap →</Text>
+          </Pressable>
         </View>
       ) : null}
 
       {products.length > 0 ? (
         <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: palette.text }]}>Nasayang / Spoilage</Text>
+            <View style={styles.sectionHeaderText}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>Nasayang</Text>
+              <Text style={[styles.sectionHint, { color: palette.mutedText }]}>Bawasan ang stock kapag may nasira</Text>
+            </View>
             <Pill label="Stock out" tone="danger" />
           </View>
-          <Text style={[styles.body, { color: palette.mutedText }]}>
-            Ilang piraso ang nabawas? Stock will decrease after saving.
-          </Text>
-          <ProductPicker
-            disabled={spoilageSaving}
-            label="Paninda"
-            onSelect={(productId) => setSpoilageForm((form) => ({ ...form, productId }))}
-            products={products}
-            selectedId={spoilageForm.productId}
-          />
+
+          <View style={styles.stockField}>
+            <Text style={[styles.fieldLabel, { color: palette.text }]}>Anong paninda?</Text>
+            <ProductChips
+              disabled={spoilageSaving}
+              onSelect={(productId) => setSpoilageForm((form) => ({ ...form, productId }))}
+              products={products}
+              selectedId={spoilageForm.productId}
+            />
+          </View>
+
           <View style={styles.twoColumn}>
             <FormField
               editable={!spoilageSaving}
               keyboardType="decimal-pad"
-              label="Dami (quantity)"
+              label="Ilang piraso?"
               onChangeText={(quantity) => setSpoilageForm((form) => ({ ...form, quantity }))}
               placeholder="0"
               value={spoilageForm.quantity}
@@ -475,10 +490,12 @@ export default function OwnerInventoryScreen() {
               value={spoilageForm.reason}
             />
           </View>
+
           {spoilageMessage ? (
             <Text style={[styles.body, { color: spoilageIsError ? palette.danger : palette.text }]}>{spoilageMessage}</Text>
           ) : null}
-          <ActionButton disabled={spoilageSaving} label={spoilageSaving ? "Saving..." : "Save Nasayang"} onPress={saveSpoilage} />
+
+          <ActionButton disabled={spoilageSaving} label={spoilageSaving ? "Saving..." : "I-save ang nasayang"} onPress={saveSpoilage} />
         </View>
       ) : null}
 
@@ -678,44 +695,45 @@ function FormField({ label, value, onChangeText, placeholder, keyboardType = "de
   );
 }
 
-type ProductPickerProps = {
-  label: string;
+type ProductChipsProps = {
   products: Product[];
   selectedId: string | null;
   onSelect: (productId: string) => void;
   disabled?: boolean;
 };
 
-function ProductPicker({ label, products, selectedId, onSelect, disabled = false }: ProductPickerProps) {
+function ProductChips({ products, selectedId, onSelect, disabled = false }: ProductChipsProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
   return (
-    <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: palette.text }]}>{label}</Text>
-      <View style={styles.optionWrap}>
-        {products.map((product) => {
-          const selected = product.id === selectedId;
-          return (
-            <Pressable
-              disabled={disabled}
-              key={product.id}
-              onPress={() => onSelect(product.id)}
-              style={[
-                styles.option,
-                {
-                  backgroundColor: selected ? palette.primary : palette.background,
-                  borderColor: selected ? palette.primary : palette.border,
-                  opacity: disabled ? 0.6 : 1,
-                },
-              ]}
-            >
-              <Text style={[styles.optionText, { color: selected ? palette.kioskHeaderText : palette.text }]}>{product.name}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
+    <ScrollView
+      contentContainerStyle={styles.chipRow}
+      horizontal
+      keyboardShouldPersistTaps="handled"
+      showsHorizontalScrollIndicator={false}
+    >
+      {products.map((product) => {
+        const selected = product.id === selectedId;
+        return (
+          <Pressable
+            disabled={disabled}
+            key={product.id}
+            onPress={() => onSelect(product.id)}
+            style={[
+              styles.productChip,
+              {
+                backgroundColor: selected ? palette.primary : palette.background,
+                borderColor: selected ? palette.primary : palette.border,
+                opacity: disabled ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.productChipText, { color: selected ? palette.kioskHeaderText : palette.text }]}>{product.name}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -850,6 +868,42 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.heading,
   },
+  sectionHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  sectionHint: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+  },
+  stockField: {
+    gap: spacing.xs,
+  },
+  chipRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    paddingVertical: 2,
+  },
+  productChip: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  productChipText: {
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  recipeLink: {
+    paddingTop: spacing.xs,
+  },
+  recipeLinkText: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
   empty: {
     ...typography.body,
   },
@@ -924,7 +978,6 @@ const styles = StyleSheet.create({
   },
   productRow: {
     borderRadius: radius.md,
-    borderWidth: 1,
     gap: spacing.xs,
     padding: spacing.sm + 2,
   },
@@ -933,6 +986,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
+  },
+  productHeaderRight: {
+    alignItems: "flex-end",
+    gap: spacing.xs,
+  },
+  editLink: {
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 18,
   },
   productText: {
     flex: 1,
