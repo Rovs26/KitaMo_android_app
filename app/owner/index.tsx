@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useFocusEffect, type Href } from "expo-router";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -30,6 +30,7 @@ import { loadRecipesOverview, type RecipesOverview } from "@/services/recipes";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
+import { radius } from "@/theme/radius";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
@@ -195,6 +196,7 @@ export default function OwnerHomeScreen() {
   const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const router = useRouter();
 
   useFocusEffect(
     useCallback(() => {
@@ -306,11 +308,13 @@ export default function OwnerHomeScreen() {
         right={
           <View style={styles.topRightRow}>
             <Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />
-            <Link href="/owner/settings" asChild>
-              <Pressable hitSlop={8} style={[styles.gearButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                <Ionicons color={palette.primary} name="settings-outline" size={20} />
-              </Pressable>
-            </Link>
+            <Pressable
+              hitSlop={8}
+              onPress={() => router.push("/owner/settings")}
+              style={[styles.gearButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            >
+              <Ionicons color={palette.primary} name="settings-outline" size={20} />
+            </Pressable>
           </View>
         }
         subtitle="Magandang araw!"
@@ -331,28 +335,31 @@ export default function OwnerHomeScreen() {
         </View>
       </View>
 
-      <View style={styles.primaryActionRow}>
-        <Link href="/kiosk" asChild>
-          <Pressable style={[styles.startSellingButton, { backgroundColor: palette.primary }]}>
-            <Ionicons color={palette.kioskHeaderText} name="storefront-outline" size={22} />
-            <View style={styles.startSellingText}>
-              <Text style={[styles.startSellingTitle, { color: palette.kioskHeaderText }]}>Start Selling</Text>
-              <Text style={[styles.startSellingSub, { color: palette.softAccent }]}>Buksan ang Kiosk</Text>
-            </View>
-          </Pressable>
-        </Link>
-      </View>
+      <Pressable onPress={() => router.push("/kiosk")} style={[styles.startSellingButton, { backgroundColor: palette.primary }]}>
+        <View style={[styles.startSellingIcon, { backgroundColor: palette.softAccent }]}>
+          <Ionicons color={palette.primary} name="storefront" size={24} />
+        </View>
+        <View style={styles.startSellingText}>
+          <Text style={[styles.startSellingTitle, { color: palette.kioskHeaderText }]}>Start Selling</Text>
+          <Text style={[styles.startSellingSub, { color: palette.softAccent }]}>Buksan ang Kiosk</Text>
+        </View>
+        <Ionicons color={palette.kioskHeaderText} name="chevron-forward" size={22} />
+      </Pressable>
 
       <Card>
         <SectionHeader title="Quick Add" />
         <View style={styles.quickAddGrid}>
           {quickAddShortcuts.map((shortcut) => (
-            <Link key={shortcut.label} href={shortcut.href} asChild>
-              <Pressable style={[styles.quickAddCell, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                <Ionicons color={palette.primary} name={shortcut.icon} size={18} />
-                <Text style={[styles.quickAddLabel, { color: palette.text }]}>{shortcut.label}</Text>
-              </Pressable>
-            </Link>
+            <Pressable
+              key={shortcut.label}
+              onPress={() => router.push(shortcut.href)}
+              style={[styles.quickAddCell, { backgroundColor: palette.background, borderColor: palette.border }]}
+            >
+              <Ionicons color={palette.primary} name={shortcut.icon} size={20} />
+              <Text numberOfLines={1} style={[styles.quickAddLabel, { color: palette.text }]}>
+                {shortcut.label}
+              </Text>
+            </Pressable>
           ))}
         </View>
       </Card>
@@ -438,14 +445,15 @@ export default function OwnerHomeScreen() {
       {nextAction ? (
         <Card>
           <SectionHeader title="Next action" />
-          <Link href={nextAction.href} asChild>
-            <Pressable style={[styles.nextActionRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
-              <IconBadge label="→" size="sm" tone={nextAction.tone} />
-              <Text style={[styles.nextActionText, { color: nextAction.tone === "danger" ? palette.danger : palette.text }]}>
-                {nextAction.message}
-              </Text>
-            </Pressable>
-          </Link>
+          <Pressable
+            onPress={() => router.push(nextAction.href)}
+            style={[styles.nextActionRow, { backgroundColor: palette.background, borderColor: palette.border }]}
+          >
+            <IconBadge icon="arrow-forward" size="sm" tone={nextAction.tone} />
+            <Text style={[styles.nextActionText, { color: nextAction.tone === "danger" ? palette.danger : palette.text }]}>
+              {nextAction.message}
+            </Text>
+          </Pressable>
         </Card>
       ) : null}
 
@@ -454,12 +462,14 @@ export default function OwnerHomeScreen() {
           <SectionHeader action={<Pill label={`${attentionItems.length} item${attentionItems.length === 1 ? "" : "s"}`} tone="warning" />} title="Needs Attention" />
           <View style={styles.attentionList}>
             {attentionItems.map((item) => (
-              <Link key={item.message} href={item.href} asChild>
-                <Pressable style={[styles.attentionRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                  <Pill label={item.tone === "danger" ? "Due" : "Check"} tone={item.tone} />
-                  <Text style={[styles.attentionText, { color: palette.text }]}>{item.message}</Text>
-                </Pressable>
-              </Link>
+              <Pressable
+                key={item.message}
+                onPress={() => router.push(item.href)}
+                style={[styles.attentionRow, { backgroundColor: palette.background, borderColor: palette.border }]}
+              >
+                <Pill label={item.tone === "danger" ? "Due" : "Check"} tone={item.tone} />
+                <Text style={[styles.attentionText, { color: palette.text }]}>{item.message}</Text>
+              </Pressable>
             ))}
           </View>
         </Card>
@@ -527,10 +537,13 @@ function StallFinanceCard({ stall }: { stall: StallReport }) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const stallStatus = getStallStatus(stall);
+  const router = useRouter();
 
   return (
-    <Link href={`/owner/reports?stallId=${stall.branchId}` as Href} asChild>
-      <Pressable style={[styles.stallCard, { backgroundColor: palette.background, borderColor: palette.border }]}>
+    <Pressable
+      onPress={() => router.push(`/owner/reports?stallId=${stall.branchId}` as Href)}
+      style={[styles.stallCard, { backgroundColor: palette.background, borderColor: palette.border }]}
+    >
         <View style={styles.stallCardHeader}>
           <Text style={[styles.stallName, { color: palette.text }]}>{stall.branchName}</Text>
           <Pill label={stallStatusLabel(stallStatus)} tone={stallStatusTone(stallStatus)} />
@@ -556,7 +569,6 @@ function StallFinanceCard({ stall }: { stall: StallReport }) {
           {stall.bestSellerName ? ` · Best: ${stall.bestSellerName}` : ""}
         </Text>
       </Pressable>
-    </Link>
   );
 }
 
@@ -683,14 +695,14 @@ const styles = StyleSheet.create({
   },
   quickAddCell: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
-    flexBasis: "30%",
-    flexGrow: 1,
-    gap: spacing.xs,
-    minHeight: 72,
+    flexBasis: "22.5%",
+    flexGrow: 0,
+    gap: 4,
+    minHeight: 60,
     justifyContent: "center",
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 4,
     paddingVertical: spacing.sm,
   },
   quickAddLabel: {
@@ -781,33 +793,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 36,
   },
-  primaryActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
   startSellingButton: {
     alignItems: "center",
-    borderRadius: 8,
-    elevation: 2,
-    flex: 1,
+    borderRadius: radius.lg,
+    elevation: 3,
     flexDirection: "row",
-    gap: spacing.sm,
-    minHeight: 56,
+    gap: spacing.md,
+    minHeight: 62,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+  },
+  startSellingIcon: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    height: 42,
+    justifyContent: "center",
+    width: 42,
   },
   startSellingText: {
+    flex: 1,
     gap: 1,
   },
   startSellingTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "900",
-    lineHeight: 21,
+    lineHeight: 23,
   },
   startSellingSub: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
-    lineHeight: 16,
+    lineHeight: 17,
   },
   recentList: {
     gap: spacing.sm,

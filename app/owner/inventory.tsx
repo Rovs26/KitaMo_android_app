@@ -9,6 +9,8 @@ import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSet
 import { recordCookedBatch, recordSpoilage } from "@/services/stockOps";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
+import { radius } from "@/theme/radius";
+import { shadows } from "@/theme/shadows";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, getUserSafeErrorMessage, logDevError } from "@/utils/errors";
@@ -831,11 +833,10 @@ const styles = StyleSheet.create({
     ...typography.body,
   },
   section: {
-    borderRadius: 8,
-    borderWidth: 1,
-    elevation: 1,
+    borderRadius: radius.lg,
     gap: spacing.sm,
-    padding: 14,
+    padding: spacing.md,
+    ...shadows.card,
   },
   formSection: {
     opacity: 0.98,
@@ -922,10 +923,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   productRow: {
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
-    gap: spacing.sm,
-    padding: 12,
+    gap: spacing.xs,
+    padding: spacing.sm + 2,
   },
   productHeader: {
     alignItems: "flex-start",

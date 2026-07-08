@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, type Href, usePathname } from "expo-router";
+import { Link, type Href, usePathname, useRouter } from "expo-router";
 import type { ComponentProps, PropsWithChildren, ReactNode } from "react";
 import {
   Pressable,
@@ -218,45 +218,37 @@ type ButtonProps = {
   disabled?: boolean;
 };
 
+// Route via router.push rather than <Link asChild>. On the New Architecture,
+// wrapping a Pressable in <Link asChild> drops the Pressable's background/border
+// style, making filled buttons render as bare text — so navigation buttons use
+// an explicit onPress instead.
 export function PrimaryButton({ label, onPress, href, disabled = false }: ButtonProps) {
   const palette = usePalette();
-  const content = (
+  const router = useRouter();
+  const handlePress = href ? () => router.push(href) : onPress;
+  return (
     <Pressable
       disabled={disabled}
-      onPress={onPress}
+      onPress={handlePress}
       style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: disabled ? 0.6 : 1 }]}
     >
       <Text style={[styles.primaryButtonText, { color: palette.kioskHeaderText }]}>{label}</Text>
     </Pressable>
   );
-
-  return href ? (
-    <Link href={href} asChild>
-      {content}
-    </Link>
-  ) : (
-    content
-  );
 }
 
 export function SecondaryButton({ label, onPress, href, disabled = false }: ButtonProps) {
   const palette = usePalette();
-  const content = (
+  const router = useRouter();
+  const handlePress = href ? () => router.push(href) : onPress;
+  return (
     <Pressable
       disabled={disabled}
-      onPress={onPress}
+      onPress={handlePress}
       style={[styles.secondaryButton, { backgroundColor: palette.surface, borderColor: palette.border, opacity: disabled ? 0.58 : 1 }]}
     >
       <Text style={[styles.secondaryButtonText, { color: palette.primary }]}>{label}</Text>
     </Pressable>
-  );
-
-  return href ? (
-    <Link href={href} asChild>
-      {content}
-    </Link>
-  ) : (
-    content
   );
 }
 

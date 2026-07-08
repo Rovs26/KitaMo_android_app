@@ -1,11 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, ScreenScroll } from "@/components/ui/KitaMoUI";
+import { AppTopBar, formatPeso, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { getLocalAnalyticsSnapshot, type LocalAnalyticsSnapshot } from "@/services/localAnalytics";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
+import { radius } from "@/theme/radius";
+import { shadows } from "@/theme/shadows";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
@@ -13,14 +16,15 @@ import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 type SuggestedQuestion = {
   id: string;
   label: string;
+  chip: string;
 };
 
 const suggestedQuestions: SuggestedQuestion[] = [
-  { id: "today-sales", label: "Magkano ang benta today?" },
-  { id: "pending-saves", label: "Ilan ang pending saves?" },
-  { id: "low-stock", label: "Ano ang low stock?" },
-  { id: "top-product", label: "Ano ang top product?" },
-  { id: "sales-today", label: "May sales ba today?" },
+  { id: "today-sales", label: "Magkano ang benta today?", chip: "Benta today" },
+  { id: "pending-saves", label: "Ilan ang pending saves?", chip: "Pending saves" },
+  { id: "low-stock", label: "Ano ang low stock?", chip: "Low stock" },
+  { id: "top-product", label: "Ano ang top product?", chip: "Top product" },
+  { id: "sales-today", label: "May sales ba today?", chip: "May benta?" },
 ];
 
 function formatCount(value: number, singular: string, plural = `${singular}s`) {
@@ -140,67 +144,71 @@ export default function OwnerAskScreen() {
 
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Quick answers from this phone's local records." title="Local Helper" />
+      <AppTopBar subtitle="Quick answers from this phone's records." title="Local Helper" />
 
       {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
 
-      <Card>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Suggested questions</Text>
-        <View style={styles.questionGrid}>
-          {suggestedQuestions.map((question) => (
-            <Pressable
-              key={question.id}
-              onPress={() => askSuggestion(question)}
-              style={[styles.questionButton, { backgroundColor: palette.background, borderColor: palette.border }]}
-            >
-              <Text style={[styles.questionText, { color: palette.text }]}>{question.label}</Text>
-            </Pressable>
+      <Text style={[styles.notice, { color: palette.mutedText }]}>Local only — walang AI sa pilot.</Text>
+
+      <View style={styles.assistantRow}>
+        <View style={[styles.avatar, { backgroundColor: palette.softPrimary }]}>
+          <Ionicons color={palette.primary} name="chatbubble-ellipses" size={18} />
+        </View>
+        <View style={[styles.assistantBubble, { backgroundColor: palette.surface }]}>
+          <Text style={[styles.bubbleText, { color: palette.text }]}>
+            Hi, ako si KitaMo Helper. Tanungin mo ang local records ng phone na ito.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.assistantRow}>
+        <View style={[styles.avatar, { backgroundColor: palette.softPrimary }]}>
+          <Ionicons color={palette.primary} name="chatbubble-ellipses" size={18} />
+        </View>
+        <View style={[styles.assistantBubble, { backgroundColor: palette.surface }]}>
+          <Text style={[styles.bubbleText, { color: palette.text }]}>
+            {loading ? "Binabasa ang local records..." : answer}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.chipRow}>
+        {suggestedQuestions.map((question) => (
+          <Pressable
+            key={question.id}
+            onPress={() => askSuggestion(question)}
+            style={[styles.chip, { backgroundColor: palette.softPrimary, borderColor: palette.border }]}
+          >
+            <Text style={[styles.chipText, { color: palette.primary }]}>{question.chip}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {quickFacts.length > 0 ? (
+        <View style={styles.factRow}>
+          {quickFacts.map((fact) => (
+            <View key={fact.label} style={[styles.factCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Text style={[styles.factLabel, { color: palette.mutedText }]}>{fact.label}</Text>
+              <Text style={[styles.factValue, { color: palette.primary }]}>{fact.value}</Text>
+            </View>
           ))}
         </View>
-      </Card>
+      ) : null}
 
-      <Text style={[styles.message, { color: palette.mutedText }]}>
-        Local helper only — walang AI. Full Lis AI is not enabled in this pilot.
-      </Text>
-
-      <Card>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Ask a local question</Text>
+      <View style={[styles.inputRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <TextInput
           onChangeText={setQuestionText}
           onSubmitEditing={askTypedQuestion}
-          placeholder="Example: May sales ba today?"
+          placeholder="I-type ang tanong…"
           placeholderTextColor={palette.mutedText}
           returnKeyType="send"
-          style={[styles.input, { backgroundColor: palette.background, borderColor: palette.border, color: palette.text }]}
+          style={[styles.chatInput, { color: palette.text }]}
           value={questionText}
         />
-        <Pressable onPress={askTypedQuestion} style={[styles.askButton, { backgroundColor: palette.primary }]}>
-          <Text style={[styles.askButtonText, { color: palette.kioskHeaderText }]}>Ask</Text>
+        <Pressable onPress={askTypedQuestion} style={[styles.sendButton, { backgroundColor: palette.primary }]}>
+          <Ionicons color={palette.kioskHeaderText} name="send" size={18} />
         </Pressable>
-      </Card>
-
-      <Card>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Answer</Text>
-        {loading ? (
-          <EmptyState description="Reading your local records." title="Checking local data" />
-        ) : (
-          <Text style={[styles.answerText, { color: palette.text }]}>{answer}</Text>
-        )}
-      </Card>
-
-      {quickFacts.length > 0 ? (
-        <Card>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Local facts</Text>
-          <View style={styles.factGrid}>
-            {quickFacts.map((fact) => (
-              <View key={fact.label} style={[styles.factCard, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                <Text style={[styles.factLabel, { color: palette.mutedText }]}>{fact.label}</Text>
-                <Text style={[styles.factValue, { color: palette.primary }]}>{fact.value}</Text>
-              </View>
-            ))}
-          </View>
-        </Card>
-      ) : null}
+      </View>
     </ScreenScroll>
   );
 }
@@ -209,67 +217,97 @@ const styles = StyleSheet.create({
   message: {
     ...typography.body,
   },
-  sectionTitle: {
-    ...typography.heading,
+  notice: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
   },
-  questionGrid: {
+  assistantRow: {
+    alignItems: "flex-end",
+    flexDirection: "row",
     gap: spacing.sm,
   },
-  questionButton: {
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  },
-  questionText: {
-    ...typography.button,
-  },
-  input: {
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 15,
-    lineHeight: 20,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: spacing.sm,
-  },
-  askButton: {
+  avatar: {
     alignItems: "center",
-    borderRadius: 8,
-    minHeight: 42,
+    borderRadius: radius.pill,
+    height: 34,
     justifyContent: "center",
+    width: 34,
+  },
+  assistantBubble: {
+    borderBottomLeftRadius: 4,
+    borderRadius: radius.lg,
+    flex: 1,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+    ...shadows.card,
   },
-  askButtonText: {
-    ...typography.button,
+  bubbleText: {
+    fontSize: 15,
+    fontWeight: "500",
+    lineHeight: 21,
   },
-  answerText: {
-    fontSize: 16,
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  chip: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+  },
+  chipText: {
+    fontSize: 13,
     fontWeight: "700",
-    lineHeight: 23,
+    lineHeight: 17,
   },
-  factGrid: {
+  factRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
   },
   factCard: {
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
-    flexBasis: "48%",
+    flexBasis: "47%",
     flexGrow: 1,
-    gap: spacing.xs,
-    padding: 12,
+    gap: 2,
+    padding: spacing.sm + 2,
   },
   factLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 16,
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 15,
   },
   factValue: {
-    fontSize: 20,
-    fontWeight: "900",
-    lineHeight: 25,
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 23,
+  },
+  inputRow: {
+    alignItems: "center",
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    paddingLeft: spacing.md,
+    paddingRight: 6,
+    paddingVertical: 6,
+  },
+  chatInput: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    minHeight: 40,
+    paddingVertical: spacing.sm,
+  },
+  sendButton: {
+    alignItems: "center",
+    borderRadius: radius.pill,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
   },
 });
