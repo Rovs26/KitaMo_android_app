@@ -20,7 +20,7 @@ export function PilotStatusCard({ status }: PilotStatusCardProps) {
     ["Active business", status.activeBusiness?.businessName ?? "Not set"],
     ["Active stall", status.activeBranch?.branchName ?? "Not set"],
     ["Products", String(status.productCount)],
-    ["Pending", String(status.pendingQueueCount)],
+    ["Local save queue", String(status.pendingQueueCount)],
     ["Workspace", status.mode === "demo" ? "Demo" : "Fresh"],
   ] as const;
 

@@ -1,13 +1,15 @@
-# Play Console Data Safety — Draft Answer Guide (KitaMo Pilot)
+# Play Console Data Safety — Draft Answer Guide (KitaMo Android)
 
-> Draft prepared from a code and dependency audit of commit `4cd69dc`+. Conservative by design; items marked **REVIEW** need a final human check in the Play Console at submission time. Google's definitions of "collected" (transmitted off device) and "shared" are what matter — data that never leaves the device is generally NOT "collected" under Play's definition.
+> Release-candidate draft prepared from the finalization code and dependency audit. Conservative by design; items marked **REVIEW** need a final human check in Play Console after the signed AAB is uploaded. Google's definitions of "collected" (transmitted off device) and "shared" are what matter — data that never leaves the device is generally NOT "collected" under Play's definition.
 
 ## Audit basis (what the code actually does)
 
-- The app's own logic makes **zero network requests in the shipped default configuration** (no fetch/axios/XHR in `src/` or `app/`; `expo-network` only reads connectivity state for the Online/Offline badge).
-- **Supabase is present but inactive.** `@supabase/supabase-js` is bundled as an optional cloud foundation, but it is disabled unless `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set at build time. Those env vars are **not set** for the internal-testing build, so no Supabase client is created and no request is ever made. A network request happens only when (a) the app is built with those env vars AND (b) the connection helper is explicitly invoked. **Until cloud sync/auth actually ships (Chapter 3), answer Data Safety as "no data collected/transmitted."**
-- Dependencies: Expo runtime, expo-sqlite (local DB), expo-clipboard, expo-sharing + React Native Share (OS share sheet), expo-haptics, expo-network, expo-router, react-native UI libraries, zod, zustand, and (inactive) @supabase/supabase-js. **No analytics, ads, crash-reporting, or payment SDKs.**
-- Android permissions in the manifest after build: `INTERNET` (framework default; unused by app features at runtime), `ACCESS_NETWORK_STATE` (online/offline badge), `VIBRATE` (haptics). `android.permissions` in `app.json` adds nothing. No camera, location, contacts, microphone, Bluetooth, or storage permissions.
+- The app's own logic makes **zero network requests** (no fetch/axios/XHR/WebSocket in `src/` or `app/`; `expo-network` only reads connectivity state for the Online/Offline badge).
+- The Android seller binary contains **no Supabase client, endpoint, key, cloud sync, or authentication code**. Future cloud documents are planning-only and are not executable.
+- Dependencies: Expo runtime, expo-sqlite (local DB), expo-secure-store, expo-local-authentication, expo-crypto, expo-clipboard, expo-sharing + React Native Share (OS share sheet), expo-haptics, expo-network, expo-router, react-native UI libraries, zod, and zustand. **No analytics, ads, crash-reporting, cloud database, or payment SDKs.**
+- Android backup is disabled. Business data is not transferred through Android backup/restore.
+- Owner PIN protection stores a salted hash in Android secure storage. Optional biometric unlock is handled by Android; the app receives only the authentication result and never receives biometric templates.
+- Native prebuild explicitly removes `INTERNET`, legacy external-storage read/write, and system-overlay permissions. Expected release permissions are network/Wi-Fi state (status badge), vibration (haptics), and biometric/fingerprint (optional Owner unlock). **REVIEW the final merged AAB manifest before submission.**
 
 ## Suggested form answers
 
@@ -29,7 +31,7 @@ If reviewers prefer declaring locally-stored data anyway, the fallback per-type 
 
 **Is data encrypted in transit?** Not applicable (no transmission by the app). **REVIEW** if any answer above changes.
 
-**Can users request data deletion?** Data lives only on the device; uninstalling deletes everything. In-app full reset exists (support-assisted during pilot).
+**Can users request data deletion?** Data lives only on the device; uninstalling deletes everything. Owner Settings includes a confirmed full local reset that also removes the local Owner lock.
 
 ## Platform/tooling caveats (be honest about these)
 
@@ -40,5 +42,5 @@ If reviewers prefer declaring locally-stored data anyway, the fallback per-type 
 ## Final verification step before submission
 
 1. Build the internal `.aab` with EAS.
-2. Run Play Console's pre-launch report / app-bundle analysis and read the detected-permissions list — it must show only INTERNET, ACCESS_NETWORK_STATE, VIBRATE (plus any benign framework additions; investigate anything else before submitting).
+2. Run Play Console's pre-launch report / app-bundle analysis and read the detected-permissions list. Expected: `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `VIBRATE`, `USE_BIOMETRIC`, and deprecated-device fallback `USE_FINGERPRINT`. Investigate anything else before submitting.
 3. Fill the form from this document, resolving every **REVIEW** item against what the Console detects.

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { Product, UnitType } from "@/domain/types";
+import { makeCheckoutId } from "@/domain/ids";
 
 export type KioskCartItem = {
   productId: string;
@@ -26,6 +27,7 @@ type AddProductResult = {
 
 type KioskState = {
   cartItems: KioskCartItem[];
+  checkoutToken: string | null;
   activeShiftId: string | null;
   lastSaleId: string | null;
   lastReceiptText: string | null;
@@ -40,6 +42,7 @@ type KioskState = {
 
 export const useKioskStore = create<KioskState>((set, get) => ({
   cartItems: [],
+  checkoutToken: null,
   activeShiftId: null,
   lastSaleId: null,
   lastReceiptText: null,
@@ -49,12 +52,14 @@ export const useKioskStore = create<KioskState>((set, get) => ({
     }
 
     const currentItem = get().cartItems.find((item) => item.productId === product.id);
+    const checkoutToken = get().checkoutToken ?? makeCheckoutId();
     if (currentItem && !cookedToOrder && currentItem.quantity >= product.stockQty) {
       return { ok: false, reason: `Only ${product.stockQty} ${product.unitType} available.` };
     }
 
     if (currentItem) {
       set((state) => ({
+        checkoutToken,
         cartItems: state.cartItems.map((item) =>
           item.productId === product.id
             ? {
@@ -74,6 +79,7 @@ export const useKioskStore = create<KioskState>((set, get) => ({
     }
 
     set((state) => ({
+      checkoutToken,
       cartItems: [
         ...state.cartItems,
         {
@@ -114,18 +120,20 @@ export const useKioskStore = create<KioskState>((set, get) => ({
     return { ok: true };
   },
   decrementCartItem: (productId) => {
-    set((state) => ({
-      cartItems: state.cartItems
+    set((state) => {
+      const cartItems = state.cartItems
         .map((item) => (item.productId === productId ? { ...item, quantity: item.quantity - 1 } : item))
-        .filter((item) => item.quantity > 0),
-    }));
+        .filter((item) => item.quantity > 0);
+      return { cartItems, checkoutToken: cartItems.length > 0 ? state.checkoutToken : null };
+    });
   },
   removeCartItem: (productId) => {
-    set((state) => ({
-      cartItems: state.cartItems.filter((item) => item.productId !== productId),
-    }));
+    set((state) => {
+      const cartItems = state.cartItems.filter((item) => item.productId !== productId);
+      return { cartItems, checkoutToken: cartItems.length > 0 ? state.checkoutToken : null };
+    });
   },
-  clearCart: () => set({ cartItems: [] }),
+  clearCart: () => set({ cartItems: [], checkoutToken: null }),
   setActiveShiftId: (activeShiftId) => set({ activeShiftId }),
   setLastReceipt: (lastSaleId, lastReceiptText) => set({ lastSaleId, lastReceiptText }),
 }));

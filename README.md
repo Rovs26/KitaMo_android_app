@@ -4,35 +4,67 @@ Expo SDK 54 React Native foundation for the local-first KitaMo Android MVP.
 
 ## Current Phase
 
-Android Release + Supabase Preparation.
+Android seller finalization for Google Play Internal Testing.
 
-Permanent package name set for Play upload, plus an **optional** Supabase cloud foundation that the app never depends on.
+The Android app is the seller-product source of truth. The original PWA is frozen and may be consulted only for selected visual ideas; its cloud, AI, OCR, authentication, Customer, and experimental business logic are not part of this app.
 
-### Package name (permanent)
+### Release identity
 
-`android.package` = **`ph.kitamo.app`** — clean production id, no `.pilot` suffix. All docs updated. It becomes immutable on first upload and carries through Internal → Closed → Production.
+- App name: **KitaMo**
+- Android package: **`ph.kitamo.app`**
+- Version name/code: **`1.0.0` / `1`**
+- Expo SDK 54 / React Native 0.81 / New Architecture
+- Branded icon, adaptive icon, splash, Play icon, and feature graphic are present.
+- Android backup is disabled because this release has no account, backup, or restore service.
 
-### Supabase foundation (optional, not active)
+### Local-only release boundary
 
-- Added `@supabase/supabase-js` and verified the Android bundle still exports cleanly (grew ~0.8 MB).
-- `src/config/supabase.ts` reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` from the environment. **No secrets are hardcoded; no service-role key is ever used.** With the env vars absent (the default), it reports "disabled", creates no client, and makes **zero network requests** — the app runs exactly as before, fully local-first.
-- `src/services/supabaseConnection.ts` reports a status (`disabled` / `configured` / `connected` / `error`) and only touches the network when configured *and* explicitly called. It gates nothing.
-- Settings shows a read-only **Cloud Sync** card: "Local-first pilot. Cloud sync coming soon." (status pill reads "Not configured" until env vars are set). No sync is implemented.
-- Config template: [`.env.example`](.env.example) (copy to `.env`, which is gitignored). **Do not commit `.env`; never put a service-role key in the app.**
+- SQLite remains authoritative for sales, products, grocery lots, recipes, production, cook-upon-order COGS, transfers, spoilage, fixed costs, and reports.
+- The runtime Supabase client and dependency have been removed. There is no auth, cloud sync, analytics, ads, AI API, OCR/camera, Bluetooth, Customer Mode, or LGU Mode.
+- `offline_queue` remains a durable local record of future sync intent. The UI calls these **local saves** because no sync worker exists in this release.
+- Owner-only screens can be protected with a salted local PIN and optional Android biometric confirmation. Secure data is stored with Expo SecureStore.
+- Checkout uses an exclusive SQLite transaction plus a unique checkout token, so retries cannot decrement stock or create receipts twice.
 
-### Supabase planning docs (`docs/supabase/`)
+### Profit contract
 
-- [`schema-plan.md`](docs/supabase/schema-plan.md) — planned Postgres tables + standard sync columns.
-- [`rls-plan.md`](docs/supabase/rls-plan.md) — owner/manager/seller/viewer roles, `business_id`/`stall_id` scoping.
-- [`local-to-cloud-sync-plan.md`](docs/supabase/local-to-cloud-sync-plan.md) — UUIDs, upsert-by-id, conservative conflicts. SQLite stays authoritative.
+```text
+Revenue
+- Sold COGS
+- Fixed Costs
+- Spoilage
+= Net Profit
+```
 
-### Build commands (manual, when ready)
+### Local checks
+
+```sh
+npm run typecheck
+npm run lint
+npm run check:pricing
+npm run check:recipes
+npm run check:production
+npm run check:cogs
+npm run check:fixedcosts
+npm run check:pilot
+npm run check:migrations
+npx expo-doctor
+EXPO_NO_DOTENV=1 npx expo export --platform android
+```
+
+Use Node `20.19.4` or newer. EAS profiles pin Node `20.19.4`.
+
+### Build commands
 
 ```sh
 eas login
-eas build:configure          # writes extra.eas.projectId to app.json — commit it
-eas build -p android --profile production   # produces the .aab for Play
+eas build:configure
+eas build -p android --profile preview
+eas build -p android --profile production
 ```
+
+EAS is authenticated and linked to [`@kitamoandroidapp/kitamo-android`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android). The EAS-managed keystore and standalone preview APK were created successfully in build [`f3b64c64-04d0-4f71-ac54-1ceba8029403`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android/builds/f3b64c64-04d0-4f71-ac54-1ceba8029403). The production AAB still needs to be run and validated. Play upload additionally requires the final support email, hosted privacy-policy URL, real-device screenshots, and access to the app's Play Console entry.
+
+Workstation setup, AVDs, EAS ownership, and human-owned prerequisites are recorded in [`docs/release/release-engineering-environment.md`](docs/release/release-engineering-environment.md).
 
 ## Previous Phase
 
@@ -136,7 +168,7 @@ The app is now pilot-ready: full-engine QA pass, seller-facing pilot guide, test
 
 ### Android build readiness (Phase 16)
 
-- `app.json`: Android package `ph.kitamo.app`, `versionCode` 1, explicit empty `permissions` (the app requests nothing beyond defaults), keyboard resize mode. Icon/splash still use Expo placeholders — real branding assets are a pre-publishing task.
+- At that phase, `app.json` had the Android package and build profiles but still used placeholder branding. The current release section above supersedes this historical state with final branded assets and explicit permission removal.
 - Minimal `eas.json` with `development` (dev client APK), `preview` (internal APK), and `production` (app bundle) profiles. **No build has been run and nothing is published** — see Build commands below.
 
 ### Build commands (documented, not executed)
@@ -147,7 +179,7 @@ eas build -p android --profile preview   # internal test APK
 eas build -p android --profile production  # Play-ready app bundle (later)
 ```
 
-Play Store listing, signing decisions, and real app icons remain deferred until the pilot ends.
+Play Store listing completion and signing were deferred at that phase. The current release section above lists the smaller set of external gates that remain.
 
 ## Previous Phase
 

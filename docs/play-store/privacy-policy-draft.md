@@ -1,6 +1,6 @@
-# Privacy Policy (DRAFT) — KitaMo (Pilot)
+# Privacy Policy (DRAFT) — KitaMo
 
-> **Status: draft for the pilot. Not legal advice.** Review with a qualified person and host at a public URL before Play Console submission. Last updated: 2026-07-06.
+> **Status: release candidate. Not legal advice.** Review with a qualified person and host at a public URL before Play Console submission. Last updated: 2026-07-10.
 
 ## The short version
 
@@ -14,11 +14,13 @@ You may enter, and the app stores locally on your device:
 - Selling records: sales, receipts, payment method, and manually typed payment reference numbers (e.g. a GCash reference).
 - Inventory data: products, prices, costs, stock, grocery purchases (brand/source/price), recipes, production, transfers, spoilage.
 - Money records: fixed costs (rent, wages, bills) and payment history you mark yourself.
+- Local preferences: favorites, recent Kiosk products, theme, and active business/stall.
+- Owner access protection: a salted hash of the local Owner PIN and whether biometric unlock is enabled. The PIN itself is not stored.
 
 ## Where the data lives
 
 - All data is stored in a local database file on your device. Nothing is uploaded to KitaMo or anyone else by the app.
-- There is **no backup or sync**. If the app is uninstalled or the device is lost or reset, the data is gone.
+- Android cloud/device backup is disabled for KitaMo. There is **no backup or sync**. If the app is uninstalled or the device is lost or reset, the data is gone.
 
 ## What the app does NOT do
 
@@ -34,13 +36,15 @@ You may enter, and the app stores locally on your device:
 - **Local storage** for the database.
 - **Clipboard and the Android share sheet**, only when you tap Copy/Share on a receipt — you choose where the receipt text goes; anything you share leaves the app through the app you pick.
 - **Network status indicator**: the app checks whether the device is online only to show an Online/Offline badge. It does not send data.
-- Standard Android app permissions from the build tooling (e.g. internet capability from the app framework and vibration for haptic feedback) exist in the package, but the app's own features do not use the internet at runtime.
+- **Optional device unlock**: if you turn it on, KitaMo asks Android to confirm an enrolled fingerprint or face before opening Owner Mode. KitaMo receives only success/cancel; it cannot read or store biometric data.
+- **Haptic feedback** for selected Kiosk actions.
+- The release manifest is reviewed before upload. KitaMo does not request camera, microphone, location, contacts, photos, or Bluetooth permissions.
 
 During development-only testing through Expo Go, the app loads over the local Wi-Fi network from the developer's machine. This is not part of the installed production/internal-testing app behavior.
 
 ## Deleting your data
 
-Uninstalling the app deletes all app data. Inside the app, a full local reset ("Clear Local Data") exists as a support-assisted action during the pilot; ask the KitaMo team if you need it.
+Uninstalling the app deletes all app data. In Owner Settings, **Clear All Local Pilot Data** removes business data, sales, inventory, receipts, settings, the local save queue, and Owner access protection after a confirmation prompt. Demo data does not return unless you choose Demo mode again.
 
 ## Children
 

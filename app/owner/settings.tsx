@@ -1,6 +1,6 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
 import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
@@ -15,11 +15,17 @@ import {
 import type { Branch, BusinessType } from "@/domain/types";
 import { loadOwnerSetupStatus, setActiveBranch, setActiveBusiness, type OwnerSetupStatus } from "@/services/ownerSetup";
 import {
-  getSupabaseConfigStatus,
-  getSupabaseConnectionCopy,
-  type SupabaseConnectionStatus,
-} from "@/services/supabaseConnection";
+  clearOwnerAccess,
+  getOwnerAccessStatus,
+  isValidOwnerPin,
+  saveOwnerPin,
+  setOwnerBiometricEnabled,
+  type OwnerAccessStatus,
+  verifyOwnerPin,
+} from "@/services/ownerAccess";
+import { clearLocalPilotData } from "@/services/pilotData";
 import { useAppStore } from "@/state/appStore";
+import { useOwnerAccessStore } from "@/state/ownerAccessStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
@@ -81,15 +87,22 @@ export default function OwnerSettingsScreen() {
   const [businessForm, setBusinessForm] = useState<BusinessForm>(emptyBusinessForm);
   const [branchForm, setBranchForm] = useState<BranchForm>(emptyBranchForm);
   const [saving, setSaving] = useState(false);
+  const [securitySaving, setSecuritySaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
-  // Non-network snapshot only: reflects whether cloud sync is configured.
-  // A live connection check exists in the service but is not run here.
-  const [cloudStatus] = useState<SupabaseConnectionStatus>(() => getSupabaseConfigStatus().status);
+  const [ownerAccess, setOwnerAccess] = useState<OwnerAccessStatus | null>(null);
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
   const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
+  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
+  const enableOwnerProtection = useOwnerAccessStore((state) => state.enableProtection);
+  const disableOwnerProtection = useOwnerAccessStore((state) => state.disableProtection);
+  const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const router = useRouter();
 
   function setNotice(text: string) {
     setMessage(text);
@@ -104,7 +117,9 @@ export default function OwnerSettingsScreen() {
   const refresh = useCallback(
     async (options?: { keepBusinessForm?: boolean }) => {
       const nextStatus = await loadOwnerSetupStatus();
+      const nextOwnerAccess = await getOwnerAccessStatus();
       setStatus(nextStatus);
+      setOwnerAccess(nextOwnerAccess);
       setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
       setActiveBranchId(nextStatus.activeBranch?.id ?? null);
 
@@ -258,6 +273,129 @@ export default function OwnerSettingsScreen() {
       active: branch.active,
       notes: branch.notes ?? "",
     });
+  }
+
+  async function savePin() {
+    if (!isValidOwnerPin(newPin)) {
+      setError("Use a 4 to 6 digit Owner PIN.");
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      setError("The new PIN and confirmation do not match.");
+      return;
+    }
+
+    setSecuritySaving(true);
+    setMessage(null);
+    try {
+      if (ownerAccess?.hasPin && !(await verifyOwnerPin(currentPin))) {
+        setError("Current Owner PIN is incorrect.");
+        return;
+      }
+
+      await saveOwnerPin(newPin);
+      enableOwnerProtection();
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+      setOwnerAccess(await getOwnerAccessStatus());
+      setNotice(ownerAccess?.hasPin ? "Owner PIN updated." : "Owner Mode protection is now on.");
+    } catch (error) {
+      logDevError("OwnerSettings.savePin", error);
+      setError(getFriendlyErrorMessage("Could not save the Owner PIN."));
+    } finally {
+      setSecuritySaving(false);
+    }
+  }
+
+  async function toggleBiometrics(enabled: boolean) {
+    setSecuritySaving(true);
+    setMessage(null);
+    try {
+      await setOwnerBiometricEnabled(enabled);
+      setOwnerAccess(await getOwnerAccessStatus());
+      setNotice(enabled ? "Biometric Owner unlock enabled." : "Biometric Owner unlock disabled.");
+    } catch (error) {
+      logDevError("OwnerSettings.toggleBiometrics", error);
+      setError(error instanceof Error ? error.message : "Could not update biometric unlock.");
+    } finally {
+      setSecuritySaving(false);
+    }
+  }
+
+  function confirmRemoveOwnerLock() {
+    if (!ownerAccess?.hasPin) {
+      return;
+    }
+
+    Alert.alert("Remove Owner lock?", "Owner-only reports and settings will be accessible without a PIN on this phone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove lock",
+        style: "destructive",
+        onPress: () => {
+          void removeOwnerLock();
+        },
+      },
+    ]);
+  }
+
+  async function removeOwnerLock() {
+    setSecuritySaving(true);
+    setMessage(null);
+    try {
+      if (!(await verifyOwnerPin(currentPin))) {
+        setError("Enter the current Owner PIN before removing the lock.");
+        return;
+      }
+      await clearOwnerAccess();
+      disableOwnerProtection();
+      setOwnerAccess(await getOwnerAccessStatus());
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+      setNotice("Owner Mode protection removed.");
+    } catch (error) {
+      logDevError("OwnerSettings.removeOwnerLock", error);
+      setError(getFriendlyErrorMessage("Could not remove the Owner lock."));
+    } finally {
+      setSecuritySaving(false);
+    }
+  }
+
+  function confirmClearPilotData() {
+    Alert.alert(
+      "Clear all local KitaMo data?",
+      "This permanently removes businesses, products, sales, receipts, costs, settings, and the Owner lock from this phone. Demo data will not return automatically.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear local data",
+          style: "destructive",
+          onPress: () => {
+            void clearPilotData();
+          },
+        },
+      ],
+    );
+  }
+
+  async function clearPilotData() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await clearLocalPilotData();
+      disableOwnerProtection();
+      setActiveBusinessId(null);
+      setActiveBranchId(null);
+      setCurrentMode("owner");
+      router.replace("/");
+    } catch (error) {
+      logDevError("OwnerSettings.clearPilotData", error);
+      setError(getFriendlyErrorMessage("Could not clear local data."));
+      setSaving(false);
+    }
   }
 
   return (
@@ -415,16 +553,78 @@ export default function OwnerSettingsScreen() {
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.cloudHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Cloud Sync</Text>
-          <Pill label={getSupabaseConnectionCopy(cloudStatus)} tone={cloudStatus === "connected" ? "success" : cloudStatus === "error" ? "danger" : "neutral"} />
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Owner Access</Text>
+          <Pill label={ownerAccess?.hasPin ? "Protected" : "Not locked"} tone={ownerAccess?.hasPin ? "success" : "warning"} />
         </View>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Local-first pilot. Cloud sync coming soon.</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Protect reports, costs, and settings when this phone is shared with Kiosk staff.</Text>
+        {ownerAccess?.hasPin ? (
+          <FormField
+            keyboardType="numeric"
+            label="Current PIN"
+            onChangeText={(value) => setCurrentPin(value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="Required to change or remove lock"
+            secureTextEntry
+            value={currentPin}
+          />
+        ) : null}
+        <View style={styles.securityPinRow}>
+          <FormField
+            keyboardType="numeric"
+            label={ownerAccess?.hasPin ? "New PIN" : "Create PIN"}
+            onChangeText={(value) => setNewPin(value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="4 to 6 digits"
+            secureTextEntry
+            value={newPin}
+          />
+          <FormField
+            keyboardType="numeric"
+            label="Confirm PIN"
+            onChangeText={(value) => setConfirmPin(value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="Repeat PIN"
+            secureTextEntry
+            value={confirmPin}
+          />
+        </View>
+        <ActionButton
+          disabled={securitySaving}
+          label={securitySaving ? "Saving..." : ownerAccess?.hasPin ? "Change Owner PIN" : "Turn On Owner Lock"}
+          onPress={savePin}
+        />
+        {ownerAccess?.hasPin ? (
+          <>
+            <View style={[styles.securityToggleRow, { borderColor: palette.border }]}>
+              <View style={styles.securityToggleCopy}>
+                <Text style={[styles.listItemTitle, { color: palette.text }]}>Fingerprint or face unlock</Text>
+                <Text style={[styles.body, { color: palette.mutedText }]}>
+                  {ownerAccess.biometricAvailable ? "Use this phone's enrolled device unlock." : "Set up biometrics in Android settings first."}
+                </Text>
+              </View>
+              <Switch
+                disabled={securitySaving || !ownerAccess.biometricAvailable}
+                onValueChange={toggleBiometrics}
+                thumbColor={palette.surface}
+                trackColor={{ false: palette.border, true: palette.primary }}
+                value={ownerAccess.biometricEnabled}
+              />
+            </View>
+            <View style={styles.inlineActions}>
+              <SmallButton disabled={securitySaving} label="Lock Owner Mode now" onPress={lockOwnerAccess} />
+              <Pressable disabled={securitySaving} onPress={confirmRemoveOwnerLock} style={styles.dangerTextButton}>
+                <Text style={[styles.smallButtonText, { color: palette.danger }]}>Remove lock</Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null}
       </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Data & Privacy</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Your pilot data stays on this phone until sync is added.</Text>
+        <Text style={[styles.body, { color: palette.mutedText }]}>Business data stays in KitaMo on this phone. Cloud sync is not active, and Android backup is disabled.</Text>
+        <SecondaryButton href="/privacy" label="Privacy Policy" />
         <SecondaryButton href="/owner/pilot-guide" label="Open Pilot Guide" />
+        <Pressable disabled={saving} onPress={confirmClearPilotData} style={[styles.clearDataButton, { borderColor: palette.danger }]}>
+          <Text style={[styles.smallButtonText, { color: palette.danger }]}>Clear All Local Pilot Data</Text>
+        </Pressable>
       </View>
 
       {__DEV__ && showLocalDataVerificationPanel ? <LocalDataVerificationPanel /> : null}
@@ -440,6 +640,7 @@ type FormFieldProps = {
   multiline?: boolean;
   keyboardType?: "default" | "phone-pad" | "numeric" | "decimal-pad";
   editable?: boolean;
+  secureTextEntry?: boolean;
 };
 
 function FormField({
@@ -450,6 +651,7 @@ function FormField({
   multiline = false,
   keyboardType = "default",
   editable = true,
+  secureTextEntry = false,
 }: FormFieldProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
@@ -464,6 +666,7 @@ function FormField({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={palette.mutedText}
+        secureTextEntry={secureTextEntry}
         style={[
           styles.input,
           multiline ? styles.multilineInput : null,
@@ -573,6 +776,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
     justifyContent: "space-between",
+  },
+  securityPinRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  securityToggleRow: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: spacing.md,
+    paddingTop: spacing.md,
+  },
+  securityToggleCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  dangerTextButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+  },
+  clearDataButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
   },
   summaryText: {
     flex: 1,

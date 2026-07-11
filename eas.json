@@ -1,10 +1,11 @@
 {
   "cli": {
-    "version": ">= 13.0.0",
+    "version": ">= 20.5.1",
     "appVersionSource": "local"
   },
   "build": {
     "development": {
+      "node": "20.19.4",
       "developmentClient": true,
       "distribution": "internal",
       "android": {
@@ -12,12 +13,14 @@
       }
     },
     "preview": {
+      "node": "20.19.4",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "node": "20.19.4",
       "autoIncrement": false,
       "android": {
         "buildType": "app-bundle"

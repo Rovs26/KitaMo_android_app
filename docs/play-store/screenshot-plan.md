@@ -1,4 +1,4 @@
-# Screenshot Plan — KitaMo (Pilot)
+# Screenshot Plan - KitaMo 1.0.0 Pilot
 
 Play Store requires 2–8 phone screenshots (16:9 or 9:16, min 320px, max 3840px). Capture on a real device in light mode with the demo-plus setup below. Crop status bar consistently or keep it clean (full battery, no notification icons).
 

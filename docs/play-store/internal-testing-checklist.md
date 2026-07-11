@@ -5,15 +5,17 @@ Goal: get the first internal-testing build into a small trusted tester group's h
 ## Prerequisites
 
 - [ ] Real-phone QA pass complete (see `docs/pilot/android-seller-pilot-checklist.md`).
-- [ ] All repo checks green: `typecheck`, `lint`, `check:pricing`, `check:recipes`, `check:production`, `check:cogs`, `check:fixedcosts`, `check:pilot`, `npx expo export --platform android`.
-- [ ] Real app icon + splash assets added (currently Expo placeholders — required before upload looks presentable, and adaptive icon foreground is missing).
+- [x] All local checks green: `typecheck`, `lint`, Expo Doctor 17/17, seven regression commands including `check:migrations`, Metro start, and production Android export.
+- [x] App icon, adaptive icon, splash, Play icon, and feature graphic added and visually checked.
 - [ ] Privacy policy hosted at a public URL (draft: `privacy-policy-draft.md`; Play Console requires a URL, not a document).
+- [ ] Final support email supplied and added to the listing/privacy policy.
+- [ ] Signed build tested on a low-end physical Android device.
 
 ## Google Play Console account
 
 - [ ] Google Play Console developer account created ($25 one-time) under the owner's Google account.
 - [ ] Developer identity verification completed (can take days — start early).
-- [ ] "KitaMo (Pilot)" app created in the Console: App → Create app → App/Game: App, Free, package `ph.kitamo.app`.
+- [ ] "KitaMo" app created in the Console: App → Create app → App/Game: App, Free, package `ph.kitamo.app`.
 - [ ] Data Safety form filled using `data-safety-draft.md` (final answers reviewed by the owner).
 - [ ] Content rating questionnaire completed (business/productivity app, no user-generated public content).
 - [ ] Target audience: 18+ (business tool).
@@ -26,22 +28,25 @@ Goal: get the first internal-testing build into a small trusted tester group's h
 
 ## Build artifact (EAS)
 
-One-time setup (interactive, requires the owner's Expo account — not scripted):
+One-time setup:
 
-- [ ] `npm install -g eas-cli` and `eas login`.
-- [ ] `eas build:configure` — links the repo to an EAS project (`extra.eas.projectId` gets written to `app.json`; commit that change).
-- [ ] Confirm `app.json` android block: package `ph.kitamo.app`, versionCode `1`, version `0.1.0`.
+- [x] `eas login` completed as `rawbeans`, with owner access to organization `kitamoandroidapp`.
+- [x] `eas build:configure` and project link completed for `@kitamoandroidapp/kitamo-android`.
+- [x] Confirm `app.json`: name `KitaMo`, package `ph.kitamo.app`, versionCode `1`, version `1.0.0`, backup disabled, release permissions minimized.
 
 Build:
 
-- [ ] Internal test APK/AAB: `eas build -p android --profile production` (app-bundle, required by Play) — this is a cloud build; run only when ready.
+- [x] Standalone preview APK built with the EAS-managed keystore (`f3b64c64-04d0-4f71-ac54-1ceba8029403`).
+- [ ] Download/install that EAS APK and complete the full physical-device regression.
+- [ ] Internal Play AAB: `eas build -p android --profile production` (app-bundle, required by Play).
 - [ ] Download the `.aab` artifact from the EAS dashboard.
+- [ ] Verify APK/AAB permissions and 16 KB native-library alignment.
 
 ## Upload to internal testing
 
 - [ ] Play Console → Testing → Internal testing → Create new release.
 - [ ] Upload the `.aab`.
-- [ ] Release name: `0.1.0 (1) — pilot`. Release notes: paste from `release-notes-internal.md`.
+- [ ] Release name: `1.0.0 (1) - pilot`. Release notes: paste from `release-notes-internal.md`.
 - [ ] Save → Review release → Start rollout to Internal testing.
 
 ## Tester list
@@ -69,6 +74,6 @@ Use the format in `internal-tester-guide.md` (screen, steps, expected, actual, s
 
 ## Next build / rollback
 
-- Next build: bump `version` (e.g. 0.1.1) and `versionCode` (2) in `app.json`, rebuild, upload as a new internal release. versionCode must always increase.
+- Next build: bump `version` (e.g. 1.0.1) and `versionCode` (2) in `app.json`, rebuild, upload as a new internal release. versionCode must always increase.
 - Rollback: internal testing has no true rollback; upload a fixed higher-versionCode build instead. Testers get it automatically from the Play Store.
 - Promote to closed testing only after internal feedback is folded in — not part of this phase.

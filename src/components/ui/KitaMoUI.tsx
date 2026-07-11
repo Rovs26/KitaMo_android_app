@@ -1,7 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, type Href, usePathname, useRouter } from "expo-router";
 import type { ComponentProps, PropsWithChildren, ReactNode } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -326,6 +327,40 @@ export function EmptyState({ title, description }: { title: string; description?
   );
 }
 
+export function LoadingState({ label = "Loading local data..." }: { label?: string }) {
+  const palette = usePalette();
+  return (
+    <View style={[styles.loadingState, { backgroundColor: palette.softPrimary }]}>
+      <ActivityIndicator color={palette.primary} />
+      <Text style={[styles.loadingLabel, { color: palette.mutedText }]}>{label}</Text>
+    </View>
+  );
+}
+
+export function InlineNotice({
+  message,
+  title,
+  tone = "neutral",
+}: {
+  message: string;
+  title?: string;
+  tone?: Tone;
+}) {
+  const palette = usePalette();
+  const toneStyle = toneStyles[tone](palette);
+  const icon: IoniconName = tone === "danger" ? "alert-circle" : tone === "warning" ? "warning" : tone === "success" ? "checkmark-circle" : "information-circle";
+
+  return (
+    <View style={[styles.inlineNotice, { backgroundColor: toneStyle.backgroundColor, borderColor: toneStyle.borderColor }]}>
+      <Ionicons color={toneStyle.color} name={icon} size={20} />
+      <View style={styles.inlineNoticeCopy}>
+        {title ? <Text style={[styles.inlineNoticeTitle, { color: toneStyle.color }]}>{title}</Text> : null}
+        <Text style={[styles.inlineNoticeMessage, { color: palette.text }]}>{message}</Text>
+      </View>
+    </View>
+  );
+}
+
 function OwnerBottomNav() {
   const pathname = usePathname();
   const palette = usePalette();
@@ -593,6 +628,39 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     ...typography.body,
+  },
+  loadingState: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 58,
+    padding: spacing.md,
+  },
+  loadingLabel: {
+    ...typography.body,
+    flex: 1,
+  },
+  inlineNotice: {
+    alignItems: "flex-start",
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    padding: spacing.sm + 2,
+  },
+  inlineNoticeCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  inlineNoticeTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+  },
+  inlineNoticeMessage: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   bottomNav: {
     borderTopWidth: StyleSheet.hairlineWidth,

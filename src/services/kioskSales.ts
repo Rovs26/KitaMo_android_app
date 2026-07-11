@@ -40,6 +40,7 @@ export type KioskContext = {
 
 export type CompleteKioskSaleInput = {
   cartItems: KioskCartItem[];
+  checkoutToken?: string | null;
   paymentMethod: PaymentMethod;
   externalReferenceNumber?: string | null;
   discountAmount?: number;
@@ -132,6 +133,14 @@ type SaleIntegrityRow = {
   negative_stock_count: number;
 };
 
+type CompletedCheckoutRow = {
+  sale_id: string;
+  transaction_no: string;
+  amount: number;
+  discount: number;
+  receipt_text: string;
+};
+
 function createTransactionNo(saleId: string, happenedAt: string) {
   const datePart = happenedAt.slice(0, 10).replaceAll("-", "");
   const shortId = saleId.slice(-6).toUpperCase();
@@ -143,6 +152,30 @@ async function countPendingQueue(db: RepositoryDatabase) {
     "SELECT COUNT(*) AS count FROM offline_queue WHERE status = 'pending' AND deleted_at IS NULL",
   );
   return row?.count ?? 0;
+}
+
+async function findCompletedCheckout(checkoutToken: string, db: RepositoryDatabase): Promise<CompletedKioskSale | null> {
+  const row = await db.getFirstAsync<CompletedCheckoutRow>(
+    `
+      SELECT s.id AS sale_id, s.transaction_no, s.amount, s.discount, rr.receipt_text
+      FROM sales s
+      INNER JOIN receipt_records rr ON rr.sale_id = s.id AND rr.deleted_at IS NULL
+      WHERE s.checkout_token = ? AND s.deleted_at IS NULL
+      LIMIT 1
+    `,
+    [checkoutToken],
+  );
+
+  return row
+    ? {
+        saleId: row.sale_id,
+        transactionNo: row.transaction_no,
+        receiptText: row.receipt_text,
+        total: row.amount,
+        subtotal: row.amount + row.discount,
+        discount: row.discount,
+      }
+    : null;
 }
 
 export async function loadKioskContext(db: RepositoryDatabase = openKitamoDatabase()): Promise<KioskContext> {
@@ -211,6 +244,13 @@ export async function completeKioskSale(
   db: RepositoryDatabase = openKitamoDatabase(),
 ): Promise<CompletedKioskSale> {
   await runMigrations(db);
+
+  if (input.checkoutToken) {
+    const existingCheckout = await findCompletedCheckout(input.checkoutToken, db);
+    if (existingCheckout) {
+      return existingCheckout;
+    }
+  }
 
   if (input.cartItems.length === 0) {
     throw new Error("Cart is empty.");
@@ -334,14 +374,15 @@ export async function completeKioskSale(
   let completedSale: CompletedKioskSale | null = null;
   const timestamp = happenedAt;
 
-  await db.withExclusiveTransactionAsync(async (txn) => {
+  try {
+    await db.withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
       `
         INSERT INTO sales (
           id, business_id, branch_id, transaction_no, happened_at, amount, discount,
           payment_method, payment_status, external_reference_number, notes,
-          created_at, updated_at, sync_status, deleted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          created_at, updated_at, sync_status, deleted_at, checkout_token
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         saleId,
@@ -359,6 +400,7 @@ export async function completeKioskSale(
         timestamp,
         "local",
         null,
+        input.checkoutToken ?? null,
       ],
     );
 
@@ -583,7 +625,16 @@ export async function completeKioskSale(
       subtotal,
       discount,
     };
-  });
+    });
+  } catch (error) {
+    if (input.checkoutToken) {
+      const existingCheckout = await findCompletedCheckout(input.checkoutToken, db);
+      if (existingCheckout) {
+        return existingCheckout;
+      }
+    }
+    throw error;
+  }
 
   if (!completedSale) {
     throw new Error("Sale was not completed.");

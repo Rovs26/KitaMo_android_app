@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, EmptyState, formatPeso, InlineNotice, LoadingState, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { createProduct, updateProduct } from "@/db/repositories";
 import type { Product, ProductType, UnitType } from "@/domain/types";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
@@ -82,6 +82,8 @@ export default function OwnerInventoryScreen() {
   const [spoilageIsError, setSpoilageIsError] = useState(false);
   const [cookSaving, setCookSaving] = useState(false);
   const [spoilageSaving, setSpoilageSaving] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
   const cookLock = useRef(false);
   const spoilageLock = useRef(false);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -111,6 +113,7 @@ export default function OwnerInventoryScreen() {
         logDevError("OwnerInventory.refresh", error);
         if (active) {
           setMessage(getFriendlyErrorMessage("Could not load inventory."));
+          setMessageIsError(true);
         }
       });
 
@@ -328,18 +331,29 @@ export default function OwnerInventoryScreen() {
   const lowStockCount = products.filter((product) => product.stockQty <= product.lowStockThreshold).length;
   const stockValue = products.reduce((total, product) => total + product.stockQty * product.cost, 0);
   const productFormVisible = Boolean(status) && (products.length === 0 || showProductForm || Boolean(productForm.id));
+  const visibleProducts = products.filter((product) => {
+    const matchesSearch = `${product.name} ${product.category}`.toLocaleLowerCase().includes(productSearch.trim().toLocaleLowerCase());
+    const matchesStock =
+      stockFilter === "all" ||
+      (stockFilter === "out" ? product.stockQty <= 0 : product.stockQty > 0 && product.stockQty <= product.lowStockThreshold);
+    return matchesSearch && matchesStock;
+  });
 
   return (
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Paninda at sangkap" title="Inventory" />
 
-      {message ? <Text style={[styles.message, { color: messageIsError ? palette.danger : palette.text }]}>{message}</Text> : null}
+      {message ? <InlineNotice message={message} tone={messageIsError ? "danger" : "success"} /> : null}
 
-      <View style={styles.summaryGrid}>
-        <MetricCard detail="Total items" icon="I" label="Products" tone="primary" value={String(products.length)} />
-        <MetricCard detail="Need review" icon="!" label="Low Stock" tone={lowStockCount > 0 ? "warning" : "success"} value={`${lowStockCount} items`} />
-        <MetricCard detail="Cost basis" icon="P" label="Stock Value" tone="success" value={formatPeso(stockValue)} />
-      </View>
+      {!status ? (
+        <LoadingState label="Loading products and stock levels..." />
+      ) : (
+        <View style={styles.summaryGrid}>
+          <MetricCard detail="Total items" icon="I" label="Products" tone="primary" value={String(products.length)} />
+          <MetricCard detail="Need review" icon="!" label="Low Stock" tone={lowStockCount > 0 ? "warning" : "success"} value={`${lowStockCount} items`} />
+          <MetricCard detail="Cost basis" icon="P" label="Stock Value" tone="success" value={formatPeso(stockValue)} />
+        </View>
+      )}
 
       <View style={styles.linkGrid}>
         <View style={styles.linkCell}>
@@ -370,11 +384,45 @@ export default function OwnerInventoryScreen() {
             />
           ) : null}
         </View>
+        {products.length > 0 ? (
+          <>
+            <TextInput
+              onChangeText={setProductSearch}
+              placeholder="Search product or category"
+              placeholderTextColor={palette.mutedText}
+              style={[styles.searchInput, { backgroundColor: palette.background, borderColor: palette.border, color: palette.text }]}
+              value={productSearch}
+            />
+            <View style={styles.stockFilters}>
+              {(["all", "low", "out"] as const).map((option) => (
+                <Pressable
+                  key={option}
+                  onPress={() => setStockFilter(option)}
+                  style={[
+                    styles.stockFilter,
+                    {
+                      backgroundColor: stockFilter === option ? palette.primary : palette.background,
+                      borderColor: stockFilter === option ? palette.primary : palette.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.stockFilterText, { color: stockFilter === option ? palette.kioskHeaderText : palette.text }]}>
+                    {option === "all" ? "All" : option === "low" ? "Low stock" : "Out of stock"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
         {status && status.products.length === 0 ? (
           <Text style={[styles.empty, { color: palette.mutedText }]}>Add your first paninda</Text>
         ) : null}
 
-        {status?.products.map((product) => {
+        {status && products.length > 0 && visibleProducts.length === 0 ? (
+          <EmptyState description="Try another search or stock filter." title="No matching products" />
+        ) : null}
+
+        {visibleProducts.map((product) => {
           const lowStock = product.stockQty <= product.lowStockThreshold;
           return (
             <View key={product.id} style={[styles.productRow, { backgroundColor: palette.background }]}>
@@ -849,6 +897,32 @@ const styles = StyleSheet.create({
   },
   message: {
     ...typography.body,
+  },
+  searchInput: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  stockFilters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  stockFilter: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  stockFilterText: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
   },
   section: {
     borderRadius: radius.lg,

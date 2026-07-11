@@ -6,10 +6,12 @@ expo-env.d.ts
 # @end expo-cli
 
 node_modules/
+.DS_Store
 .expo/
 dist/
 build/
 coverage/
+release-artifacts/
 
 .env
 .env.*

@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -334,34 +334,29 @@ export default function OwnerHomeScreen() {
         <Ionicons color={palette.kioskHeaderText} name="chevron-forward" size={22} />
       </Pressable>
 
-      <Card>
-        <SectionHeader title="Quick Add" />
-        <View style={styles.quickAddGrid}>
-          {quickAddShortcuts.map((shortcut) => (
-            <Pressable key={shortcut.label} onPress={() => router.push(shortcut.href)} style={styles.quickAddCell}>
-              <View style={[styles.quickAddIcon, { backgroundColor: palette.softPrimary }]}>
-                <Ionicons color={palette.primary} name={shortcut.icon} size={18} />
-              </View>
-              <Text numberOfLines={1} style={[styles.quickAddLabel, { color: palette.mutedText }]}>
-                {shortcut.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </Card>
-
       <HeroCard>
         <View style={styles.heroTop}>
           <View style={styles.heroCopy}>
-            <Text style={[styles.heroLabel, { color: palette.kioskHeaderText }]}>{"Today's Money"}</Text>
-            <Text style={[styles.heroValue, { color: palette.kioskHeaderText }]}>{formatPeso(salesTotal)}</Text>
+            <Text style={[styles.heroLabel, { color: palette.kioskHeaderText }]}>Tubo today</Text>
+            <Text style={[styles.heroValue, { color: palette.kioskHeaderText }]}>{formatPeso(tuboToday)}</Text>
             <Text style={[styles.heroSubcopy, { color: palette.softAccent }]}>
-              {salesTotal > 0 ? `Tubo today: ${formatPeso(tuboToday)}` : "Wala pang benta today"}
+              {salesTotal > 0
+                ? `${formatPeso(salesTotal)} benta · ${today?.transactionCount ?? 0} transaction${today?.transactionCount === 1 ? "" : "s"}`
+                : "Wala pang benta today"}
             </Text>
           </View>
           <View style={[styles.heroBadge, { backgroundColor: palette.softAccent }]}>
             <Text style={[styles.heroBadgeText, { color: palette.primary }]}>₱</Text>
           </View>
+        </View>
+        <View style={[styles.profitFormula, { backgroundColor: palette.softAccent }]}>
+          <Text style={[styles.profitFormulaText, { color: palette.primary }]}>Benta {formatPeso(salesTotal)}</Text>
+          <Text style={[styles.profitFormulaOperator, { color: palette.mutedText }]}>−</Text>
+          <Text style={[styles.profitFormulaText, { color: palette.text }]}>Sold COGS {formatPeso(costTotal)}</Text>
+          <Text style={[styles.profitFormulaOperator, { color: palette.mutedText }]}>−</Text>
+          <Text style={[styles.profitFormulaText, { color: palette.text }]}>Bayarin {formatPeso(bayarinToday)}</Text>
+          <Text style={[styles.profitFormulaOperator, { color: palette.mutedText }]}>−</Text>
+          <Text style={[styles.profitFormulaText, { color: palette.text }]}>Nasayang {formatPeso(nasayangToday)}</Text>
         </View>
         <NetworkStatusBadge compact pendingQueueCount={pendingCount} />
       </HeroCard>
@@ -398,6 +393,22 @@ export default function OwnerHomeScreen() {
       {nasayangToday > 0 ? (
         <Text style={[styles.inlineNote, { color: palette.mutedText }]}>Nasayang today: {formatPeso(nasayangToday)}</Text>
       ) : null}
+
+      <Card>
+        <SectionHeader title="Quick Actions" />
+        <View style={styles.quickAddGrid}>
+          {quickAddShortcuts.map((shortcut) => (
+            <Pressable key={shortcut.label} onPress={() => router.push(shortcut.href)} style={styles.quickAddCell}>
+              <View style={[styles.quickAddIcon, { backgroundColor: palette.softPrimary }]}>
+                <Ionicons color={palette.primary} name={shortcut.icon} size={20} />
+              </View>
+              <Text numberOfLines={1} style={[styles.quickAddLabel, { color: palette.mutedText }]}>
+                {shortcut.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </Card>
 
       {!status ? (
         <Card>
@@ -608,6 +619,25 @@ const styles = StyleSheet.create({
   heroSubcopy: {
     ...typography.button,
   },
+  profitFormula: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  profitFormulaText: {
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 15,
+  },
+  profitFormulaOperator: {
+    fontSize: 12,
+    fontWeight: "900",
+    lineHeight: 15,
+  },
   heroBadge: {
     alignItems: "center",
     borderRadius: 8,
@@ -653,12 +683,15 @@ const styles = StyleSheet.create({
   },
   quickAddGrid: {
     flexDirection: "row",
-    gap: 2,
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
   quickAddCell: {
     alignItems: "center",
-    flex: 1,
-    gap: 4,
+    flexBasis: "22%",
+    flexGrow: 1,
+    gap: 5,
+    minHeight: 58,
   },
   quickAddIcon: {
     alignItems: "center",
@@ -668,9 +701,9 @@ const styles = StyleSheet.create({
     width: 40,
   },
   quickAddLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
-    lineHeight: 13,
+    lineHeight: 14,
     textAlign: "center",
   },
   stallList: {

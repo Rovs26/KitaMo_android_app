@@ -19,7 +19,7 @@ Exact manual steps to get the first internal build onto testers' phones. Every s
 5. **Support email** — Store settings → set the real support email.
 6. **Build the `.aab`** — `eas build -p android --profile production` (cloud build; download the `.aab` from the EAS dashboard). See the AAB section of the README / release-readiness doc.
 7. **Upload to Internal Testing** — Testing → Internal testing → Create new release → upload the `.aab`. Accept Play App Signing when prompted.
-8. **Add release notes** — paste from `docs/play-store/release-notes-internal.md`. Release name e.g. `0.1.0 (1) — pilot`.
+8. **Add release notes** — paste from `docs/play-store/release-notes-internal.md`. Release name e.g. `1.0.0 (1) - pilot`.
 9. **Add tester emails** — Internal testing → Testers → create an email list → add testers' Gmail addresses (see `tester-plan.md`).
 10. **Copy the opt-in link** — Internal testing → Testers → copy the "Join on the web" URL.
 11. **Install on a phone** — open the opt-in link on a tester phone (signed into a listed Gmail), Become a tester → install from Play.
@@ -44,5 +44,5 @@ Fill from `docs/play-store/data-safety-draft.md` and `privacy-policy-draft.md`:
 
 - `eas.json` uses `appVersionSource: local`, so **versionCode comes from `app.json`** and `production.autoIncrement` is `false`.
 - **Every new upload needs a higher `versionCode`.** Play rejects a reused versionCode.
-- Before each new build: bump `android.versionCode` in `app.json` (1 → 2 → 3 …) and, for user-facing clarity, `version` (e.g. 0.1.0 → 0.1.1). Commit the change.
+- Before each new build: bump `android.versionCode` in `app.json` (1 → 2 → 3 …) and, for user-facing clarity, `version` (e.g. 1.0.0 → 1.0.1). Commit the change.
 - Alternative: set `production.autoIncrement: true` in `eas.json` to let EAS bump it — but then track the number EAS assigns.

@@ -30,6 +30,7 @@ function paymentLabel(method: PaymentMethod) {
 
 export default function KioskCheckoutScreen() {
   const cartItems = useKioskStore((state) => state.cartItems);
+  const checkoutToken = useKioskStore((state) => state.checkoutToken);
   const clearCart = useKioskStore((state) => state.clearCart);
   const setLastReceipt = useKioskStore((state) => state.setLastReceipt);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -91,6 +92,7 @@ export default function KioskCheckoutScreen() {
     try {
       const sale = await completeKioskSale({
         cartItems,
+        checkoutToken,
         paymentMethod,
         externalReferenceNumber: referenceRequired ? referenceNumber.trim() || null : null,
         discountAmount: discount,
@@ -146,7 +148,7 @@ export default function KioskCheckoutScreen() {
                 <Text style={[styles.body, { color: palette.mutedText }]}>{completedSale.transactionNo}</Text>
               </View>
               <Pressable hitSlop={8} onPress={() => router.replace("/kiosk/sell")}>
-                <Text style={[styles.editLink, { color: palette.primary }]}>Edit</Text>
+                <Text style={[styles.editLink, { color: palette.primary }]}>Close</Text>
               </Pressable>
             </View>
             <View style={[styles.totalCard, { backgroundColor: palette.softPrimary, borderColor: palette.border }]}>

@@ -1,11 +1,18 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 
+import { useOwnerAccessStore } from "@/state/ownerAccessStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 
 export default function KioskLayout() {
+  const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  useEffect(() => {
+    lockOwnerAccess();
+  }, [lockOwnerAccess]);
 
   return (
     <Stack

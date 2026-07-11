@@ -28,12 +28,12 @@ The Android **package name is permanent and immutable once the first bundle is u
 
 Decision made: `android.package` is now **`ph.kitamo.app`** (a clean, production-ready id — no `.pilot` suffix baked in). This is the package you upload tonight and the one that carries through to production; do not change it again after the first upload.
 
-The user-facing app title (`KitaMo (Pilot)`) is separate and editable in the Play Console at any time — only the package id is permanent.
+The user-facing app title (`KitaMo`) is separate and editable in the Play Console at any time — only the package id is permanent.
 
 ## Current config snapshot (audited)
 
-- App label: `KitaMo (Pilot)` — editable later; Play listing title is set in the Console.
-- versionName `0.1.0`, versionCode `1` — ready for the first build.
+- App label: `KitaMo` — editable later; Play listing title is set in the Console.
+- versionName `1.0.0`, versionCode `1` — ready for the first build.
 - `permissions: []`; no camera/location/contacts/microphone/Bluetooth/storage/SMS/ads/analytics/payment. Framework-only INTERNET (unused by features), ACCESS_NETWORK_STATE (online/offline badge), VIBRATE (haptics).
 - Expo SDK 54 / RN 0.81.5 → target API 35 (Android 15) by default, meeting Play's current new-app target requirement. **REVIEW**: confirm the target API in the EAS build output before submitting.
 - `eas.json` `production` profile builds an Android App Bundle (`.aab`) — the required format for Play.

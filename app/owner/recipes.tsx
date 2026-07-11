@@ -1,8 +1,8 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, InlineNotice, LoadingState, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { ingredientUnits } from "@/db/repositories";
 import type { IngredientUnit, Product, RecipeProductionMode } from "@/domain/types";
 import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
@@ -68,6 +68,8 @@ export default function OwnerRecipesScreen() {
   const saveLock = useRef(false);
   const archiveLock = useRef(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [recipeSearch, setRecipeSearch] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const draftKeyRef = useRef(0);
 
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -80,6 +82,9 @@ export default function OwnerRecipesScreen() {
     setStatus(nextStatus);
     setOverview(nextOverview);
     setGrocery(nextGrocery);
+    if (nextOverview.items.filter((item) => item.recipe.isActive).length === 0) {
+      setShowCreateForm(true);
+    }
   }, []);
 
   useFocusEffect(
@@ -357,18 +362,32 @@ export default function OwnerRecipesScreen() {
     }
   }
 
+  function confirmArchive(recipeId: string, recipeNameToArchive: string) {
+    Alert.alert(
+      "Archive recipe?",
+      `${recipeNameToArchive} will be hidden from active recipes. Existing production and cost records stay saved.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Archive", style: "destructive", onPress: () => void archive(recipeId) },
+      ],
+    );
+  }
+
   const visibleItems = (overview?.items ?? []).filter((item) => item.recipe.isActive);
+  const filteredItems = visibleItems.filter((item) =>
+    `${item.recipe.name} ${item.recipe.outputProductName}`.toLocaleLowerCase().includes(recipeSearch.trim().toLocaleLowerCase()),
+  );
   const hasBusiness = Boolean(status?.activeBusiness);
 
   return (
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Gumawa ng recipe at tingnan ang cost per paninda." title="Recipe Cost" />
 
-      {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
+      {loadError ? <InlineNotice message={loadError} tone="danger" /> : null}
 
       <SecondaryButton href="/owner/production" label="Record production gamit ang recipe" />
 
-      <View style={styles.metricGrid}>
+      {!overview ? <LoadingState label="Loading recipes and ingredient costs..." /> : <View style={styles.metricGrid}>
         <MetricCard detail="Saved recipes" icon="R" label="Active" tone="primary" value={String(overview?.activeCount ?? 0)} />
         <MetricCard
           detail="Per output unit"
@@ -385,16 +404,30 @@ export default function OwnerRecipesScreen() {
           value={String(overview?.lowMakeableCount ?? 0)}
         />
         <MetricCard detail="With custom cost" icon="C" label="Custom" tone="accent" value={String(overview?.customCostCount ?? 0)} />
-      </View>
+      </View>}
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>My recipes</Text>
+
+        {visibleItems.length > 0 ? (
+          <TextInput
+            onChangeText={setRecipeSearch}
+            placeholder="Search recipe or output product"
+            placeholderTextColor={palette.mutedText}
+            style={[styles.searchInput, { backgroundColor: palette.background, borderColor: palette.border, color: palette.text }]}
+            value={recipeSearch}
+          />
+        ) : null}
 
         {overview && visibleItems.length === 0 ? (
           <EmptyState description="Example: Sushi, cookies, brownies." title="Create your first recipe." />
         ) : null}
 
-        {visibleItems.map((item) => (
+        {visibleItems.length > 0 && filteredItems.length === 0 ? (
+          <EmptyState description="Try another recipe or product name." title="No matching recipes" />
+        ) : null}
+
+        {filteredItems.map((item) => (
           <View key={item.recipe.id} style={[styles.recipeCard, { backgroundColor: palette.background, borderColor: palette.border }]}>
             <View style={styles.recipeHeader}>
               <View style={styles.recipeText}>
@@ -445,7 +478,7 @@ export default function OwnerRecipesScreen() {
 
             <Pressable
               disabled={archivingId !== null}
-              onPress={() => archive(item.recipe.id)}
+              onPress={() => confirmArchive(item.recipe.id, item.recipe.name)}
               style={[styles.smallButton, { borderColor: palette.border, opacity: archivingId !== null ? 0.55 : 1 }]}
             >
               <Text style={[styles.smallButtonText, { color: palette.primary }]}>
@@ -456,7 +489,12 @@ export default function OwnerRecipesScreen() {
         ))}
       </Card>
 
-      <Card>
+      <SecondaryButton
+        label={showCreateForm ? "Hide Recipe Form" : "Create Recipe"}
+        onPress={() => setShowCreateForm((visible) => !visible)}
+      />
+
+      {showCreateForm ? <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Create Recipe</Text>
 
         {!hasBusiness && status ? (
@@ -691,7 +729,7 @@ export default function OwnerRecipesScreen() {
             <Text style={[styles.smallButtonText, { color: palette.primary }]}>Add custom line</Text>
           </Pressable>
 
-          {lineMessage ? <Text style={[styles.body, { color: palette.danger }]}>{lineMessage}</Text> : null}
+          {lineMessage ? <InlineNotice message={lineMessage} tone="danger" /> : null}
         </View>
 
         {draftLines.length > 0 ? (
@@ -726,9 +764,7 @@ export default function OwnerRecipesScreen() {
           value={recipeNotes}
         />
 
-        {formMessage ? (
-          <Text style={[styles.body, { color: formIsError ? palette.danger : palette.success }]}>{formMessage}</Text>
-        ) : null}
+        {formMessage ? <InlineNotice message={formMessage} tone={formIsError ? "danger" : "success"} /> : null}
 
         <Pressable
           disabled={saving || !hasBusiness || products.length === 0}
@@ -740,7 +776,7 @@ export default function OwnerRecipesScreen() {
         >
           <Text style={[styles.saveButtonText, { color: palette.kioskHeaderText }]}>{saving ? "Saving..." : "Save Recipe"}</Text>
         </Pressable>
-      </Card>
+      </Card> : null}
     </ScreenScroll>
   );
 }
@@ -842,6 +878,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.heading,
+  },
+  searchInput: {
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   recipeCard: {
     borderRadius: 8,

@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 
+import { OwnerAccessGate } from "@/components/owner/OwnerAccessGate";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 
@@ -8,7 +9,8 @@ export default function OwnerLayout() {
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
   return (
-    <Stack
+    <OwnerAccessGate>
+      <Stack
       screenOptions={{
         contentStyle: { backgroundColor: palette.background },
         headerShown: false,
@@ -30,6 +32,7 @@ export default function OwnerLayout() {
       <Stack.Screen name="pilot-guide" options={{ title: "Pilot Guide" }} />
       <Stack.Screen name="insights" options={{ title: "Insights" }} />
       <Stack.Screen name="settings" options={{ title: "Settings" }} />
-    </Stack>
+      </Stack>
+    </OwnerAccessGate>
   );
 }

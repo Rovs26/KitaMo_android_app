@@ -5,6 +5,7 @@ import type { LocalDataCounts } from "@/db/schema";
 import { getAppliedMigrations } from "@/db/migrations";
 import { verifySaleIntegrity, type SaleIntegrityCheckResult } from "@/services/kioskSales";
 import { clearLocalPilotData, getLocalDataSnapshot, initializeLocalDataFoundation, seedDemoData } from "@/services/pilotData";
+import { useOwnerAccessStore } from "@/state/ownerAccessStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
@@ -29,6 +30,7 @@ const initialState: VerificationState = {
 export function LocalDataVerificationPanel() {
   const [state, setState] = useState<VerificationState>(initialState);
   const [busy, setBusy] = useState(false);
+  const disableOwnerProtection = useOwnerAccessStore((store) => store.disableProtection);
   const themeMode = useThemeStore((store) => store.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
 
@@ -93,6 +95,7 @@ export function LocalDataVerificationPanel() {
   async function clearData() {
     await runAction(async () => {
       const counts = await clearLocalPilotData();
+      disableOwnerProtection();
       const migrations = await getAppliedMigrations();
       const integrity = await verifySaleIntegrity();
       return {

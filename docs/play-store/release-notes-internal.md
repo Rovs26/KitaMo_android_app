@@ -1,4 +1,4 @@
-# Internal Testing Release Notes — KitaMo (Pilot) 0.1.0 (versionCode 1)
+# Internal Testing Release Notes — KitaMo 1.0.0 (versionCode 1)
 
 ## What this is
 
@@ -8,7 +8,8 @@ First internal-testing build of KitaMo — a **local-first** selling and profit 
 
 - Fresh vs Demo first launch; owner/business/stall setup
 - Inventory with low-stock alerts and Notify Owner
-- Kiosk selling: cash/GCash/Maya/bank references, bundle pricing (e.g. 8 for ₱150), discounts, text receipts (copy/share), orders, shift summary
+- Kiosk selling: favorites, recent products, category/search filters, quick quantity controls, cash/GCash/Maya/bank references, bundle pricing, discounts, text receipts, orders, and shift summary
+- Retry-safe checkout: duplicate taps or a repeated checkout token return one sale and one receipt
 - Grocery Pool: purchases per brand/source with cost per unit and low-stock badges
 - Recipes: selected-lot costing, custom cost lines, cost per piece, makeable quantity, bottleneck ingredient
 - Production per stall with automatic ingredient deduction and batch costing
@@ -17,6 +18,8 @@ First internal-testing build of KitaMo — a **local-first** selling and profit 
 - Fixed costs (rent, sweldo, bills) with due/overdue tracking and mark-paid
 - Profit Reports: per-stall and consolidated (revenue, puhunan, fixed costs, sayang, net profit) across today/week/month/all
 - Local Helper (answers from on-device records only), Records, Insights, in-app Pilot Guide
+- Optional local Owner PIN and Android fingerprint/face confirmation for shared phones
+- Android backup disabled; in-app confirmed full local reset
 
 ## What testers should focus on
 

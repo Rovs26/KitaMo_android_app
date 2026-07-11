@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, InlineNotice, LoadingState, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { planProduction } from "@/domain/productionMath";
 import { loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
@@ -43,6 +43,14 @@ export default function OwnerProductionScreen() {
     setOverview(nextOverview);
     setGrocery(nextGrocery);
     setSelectedBranchId((current) => current ?? nextStatus.activeBranch?.id ?? nextStatus.branches[0]?.id ?? null);
+    setSelectedRecipeId(
+      (current) =>
+        current ??
+        nextOverview.items.find(
+          (item) => item.recipe.isActive && item.lines.length > 0 && item.recipe.productionMode === "prepared_before_selling",
+        )?.recipe.id ??
+        null,
+    );
   }, []);
 
   useFocusEffect(
@@ -173,7 +181,8 @@ export default function OwnerProductionScreen() {
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Niluto gamit ang recipe — automatic ang ingredients at cost." title="Niluto" />
 
-      {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
+      {loadError ? <InlineNotice message={loadError} tone="danger" /> : null}
+      {!overview || !status || !grocery ? <LoadingState label="Loading recipes, stalls, and grocery stock..." /> : null}
 
       {!hasBusiness && status ? (
         <Card>
@@ -284,6 +293,37 @@ export default function OwnerProductionScreen() {
             </View>
           ) : null}
 
+          {selectedItem ? (
+            <View style={styles.quickQuantityRow}>
+              <Text style={[styles.fieldLabel, { color: palette.text }]}>Quick quantity</Text>
+              <View style={styles.optionWrap}>
+                <Pressable
+                  disabled={saving}
+                  onPress={() => setQuantity(String(selectedItem.recipe.outputQuantity))}
+                  style={[styles.quickQuantityButton, { backgroundColor: palette.background, borderColor: palette.border }]}
+                >
+                  <Text style={[styles.optionText, { color: palette.primary }]}>1 batch</Text>
+                </Pressable>
+                <Pressable
+                  disabled={saving}
+                  onPress={() => setQuantity(String(selectedItem.recipe.outputQuantity * 2))}
+                  style={[styles.quickQuantityButton, { backgroundColor: palette.background, borderColor: palette.border }]}
+                >
+                  <Text style={[styles.optionText, { color: palette.primary }]}>2 batches</Text>
+                </Pressable>
+                {selectedItem.makeable.units !== null && selectedItem.makeable.units > 0 ? (
+                  <Pressable
+                    disabled={saving}
+                    onPress={() => setQuantity(String(selectedItem.makeable.units))}
+                    style={[styles.quickQuantityButton, { backgroundColor: palette.background, borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.optionText, { color: palette.primary }]}>Max makeable</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+
           <FormField
             editable={!saving}
             keyboardType="decimal-pad"
@@ -341,9 +381,7 @@ export default function OwnerProductionScreen() {
             value={notes}
           />
 
-          {message ? (
-            <Text style={[styles.body, { color: messageIsError ? palette.danger : palette.success }]}>{message}</Text>
-          ) : null}
+          {message ? <InlineNotice message={message} tone={messageIsError ? "danger" : "success"} /> : null}
 
           <Pressable
             disabled={saveDisabled}
@@ -428,6 +466,17 @@ const styles = StyleSheet.create({
   },
   field: {
     gap: spacing.xs,
+  },
+  quickQuantityRow: {
+    gap: spacing.xs,
+  },
+  quickQuantityButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   fieldLabel: {
     ...typography.button,

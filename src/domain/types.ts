@@ -285,7 +285,9 @@ export type AppSettingKey =
   | "activeBusinessId"
   | "activeBranchId"
   | "hasCompletedFirstRun"
-  | "hasSeededDemoData";
+  | "hasSeededDemoData"
+  | "favoriteProductIds"
+  | "recentProductIds";
 
 export type AppSetting = {
   id: string;

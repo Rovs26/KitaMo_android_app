@@ -1,8 +1,8 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, InlineNotice, LoadingState, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { fixedCostCategories, fixedCostFrequencies } from "@/db/repositories";
 import type { FixedCostCategory, FixedCostFrequencyType } from "@/domain/types";
 import { isValidIsoDate } from "@/domain/fixedCostSchedule";
@@ -64,6 +64,7 @@ export default function OwnerFixedCostsScreen() {
   const saveLock = useRef(false);
   const actionLock = useRef(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
@@ -73,6 +74,9 @@ export default function OwnerFixedCostsScreen() {
     const nextOverview = await loadFixedCostsOverview();
     setStatus(nextStatus);
     setOverview(nextOverview);
+    if (nextOverview.items.length === 0) {
+      setShowAddForm(true);
+    }
   }, []);
 
   useFocusEffect(
@@ -197,6 +201,23 @@ export default function OwnerFixedCostsScreen() {
     }
   }
 
+  function confirmAction(costId: string, costName: string, action: "pay" | "archive") {
+    Alert.alert(
+      action === "pay" ? "Mark this cost as paid?" : "Archive fixed cost?",
+      action === "pay"
+        ? `${costName} will be included as paid in the current profit period.`
+        : `${costName} will stop appearing in active costs. Payment history stays saved.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: action === "pay" ? "Mark paid" : "Archive",
+          style: action === "archive" ? "destructive" : "default",
+          onPress: () => void runAction(costId, action),
+        },
+      ],
+    );
+  }
+
   const branches = status?.branches ?? [];
   const hasBusiness = Boolean(status?.activeBusiness);
   const items = overview?.items ?? [];
@@ -205,16 +226,21 @@ export default function OwnerFixedCostsScreen() {
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Rent, sweldo, kuryente, at regular na gastos ng stall." title="Bayarin" />
 
-      {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
+      {loadError ? <InlineNotice message={loadError} tone="danger" /> : null}
 
-      <View style={styles.metricGrid}>
+      {!overview ? <LoadingState label="Loading due dates and fixed-cost totals..." /> : <View style={styles.metricGrid}>
         <MetricCard detail="Sa susunod na 7 days" icon="D" label="Due soon" tone={(overview?.dueSoonCount ?? 0) > 0 ? "warning" : "success"} value={String(overview?.dueSoonCount ?? 0)} />
         <MetricCard detail="Lagpas na sa due date" icon="!" label="Overdue" tone={(overview?.overdueCount ?? 0) > 0 ? "danger" : "success"} value={String(overview?.overdueCount ?? 0)} />
         <MetricCard detail="Paid this month" icon="P" label="Paid" tone="success" value={formatPeso(overview?.paidThisMonthTotal ?? 0)} />
         <MetricCard detail="Total due this month" icon="₱" label="This month" tone="primary" value={formatPeso(overview?.thisMonthTotal ?? 0)} />
-      </View>
+      </View>}
 
-      <Card>
+      <SecondaryButton
+        label={showAddForm ? "Hide Fixed Cost Form" : "Add Fixed Cost"}
+        onPress={() => setShowAddForm((visible) => !visible)}
+      />
+
+      {showAddForm ? <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Add fixed cost</Text>
 
         {!hasBusiness && status ? (
@@ -294,9 +320,7 @@ export default function OwnerFixedCostsScreen() {
 
         <FormField editable={!saving} label="Notes (optional)" onChangeText={setNotes} placeholder="Example: kay Aling Baby" value={notes} />
 
-        {formMessage ? (
-          <Text style={[styles.body, { color: formIsError ? palette.danger : palette.success }]}>{formMessage}</Text>
-        ) : null}
+        {formMessage ? <InlineNotice message={formMessage} tone={formIsError ? "danger" : "success"} /> : null}
 
         <Pressable
           disabled={saving || !hasBusiness}
@@ -305,7 +329,9 @@ export default function OwnerFixedCostsScreen() {
         >
           <Text style={[styles.saveButtonText, { color: palette.kioskHeaderText }]}>{saving ? "Saving..." : "Save Fixed Cost"}</Text>
         </Pressable>
-      </Card>
+      </Card> : null}
+
+      {!showAddForm && formMessage ? <InlineNotice message={formMessage} tone={formIsError ? "danger" : "success"} /> : null}
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>My fixed costs</Text>
@@ -352,7 +378,7 @@ export default function OwnerFixedCostsScreen() {
                 {item.nextDueDate ? (
                   <Pressable
                     disabled={actingId !== null}
-                    onPress={() => runAction(item.cost.id, "pay")}
+                    onPress={() => confirmAction(item.cost.id, item.cost.name, "pay")}
                     style={[styles.smallButton, { borderColor: palette.border, opacity: actingId !== null ? 0.55 : 1 }]}
                   >
                     <Text style={[styles.smallButtonText, { color: palette.primary }]}>
@@ -362,7 +388,7 @@ export default function OwnerFixedCostsScreen() {
                 ) : null}
                 <Pressable
                   disabled={actingId !== null}
-                  onPress={() => runAction(item.cost.id, "archive")}
+                  onPress={() => confirmAction(item.cost.id, item.cost.name, "archive")}
                   style={[styles.smallButton, { borderColor: palette.border, opacity: actingId !== null ? 0.55 : 1 }]}
                 >
                   <Text style={[styles.smallButtonText, { color: palette.mutedText }]}>Archive</Text>

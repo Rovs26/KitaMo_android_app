@@ -2,7 +2,7 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, InlineNotice, LoadingState, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { loadFixedCostsOverview } from "@/services/fixedCosts";
 import { loadProfitReport, reportRanges, type ProfitReport, type ReportRange } from "@/services/profitReports";
 import { useThemeStore } from "@/state/themeStore";
@@ -52,7 +52,7 @@ export default function OwnerReportsScreen() {
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Benta, puhunan, bayarin, at tubo — per stall at buong negosyo." title="Kita Report" />
 
-      {error ? <Text style={[styles.body, { color: palette.danger }]}>{error}</Text> : null}
+      {error ? <InlineNotice message={error} tone="danger" /> : null}
 
       {highlightedStall ? (
         <View style={[styles.focusBanner, { backgroundColor: palette.softPrimary, borderColor: palette.primary }]}>
@@ -67,6 +67,7 @@ export default function OwnerReportsScreen() {
           const isSelected = entry.id === range;
           return (
             <Pressable
+              disabled={loading}
               key={entry.id}
               onPress={() => setRange(entry.id)}
               style={[
@@ -74,6 +75,7 @@ export default function OwnerReportsScreen() {
                 {
                   backgroundColor: isSelected ? palette.primary : palette.surface,
                   borderColor: isSelected ? palette.primary : palette.border,
+                  opacity: loading && !isSelected ? 0.6 : 1,
                 },
               ]}
             >
@@ -84,9 +86,7 @@ export default function OwnerReportsScreen() {
       </View>
 
       {loading ? (
-        <Card>
-          <EmptyState description="Binabasa ang local records." title="Loading report" />
-        </Card>
+        <LoadingState label="Reading local sales, costs, spoilage, and fixed costs..." />
       ) : null}
 
       {!loading && report && !report.hasBusiness ? (
@@ -122,7 +122,7 @@ export default function OwnerReportsScreen() {
 
             <View style={[styles.formulaBlock, { borderColor: palette.border, backgroundColor: palette.background }]}>
               <Text style={[styles.formulaText, { color: palette.text }]}>
-                Tubo = Benta − Puhunan − Bayarin − Nasayang
+                Net Profit = Revenue − Sold COGS − Fixed Costs − Spoilage
               </Text>
             </View>
 

@@ -14,6 +14,8 @@ import {
 } from "@/db/repositories";
 import type { Branch, Business, Product } from "@/domain/types";
 
+import { clearOwnerAccess } from "./ownerAccess";
+
 export async function initializeLocalDataFoundation(db: RepositoryDatabase = openKitamoDatabase()) {
   const migrationResult = await runMigrations(db);
   const counts = await getLocalDataCounts(db);
@@ -160,6 +162,7 @@ export async function seedDemoData(db: RepositoryDatabase = openKitamoDatabase()
 
 export async function clearLocalPilotData(db: RepositoryDatabase = openKitamoDatabase()) {
   await runMigrations(db);
+  await clearOwnerAccess();
   return clearLocalPilotDataRepository(db);
 }
 

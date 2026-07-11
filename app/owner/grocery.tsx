@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, formatQuantity, InlineNotice, LoadingState, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import { ingredientUnits } from "@/db/repositories";
 import type { IngredientUnit } from "@/domain/types";
 import { addGroceryPurchase, loadGroceryPoolSnapshot, type GroceryPoolSnapshot } from "@/services/groceryPool";
@@ -65,6 +65,7 @@ export default function OwnerGroceryScreen() {
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formIsError, setFormIsError] = useState(false);
   const [filter, setFilter] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
   const themeMode = useThemeStore((state) => state.themeMode);
@@ -73,6 +74,9 @@ export default function OwnerGroceryScreen() {
   const refresh = useCallback(async () => {
     const nextSnapshot = await loadGroceryPoolSnapshot();
     setSnapshot(nextSnapshot);
+    if (nextSnapshot.lots.length === 0) {
+      setShowAddForm(true);
+    }
   }, []);
 
   useFocusEffect(
@@ -221,9 +225,9 @@ export default function OwnerGroceryScreen() {
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="I-track ang grocery at sangkap bago ang recipe costing." title="Grocery Stock" />
 
-      {loadError ? <Text style={[styles.body, { color: palette.danger }]}>{loadError}</Text> : null}
+      {loadError ? <InlineNotice message={loadError} tone="danger" /> : null}
 
-      <View style={styles.metricGrid}>
+      {!snapshot ? <LoadingState label="Loading grocery lots and remaining values..." /> : <View style={styles.metricGrid}>
         <MetricCard detail="Remaining stock value" icon="₱" label="Grocery Value" tone="primary" value={formatPeso(snapshot?.totalRemainingValue ?? 0)} />
         <MetricCard detail="Saved sa pool" icon="I" label="Ingredients" tone="success" value={String(snapshot?.ingredientCount ?? 0)} />
         <MetricCard
@@ -234,11 +238,15 @@ export default function OwnerGroceryScreen() {
           value={String(snapshot?.lowStockIngredients.length ?? 0)}
         />
         <MetricCard detail="Last 7 days" icon="G" label="Purchases" tone="accent" value={String(snapshot?.recentLotCount ?? 0)} />
-      </View>
+      </View>}
 
       <SecondaryButton href="/owner/recipes" label="Use ingredients in a recipe" />
+      <SecondaryButton
+        label={showAddForm ? "Hide Grocery Form" : "Add Grocery Purchase"}
+        onPress={() => setShowAddForm((visible) => !visible)}
+      />
 
-      <Card>
+      {showAddForm ? <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Add grocery item</Text>
         {!snapshot?.hasBusiness && snapshot ? (
           <Text style={[styles.body, { color: palette.warning }]}>Create your business profile in Owner Settings first.</Text>
@@ -320,9 +328,7 @@ export default function OwnerGroceryScreen() {
           value={form.notes}
         />
 
-        {formMessage ? (
-          <Text style={[styles.body, { color: formIsError ? palette.danger : palette.success }]}>{formMessage}</Text>
-        ) : null}
+        {formMessage ? <InlineNotice message={formMessage} tone={formIsError ? "danger" : "success"} /> : null}
 
         <Pressable
           disabled={saving || !snapshot?.hasBusiness}
@@ -331,7 +337,7 @@ export default function OwnerGroceryScreen() {
         >
           <Text style={[styles.saveButtonText, { color: palette.kioskHeaderText }]}>{saving ? "Saving..." : "Save Grocery Item"}</Text>
         </Pressable>
-      </Card>
+      </Card> : null}
 
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Grocery stock</Text>

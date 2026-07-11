@@ -20,7 +20,8 @@ export type LocalIdKind =
   | "sale_usage"
   | "transfer"
   | "fixed_cost"
-  | "fixed_cost_payment";
+  | "fixed_cost_payment"
+  | "checkout";
 
 function shortRandom() {
   return Math.random().toString(36).slice(2, 8);
@@ -52,3 +53,4 @@ export const makeSaleUsageId = () => makeLocalId("sale_usage");
 export const makeTransferId = () => makeLocalId("transfer");
 export const makeFixedCostId = () => makeLocalId("fixed_cost");
 export const makeFixedCostPaymentId = () => makeLocalId("fixed_cost_payment");
+export const makeCheckoutId = () => makeLocalId("checkout");

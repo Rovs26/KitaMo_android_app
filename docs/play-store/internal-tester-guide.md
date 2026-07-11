@@ -1,4 +1,4 @@
-# KitaMo (Pilot) — Internal Tester Guide
+# KitaMo 1.0.0 Pilot - Internal Tester Guide
 
 Salamat sa pag-test! Ang KitaMo ay local-first: lahat ng data ay nasa phone mo lang. Walang account, walang cloud — kaya libre kang mag-experiment.
 

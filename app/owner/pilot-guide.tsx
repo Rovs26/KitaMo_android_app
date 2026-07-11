@@ -37,7 +37,7 @@ const notYetItems = [
   "Full Lis AI (local helper lang muna)",
   "Camera / picture ng resibo",
   "Bluetooth printing",
-  "Play Store release (pilot pa lang ito)",
+  "BIR / official-receipt compliance",
 ];
 
 export default function OwnerPilotGuideScreen() {
@@ -90,8 +90,8 @@ export default function OwnerPilotGuideScreen() {
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Gusto mong mag-ulit ng test?</Text>
         <Text style={[styles.body, { color: palette.mutedText }]}>
-          Ang Clear Local Data ay nasa developer tools at hindi lumalabas sa normal na paggamit. Kapag kailangan mong magsimula
-          ulit, sabihan lang ang KitaMo team.
+          Sa Owner Settings, gamitin ang Clear All Local Pilot Data. May confirmation bago mabura ang records, settings, at Owner
+          lock. Hindi automatic na babalik ang Demo data.
         </Text>
         <SecondaryButton href="/owner/settings" label="Back to Settings" />
       </Card>

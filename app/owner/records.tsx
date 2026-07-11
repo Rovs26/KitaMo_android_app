@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AppTopBar, Card, EmptyState, formatPeso, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
+import { AppTopBar, Card, EmptyState, formatPeso, InlineNotice, LoadingState, MetricCard, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
 import {
   getLogbookDateGroup,
   listLogbookEvents,
@@ -134,18 +134,21 @@ export default function OwnerRecordsScreen() {
     <ScreenScroll bottomNav>
       <AppTopBar subtitle="Timeline ng benta, grocery, niluto, bayarin, at iba pa." title="Logbook" />
 
-      {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
+      {error ? <InlineNotice message={error} tone="danger" /> : null}
 
-      <View style={styles.summaryGrid}>
+      {loading ? <LoadingState label="Loading the local business timeline..." /> : <View style={styles.summaryGrid}>
         <MetricCard detail="All events" iconName="document-text-outline" label="Entries" tone="primary" value={String(summary.eventCount)} />
         <MetricCard detail="Benta records" iconName="cash-outline" label="Benta" tone="success" value={String(summary.bentaCount)} />
         <MetricCard detail="Total benta amount" iconName="wallet-outline" label="Benta total" tone="accent" value={formatPeso(summary.bentaTotal)} />
-      </View>
+      </View>}
 
       <SecondaryButton href="/owner/reports" label="Open Kita Report" />
 
       <Card>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Money timeline</Text>
+        <View style={styles.timelineHeader}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Money timeline</Text>
+          {!loading ? <Pill label={`${filteredEvents.length} shown`} tone="neutral" /> : null}
+        </View>
         <View style={styles.filterRow}>
           {filters.map((filter) => {
             const active = activeFilter === filter.id;
@@ -166,8 +169,6 @@ export default function OwnerRecordsScreen() {
             );
           })}
         </View>
-
-        {loading ? <EmptyState description="Binabasa ang local logbook." title="Loading logbook" /> : null}
 
         {!loading && filteredEvents.length === 0 ? (
           <>
@@ -282,6 +283,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.heading,
+  },
+  timelineHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
   },
   filterRow: {
     flexDirection: "row",

@@ -20,7 +20,7 @@ export function NetworkStatusBadge({ pendingQueueCount, compact = false }: Netwo
     networkState.isConnected === false ||
     networkState.isInternetReachable === false;
   const online = networkState.isConnected === true && networkState.isInternetReachable !== false;
-  const statusLabel = online ? "Online" : offline ? "Offline / Local mode" : "Local mode";
+  const statusLabel = online ? "Online · Local-only" : offline ? "Offline · Local mode" : "Local mode";
 
   return (
     <View
@@ -34,7 +34,9 @@ export function NetworkStatusBadge({ pendingQueueCount, compact = false }: Netwo
       ]}
     >
       <Text style={[styles.status, { color: offline ? palette.warning : palette.text }]}>{statusLabel}</Text>
-      <Text style={[styles.pending, { color: palette.mutedText }]}>{compact ? `${pendingQueueCount} pending` : `Pending: ${pendingQueueCount}`}</Text>
+      <Text style={[styles.pending, { color: palette.mutedText }]}>
+        {compact ? `${pendingQueueCount} local saves` : `Local save queue: ${pendingQueueCount}`}
+      </Text>
     </View>
   );
 }
