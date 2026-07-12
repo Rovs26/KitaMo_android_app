@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { OwnerContextBar, OWNER_CONTEXT_BAR_HEIGHT } from "@/components/owner/OwnerContextBar";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes, type ThemePalette } from "@/theme/colors";
 import { radius } from "@/theme/radius";
@@ -63,7 +64,9 @@ export function ScreenScroll({
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 10);
   const hasNav = bottomNav || kioskNav;
-  const bottomPadding = hasNav ? BOTTOM_NAV_BASE_HEIGHT + bottomInset + spacing.lg : bottomInset + spacing.lg;
+  const bottomPadding = hasNav
+    ? BOTTOM_NAV_BASE_HEIGHT + OWNER_CONTEXT_BAR_HEIGHT + bottomInset + spacing.lg
+    : bottomInset + spacing.lg;
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
@@ -380,18 +383,21 @@ function OwnerBottomNav() {
         { backgroundColor: palette.surface, borderColor: palette.border, paddingBottom: Math.max(insets.bottom, 10) },
       ]}
     >
-      {tabs.map((tab) => (
-        <Link key={tab.label} href={tab.href} asChild>
-          <Pressable style={styles.bottomNavItem}>
-            <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
-              <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
-            </View>
-            <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        </Link>
-      ))}
+      <OwnerContextBar mode="owner" />
+      <View style={styles.bottomNavTabs}>
+        {tabs.map((tab) => (
+          <Link key={tab.label} href={tab.href} asChild>
+            <Pressable style={styles.bottomNavItem}>
+              <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
+                <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
+              </View>
+              <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          </Link>
+        ))}
+      </View>
     </View>
   );
 }
@@ -415,16 +421,19 @@ function KioskBottomNav() {
         { backgroundColor: palette.surface, borderColor: palette.border, paddingBottom: Math.max(insets.bottom, 10) },
       ]}
     >
-      {tabs.map((tab) => (
-        <Pressable key={tab.label} onPress={() => router.replace(tab.href)} style={styles.bottomNavItem}>
-          <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
-            <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
-          </View>
-          <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
-            {tab.label}
-          </Text>
-        </Pressable>
-      ))}
+      <OwnerContextBar mode="kiosk" />
+      <View style={styles.bottomNavTabs}>
+        {tabs.map((tab) => (
+          <Pressable key={tab.label} onPress={() => router.replace(tab.href)} style={styles.bottomNavItem}>
+            <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
+              <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
+            </View>
+            <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -666,12 +675,14 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     bottom: 0,
     elevation: 8,
-    flexDirection: "row",
     left: 0,
-    paddingHorizontal: spacing.sm,
-    paddingTop: 6,
     position: "absolute",
     right: 0,
+  },
+  bottomNavTabs: {
+    flexDirection: "row",
+    paddingHorizontal: spacing.sm,
+    paddingTop: 6,
   },
   bottomNavItem: {
     alignItems: "center",

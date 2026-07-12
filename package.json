@@ -11,6 +11,7 @@
     "android": "EXPO_NO_DOTENV=1 EXPO_NO_TELEMETRY=1 expo start --android",
     "lint": "EXPO_NO_DOTENV=1 EXPO_NO_TELEMETRY=1 expo lint",
     "typecheck": "tsc --noEmit",
+    "check:owner-context": "tsc src/domain/ownerContext.ts --outDir node_modules/.cache/kitamo-owner-context-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-owner-context.js",
     "check:pricing": "tsc src/domain/pricing.ts --outDir node_modules/.cache/kitamo-pricing-check --module commonjs --target es2020 --skipLibCheck && node scripts/check-pricing.js",
     "check:recipes": "tsc src/domain/recipeCosting.ts --outDir node_modules/.cache/kitamo-recipe-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-recipe-costing.js",
     "check:production": "tsc src/domain/productionMath.ts --outDir node_modules/.cache/kitamo-production-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-production-math.js",

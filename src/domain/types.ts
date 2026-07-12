@@ -284,6 +284,7 @@ export type AppSettingKey =
   | "themeMode"
   | "activeBusinessId"
   | "activeBranchId"
+  | `activeBranchId:${string}`
   | "hasCompletedFirstRun"
   | "hasSeededDemoData"
   | "favoriteProductIds"

@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppTopBar, Card, EmptyState, LoadingState, Pill, ScreenScroll, SectionHeader } from "@/components/ui/KitaMoUI";
 import { listRecentOwnerAlerts, resolveOwnerAlert } from "@/db/repositories";
 import type { OwnerAlert, OwnerAlertSeverity } from "@/domain/types";
-import { loadOwnerSetupStatus } from "@/services/ownerSetup";
+import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { radius } from "@/theme/radius";
@@ -15,6 +15,7 @@ import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 type AlertView = "active" | "resolved";
+type AlertScope = "all" | "business" | "activeStall";
 
 const severityLabels: Record<OwnerAlertSeverity, string> = {
   info: "Info",
@@ -30,8 +31,10 @@ const severityTones: Record<OwnerAlertSeverity, "neutral" | "warning" | "danger"
 
 export default function OwnerNotificationsScreen() {
   const [alerts, setAlerts] = useState<OwnerAlert[]>([]);
+  const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
   const [branchNames, setBranchNames] = useState<Record<string, string>>({});
   const [view, setView] = useState<AlertView>("active");
+  const [scope, setScope] = useState<AlertScope>("all");
   const [loading, setLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +48,10 @@ export default function OwnerNotificationsScreen() {
     try {
       const status = await loadOwnerSetupStatus();
       const nextAlerts = status.activeBusiness ? await listRecentOwnerAlerts(status.activeBusiness.id, 100) : [];
+      setStatus(status);
       setAlerts(nextAlerts);
       setBranchNames(Object.fromEntries(status.branches.map((branch) => [branch.id, branch.branchName])));
+      setScope((current) => (current === "activeStall" && !status.activeBranch ? "all" : current));
       setError(null);
     } catch (loadError) {
       logDevError("OwnerNotifications.refresh", loadError);
@@ -64,7 +69,25 @@ export default function OwnerNotificationsScreen() {
 
   const activeCount = useMemo(() => alerts.filter((alert) => alert.status === "active").length, [alerts]);
   const resolvedCount = alerts.length - activeCount;
-  const visibleAlerts = useMemo(() => alerts.filter((alert) => alert.status === view), [alerts, view]);
+  const visibleAlerts = useMemo(
+    () =>
+      alerts.filter((alert) => {
+        if (alert.status !== view) {
+          return false;
+        }
+
+        if (scope === "business") {
+          return alert.branchId === null;
+        }
+
+        if (scope === "activeStall") {
+          return Boolean(status?.activeBranch && alert.branchId === status.activeBranch.id);
+        }
+
+        return true;
+      }),
+    [alerts, scope, status?.activeBranch, view],
+  );
 
   async function resolve(alertId: string) {
     if (resolveLock.current) {
@@ -115,6 +138,17 @@ export default function OwnerNotificationsScreen() {
       <View style={[styles.segmentedControl, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <SegmentButton count={activeCount} label="Active" onPress={() => setView("active")} selected={view === "active"} />
         <SegmentButton count={resolvedCount} label="Resolved" onPress={() => setView("resolved")} selected={view === "resolved"} />
+      </View>
+
+      <View style={styles.scopeRow}>
+        <ScopeButton label="All stalls" onPress={() => setScope("all")} selected={scope === "all"} />
+        <ScopeButton label="Business-wide" onPress={() => setScope("business")} selected={scope === "business"} />
+        <ScopeButton
+          disabled={!status?.activeBranch}
+          label={status?.activeBranch?.branchName ?? "No active stall"}
+          onPress={() => setScope("activeStall")}
+          selected={scope === "activeStall"}
+        />
       </View>
 
       {loading ? <LoadingState label="Reading local alerts..." /> : null}
@@ -184,6 +218,42 @@ function SegmentButton({ label, count, selected, onPress }: { label: string; cou
   );
 }
 
+function ScopeButton({
+  label,
+  selected,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[
+        styles.scopeButton,
+        {
+          backgroundColor: selected ? palette.softPrimary : palette.surface,
+          borderColor: selected ? palette.primary : palette.border,
+          opacity: disabled ? 0.5 : 1,
+        },
+      ]}
+    >
+      <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={[styles.scopeText, { color: selected ? palette.primary : palette.mutedText }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function formatAlertTime(value: string) {
   return new Date(value).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
 }
@@ -236,7 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.xs,
     justifyContent: "center",
-    minHeight: 42,
+    minHeight: 44,
   },
   segmentText: {
     fontSize: 13,
@@ -254,6 +324,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     lineHeight: 13,
+  },
+  scopeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  scopeButton: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    maxWidth: "100%",
+    paddingHorizontal: spacing.md,
+  },
+  scopeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
   },
   alertList: {
     gap: spacing.sm,
@@ -300,7 +388,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
   },
   resolveText: {

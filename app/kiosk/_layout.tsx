@@ -8,6 +8,8 @@ import { themePalettes } from "@/theme/colors";
 
 export default function KioskLayout() {
   const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
+  const activeBusinessId = useAppStore((state) => state.activeBusinessId);
+  const activeBranchId = useAppStore((state) => state.activeBranchId);
   const kioskSessionBranchId = useAppStore((state) => state.kioskSessionBranchId);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
@@ -17,7 +19,10 @@ export default function KioskLayout() {
     lockOwnerAccess();
   }, [lockOwnerAccess]);
 
-  if (pathname !== "/kiosk" && !kioskSessionBranchId) {
+  if (
+    pathname !== "/kiosk" &&
+    (!activeBusinessId || !activeBranchId || !kioskSessionBranchId || activeBranchId !== kioskSessionBranchId)
+  ) {
     return <Redirect href="/kiosk" />;
   }
 

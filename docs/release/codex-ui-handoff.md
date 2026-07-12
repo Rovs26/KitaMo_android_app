@@ -44,6 +44,7 @@ Avoid in seller-facing UI: schema, migration, queue, engine, lifecycle, debug, d
 - **Nested scrolling**: screens use `ScreenScroll` (a ScrollView). Do NOT put a `FlatList` inside it — it triggers the VirtualizedList-nesting warning and breaks scroll. Pilot lists are small; plain `.map` is intentional.
 - **Safe area**: top/bottom insets come from `ScreenScroll` + `react-native-safe-area-context`. Don't hardcode status-bar or nav-bar padding.
 - **Large fonts**: titles cap at `maxFontSizeMultiplier={1.3}`; keep that when editing headings.
+- **Context strip**: keep the Owner/Kiosk context strip compact on 360×800 screens, with a minimum 44px touch target, bounded font scaling, truncation instead of overlap, and enough scroll padding above it.
 - **Keyboard**: `android.softwareKeyboardLayoutMode: "resize"` keeps save buttons visible; don't change it.
 
 ## Commands Codex must run before committing
@@ -51,12 +52,14 @@ Avoid in seller-facing UI: schema, migration, queue, engine, lifecycle, debug, d
 ```sh
 npm run typecheck
 npm run lint
+npm run check:owner-context
 npm run check:pricing
 npm run check:recipes
 npm run check:production
 npm run check:cogs
 npm run check:fixedcosts
 npm run check:pilot
+npm run check:migrations
 npx expo export --platform android
 ```
 

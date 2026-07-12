@@ -191,10 +191,7 @@ export default function OwnerHomeScreen() {
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const resolveLock = useRef(false);
-  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
-  const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
-  const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
-  const setKioskSessionBranchId = useAppStore((state) => state.setKioskSessionBranchId);
+  const setOwnerContext = useAppStore((state) => state.setOwnerContext);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const router = useRouter();
@@ -233,10 +230,7 @@ export default function OwnerHomeScreen() {
           setEstimatedCogsCount(nextAnalytics.lifecycle.estimatedCogsCountToday);
           setUnsoldGoodsValue(nextAnalytics.lifecycle.unsoldFinishedValue);
           setFixedCostAttention({ overdue: fixedOverview.overdueCount, dueSoon: fixedOverview.dueSoonCount });
-          setActiveBusinessId(businessId);
-          setActiveBranchId(nextStatus.activeBranch?.id ?? null);
-          setKioskSessionBranchId(null);
-          setCurrentMode("owner");
+          setOwnerContext(nextStatus.activeBusiness, nextStatus.activeBranch);
           setError(null);
         } catch (loadError) {
           logDevError("OwnerHome.loadStatus", loadError);
@@ -251,7 +245,7 @@ export default function OwnerHomeScreen() {
       return () => {
         active = false;
       };
-    }, [setActiveBranchId, setActiveBusinessId, setCurrentMode, setKioskSessionBranchId]),
+    }, [setOwnerContext]),
   );
 
   async function resolveAlert(alert: OwnerAlert) {
@@ -275,7 +269,7 @@ export default function OwnerHomeScreen() {
   }
 
   const setupComplete = Boolean(status?.activeBusiness && status.activeBranch && status.productCount > 0);
-  const activeBusiness = status?.activeBusiness?.businessName ?? "Set up your business";
+  const activeBusiness = status?.activeBusiness?.businessName ?? (status?.businesses.length ? "Choose a business" : "Set up your business");
   const activeBranch = status?.activeBranch?.branchName ?? "No active stall yet";
   const salesTotal = today?.salesTotal ?? 0;
   const costTotal = today?.costTotal ?? 0;
@@ -345,8 +339,10 @@ export default function OwnerHomeScreen() {
             <Text numberOfLines={1} style={[styles.businessHubTitle, { color: palette.text }]}>{activeBusiness}</Text>
             <Text style={[styles.body, { color: palette.mutedText }]}>
               {status?.activeBusiness
-                ? `${status.stallCount} stall${status.stallCount === 1 ? "" : "s"} · Last used Kiosk: ${activeBranch}`
-                : "Create a local business profile to begin."}
+                ? `${status.stallCount} stall${status.stallCount === 1 ? "" : "s"} · Active stall: ${activeBranch}`
+                : status?.businesses.length
+                  ? `${status.businesses.length} saved business${status.businesses.length === 1 ? "" : "es"} · No business selected`
+                  : "Create a local business profile to begin."}
             </Text>
           </View>
           <Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />
@@ -355,9 +351,9 @@ export default function OwnerHomeScreen() {
           <View style={styles.businessHubAction}>
             <SecondaryButton href="/owner/business-settings" label="Manage business & stalls" />
           </View>
-          {status?.branches.some((branch) => branch.active) ? (
+          {status?.businesses.length ? (
             <View style={styles.businessHubAction}>
-              <SecondaryButton href="/kiosk" label="Choose Kiosk stall" />
+              <SecondaryButton href="/owner/context" label="Switch context" />
             </View>
           ) : null}
         </View>
@@ -374,7 +370,11 @@ export default function OwnerHomeScreen() {
         <Card>
           <SectionHeader action={<SecondaryButton href="/owner/business-settings" label="Continue" />} title="Finish setup" />
           <View style={styles.setupRows}>
-            <SetupRow label="Business profile" ready={Boolean(status.activeBusiness)} />
+            <SetupRow
+              label="Business selected"
+              ready={Boolean(status.activeBusiness)}
+              value={!status.activeBusiness && status.businesses.length > 0 ? `${status.businesses.length} saved` : undefined}
+            />
             <SetupRow label="Store or stall" ready={status.stallCount > 0} />
             <SetupRow label="Paninda" ready={status.productCount > 0} value={`${status.productCount} saved`} />
           </View>
@@ -399,7 +399,10 @@ export default function OwnerHomeScreen() {
             })}
           </View>
         ) : (
-          <EmptyState description="Add a stall in Business & Stalls before opening Kiosk." title="No stalls yet" />
+          <EmptyState
+            description={status?.businesses.length && !status.activeBusiness ? "Choose a business to see and manage its stalls." : "Add a stall in Business & Stalls before opening Kiosk."}
+            title={status?.businesses.length && !status.activeBusiness ? "No business selected" : "No stalls yet"}
+          />
         )}
       </Card>
 
@@ -582,7 +585,7 @@ function StallFinanceCard({ stall, enabled, isSelected }: { stall: StallReport; 
         <View style={styles.stallCardHeader}>
           <View style={styles.stallTitleWrap}>
             <Text style={[styles.stallName, { color: palette.text }]}>{stall.branchName}</Text>
-            {isSelected ? <Text style={[styles.selectedStallLabel, { color: palette.primary }]}>Last used in Kiosk</Text> : null}
+            {isSelected ? <Text style={[styles.selectedStallLabel, { color: palette.primary }]}>Owner context</Text> : null}
           </View>
           <Pill label={enabled ? stallStatusLabel(stallStatus) : "Inactive"} tone={enabled ? stallStatusTone(stallStatus) : "neutral"} />
         </View>

@@ -63,12 +63,14 @@ export default function OwnerSettingsIndexScreen() {
             <IconBadge icon="business-outline" size="lg" tone="primary" />
             <View style={styles.contextCopy}>
               <Text numberOfLines={1} style={[styles.contextTitle, { color: palette.text }]}>
-                {status.activeBusiness?.businessName ?? "No business profile yet"}
+                {status.activeBusiness?.businessName ?? (status.businesses.length ? "No business selected" : "No business profile yet")}
               </Text>
               <Text style={[styles.body, { color: palette.mutedText }]}>
                 {status.activeBusiness
                   ? `${status.activeBranch?.branchName ?? "No active stall"} · ${status.stallCount} stall${status.stallCount === 1 ? "" : "s"}`
-                  : "Set up a business and stall before opening Kiosk."}
+                  : status.businesses.length
+                    ? `${status.businesses.length} saved business${status.businesses.length === 1 ? "" : "es"} · choose one to continue`
+                    : "Set up a business and stall before opening Kiosk."}
               </Text>
             </View>
             <Pill label={status.mode === "demo" ? "Demo" : "Local"} tone={status.mode === "demo" ? "accent" : "success"} />
@@ -78,6 +80,13 @@ export default function OwnerSettingsIndexScreen() {
 
       <Card>
         <SectionHeader title="Business & Access" />
+        <SettingsRow
+          description="Choose the persistent local Owner business and active stall"
+          href="/owner/context"
+          icon="swap-horizontal-outline"
+          title="Switch Business or Stall"
+          tone="accent"
+        />
         <SettingsRow
           description="Business profile, stores, stalls, and the active Kiosk stall"
           href="/owner/business-settings"

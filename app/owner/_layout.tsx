@@ -1,12 +1,21 @@
-import { Stack } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 import { OwnerAccessGate } from "@/components/owner/OwnerAccessGate";
+import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 
 export default function OwnerLayout() {
+  const clearKioskSession = useAppStore((state) => state.clearKioskSession);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+
+  useFocusEffect(
+    useCallback(() => {
+      clearKioskSession();
+    }, [clearKioskSession]),
+  );
 
   return (
     <OwnerAccessGate>
@@ -32,6 +41,7 @@ export default function OwnerLayout() {
       <Stack.Screen name="pilot-guide" options={{ title: "Pilot Guide" }} />
       <Stack.Screen name="insights" options={{ title: "Insights" }} />
       <Stack.Screen name="settings" options={{ title: "Settings" }} />
+      <Stack.Screen name="context" options={{ title: "Business & Stall Context" }} />
       <Stack.Screen name="business-settings" options={{ title: "Business & Stalls" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
       <Stack.Screen name="about" options={{ title: "About KitaMo" }} />

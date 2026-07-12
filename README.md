@@ -33,6 +33,9 @@ The Android app is the seller-product source of truth. The original PWA is froze
 - Every Owner-to-Kiosk entry requires an active stall selection and confirmation. Direct Kiosk operational routes are returned to the stall picker unless the current app session has confirmed a stall.
 - Kiosk remains a shared-device pilot mode. There are no seller accounts, join codes, remote approvals, scheduled shifts, or multi-device assignments in this release.
 - Settings is now an index for Business & Stalls, Owner Access & Security, local alerts, privacy, Pilot Guide, and About KitaMo. Existing business, security, and local-data controls remain on the Business & Stalls screen.
+- Owners can create and switch among multiple local businesses. Each business remembers only its last valid active stall; invalid, inactive, or missing stored context appears empty until the owner deliberately selects again.
+- A compact context strip stays above Owner and Kiosk navigation. Persistent Owner context never acts as a Kiosk session grant; Kiosk confirmation remains transient and is lost when the app process closes.
+- `All stalls` is used only for business-wide summaries, alerts, and reports. Operational actions continue to require the explicit stall context already required by their existing engines.
 
 ### Profit contract
 
@@ -49,6 +52,7 @@ Revenue
 ```sh
 npm run typecheck
 npm run lint
+npm run check:owner-context
 npm run check:pricing
 npm run check:recipes
 npm run check:production
@@ -361,7 +365,7 @@ Phase 7 added the operational layer for food sellers: local-only owner alerts, N
 - A reference number typed for GCash/Maya/bank is no longer saved onto the sale (or printed on the receipt) when the seller switches back to cash before checkout.
 - Invalid discount input now blocks checkout with a friendly message instead of being silently treated as zero.
 - Demo seeding now runs in one SQLite transaction (no partial demo data if interrupted) and the first-run buttons have a double-tap lock, so demo data cannot be created twice.
-- Deactivating the currently active stall now moves the active selection to another active stall when one exists.
+- Deactivating the currently active stall clears the stall context and requires deliberate reselection; KitaMo never silently reassigns or reactivates a stall.
 - Cooking a low-stock product back above its threshold now auto-resolves its active low-stock alert, so Notify Owner can fire again on the next shortage.
 - Unsaved Business Profile edits are no longer wiped when a stall is added, edited, or selected.
 - Number fields (stock, prices, bundle, cook/spoilage quantities, discount) now reject commas and non-numeric input with a friendly message instead of silently saving 0.
@@ -382,7 +386,7 @@ Phase 7 added the operational layer for food sellers: local-only owner alerts, N
 
 - Shift Summary shows all sales saved on the phone (there is no shift open/close yet); the subtitle says so.
 - Service-type products still track a stock quantity; give them a high stock number for now so they stay sellable.
-- Owner Home shows up to 4 active alerts; resolve them to see the rest. There is no separate alerts screen yet.
+- Owner Home previews active alerts; the local Notification Center provides active/resolved history and business/stall filters.
 - Expenses (Gastos) are not recorded yet, so Tubo is benta minus product cost only.
 
 ## Run
@@ -391,11 +395,14 @@ Phase 7 added the operational layer for food sellers: local-only owner alerts, N
 npm install
 npm run typecheck
 npm run lint
+npm run check:owner-context
 npm run check:pricing
 npm run check:recipes
 npm run check:production
 npm run check:cogs
 npm run check:fixedcosts
+npm run check:pilot
+npm run check:migrations
 npm run start
 ```
 
@@ -516,7 +523,7 @@ Owner Home reads the local database and shows:
 
 Phase 5.8 presents this as a more compact seller dashboard with a smaller KitaMo top bar, active business context, Today's Kita hero card, controlled metric sizing, setup status, quick actions, and a polished empty state when no local sales exist.
 
-Owner Settings supports creating and editing the local business profile, adding/editing stalls or stores, and selecting the active stall through `app_settings.activeBranchId`.
+Owner Settings supports creating, editing, and switching local businesses; adding/editing stalls or stores; and selecting the active stall. `app_settings.activeBranchId` keeps the current selection, while a per-business setting remembers only an explicitly selected valid stall.
 
 Owner Settings separates Business Profile, Store / Stall, Pilot App Status, and Data & Privacy. SQLite/native errors are logged in development and shown to users as short friendly messages.
 

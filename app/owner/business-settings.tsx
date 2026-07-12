@@ -12,8 +12,14 @@ import {
   updateBranch,
   updateBusiness,
 } from "@/db/repositories";
-import type { Branch, BusinessType } from "@/domain/types";
-import { loadOwnerSetupStatus, setActiveBranch, setActiveBusiness, type OwnerSetupStatus } from "@/services/ownerSetup";
+import type { Branch, Business, BusinessType } from "@/domain/types";
+import {
+  clearActiveBranchContext,
+  loadOwnerSetupStatus,
+  switchActiveBranchContext,
+  switchActiveBusinessContext,
+  type OwnerSetupStatus,
+} from "@/services/ownerSetup";
 import {
   clearOwnerAccess,
   getOwnerAccessStatus,
@@ -82,8 +88,20 @@ const emptyBranchForm: BranchForm = {
   notes: "",
 };
 
+function toBusinessForm(business: Business): BusinessForm {
+  return {
+    businessName: business.businessName,
+    businessType: business.businessType,
+    ownerName: business.ownerName,
+    contactNumber: business.contactNumber ?? "",
+    barangay: business.barangay,
+    notes: business.notes ?? "",
+  };
+}
+
 export default function OwnerSettingsScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
+  const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
   const [businessForm, setBusinessForm] = useState<BusinessForm>(emptyBusinessForm);
   const [branchForm, setBranchForm] = useState<BranchForm>(emptyBranchForm);
   const [saving, setSaving] = useState(false);
@@ -94,10 +112,8 @@ export default function OwnerSettingsScreen() {
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
-  const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
-  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
-  const setKioskSessionBranchId = useAppStore((state) => state.setKioskSessionBranchId);
+  const setOwnerContext = useAppStore((state) => state.setOwnerContext);
+  const resetAppContext = useAppStore((state) => state.resetAppContext);
   const enableOwnerProtection = useOwnerAccessStore((state) => state.enableProtection);
   const disableOwnerProtection = useOwnerAccessStore((state) => state.disableProtection);
   const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
@@ -121,10 +137,11 @@ export default function OwnerSettingsScreen() {
       const nextOwnerAccess = await getOwnerAccessStatus();
       setStatus(nextStatus);
       setOwnerAccess(nextOwnerAccess);
-      setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
-      setActiveBranchId(nextStatus.activeBranch?.id ?? null);
+      setOwnerContext(nextStatus.activeBusiness, nextStatus.activeBranch);
 
       if (nextStatus.activeBusiness && !options?.keepBusinessForm) {
+        setEditingBusinessId(nextStatus.activeBusiness.id);
+        setBranchForm(emptyBranchForm);
         setBusinessForm({
           businessName: nextStatus.activeBusiness.businessName,
           businessType: nextStatus.activeBusiness.businessType,
@@ -133,9 +150,13 @@ export default function OwnerSettingsScreen() {
           barangay: nextStatus.activeBusiness.barangay,
           notes: nextStatus.activeBusiness.notes ?? "",
         });
+      } else if (!nextStatus.activeBusiness && !options?.keepBusinessForm) {
+        setEditingBusinessId(null);
+        setBranchForm(emptyBranchForm);
+        setBusinessForm(emptyBusinessForm);
       }
     },
-    [setActiveBranchId, setActiveBusinessId],
+    [setOwnerContext],
   );
 
   useFocusEffect(
@@ -179,14 +200,25 @@ export default function OwnerSettingsScreen() {
         preferredLanguage: "Taglish" as const,
       };
 
-      const savedBusiness = status?.activeBusiness
-        ? await updateBusiness(status.activeBusiness.id, payload)
+      const savedBusiness = editingBusinessId
+        ? await updateBusiness(editingBusinessId, payload)
         : await createBusiness(payload);
 
-      await setActiveBusiness(savedBusiness.id);
-      setActiveBusinessId(savedBusiness.id);
-      await refresh();
-      setNotice(status?.activeBusiness ? "Business profile updated." : "Business profile created.");
+      const nextStatus = editingBusinessId
+        ? await loadOwnerSetupStatus()
+        : await switchActiveBusinessContext(savedBusiness.id);
+      setStatus(nextStatus);
+      setOwnerContext(nextStatus.activeBusiness, nextStatus.activeBranch);
+      setEditingBusinessId(savedBusiness.id);
+      setBusinessForm({
+        businessName: savedBusiness.businessName,
+        businessType: savedBusiness.businessType,
+        ownerName: savedBusiness.ownerName,
+        contactNumber: savedBusiness.contactNumber ?? "",
+        barangay: savedBusiness.barangay,
+        notes: savedBusiness.notes ?? "",
+      });
+      setNotice(editingBusinessId ? "Business profile updated." : "Business created and selected. Choose a stall when ready.");
     } catch (error) {
       logDevError("OwnerSettings.saveBusinessProfile", error);
       setError(getFriendlyErrorMessage("Could not save business profile."));
@@ -195,7 +227,7 @@ export default function OwnerSettingsScreen() {
     }
   }
 
-  async function saveBranch() {
+  function saveBranch() {
     if (!status?.activeBusiness) {
       setError("Create your business profile before adding a stall or store.");
       return;
@@ -207,6 +239,27 @@ export default function OwnerSettingsScreen() {
       return;
     }
 
+    if (branchForm.id === status.activeBranch?.id && !branchForm.active) {
+      Alert.alert(
+        "Deactivate selected stall?",
+        "Owner context will have no active stall until you deliberately choose another one. Kiosk will remain unavailable.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Deactivate", style: "destructive", onPress: () => void persistBranch() },
+        ],
+      );
+      return;
+    }
+
+    void persistBranch();
+  }
+
+  async function persistBranch() {
+    if (!status?.activeBusiness) {
+      return;
+    }
+
+    const branchName = branchForm.branchName.trim();
     setSaving(true);
     setMessage(null);
     try {
@@ -224,22 +277,17 @@ export default function OwnerSettingsScreen() {
             businessId: status.activeBusiness.id,
           });
 
-      let noticeText = branchForm.id ? "Store or stall updated." : "Store or stall added.";
+      let nextStatus = await loadOwnerSetupStatus();
+      let noticeText = branchForm.id ? "Store or stall updated." : "Store or stall added. Select it explicitly to use it as Owner context.";
 
-      if (savedBranch.active || !status.activeBranch) {
-        await setActiveBranch(savedBranch.id);
-        setActiveBranchId(savedBranch.id);
-      } else if (!savedBranch.active && status.activeBranch?.id === savedBranch.id) {
-        const fallbackBranch = status.branches.find((branch) => branch.active && branch.id !== savedBranch.id);
-        if (fallbackBranch) {
-          await setActiveBranch(fallbackBranch.id);
-          setActiveBranchId(fallbackBranch.id);
-          noticeText = `Store or stall updated. ${fallbackBranch.branchName} is now the active stall.`;
-        }
+      if (!savedBranch.active && status.activeBranch?.id === savedBranch.id) {
+        nextStatus = await clearActiveBranchContext(status.activeBusiness.id);
+        noticeText = "Store or stall deactivated. No active stall is selected.";
       }
 
       setBranchForm(emptyBranchForm);
-      await refresh({ keepBusinessForm: true });
+      setStatus(nextStatus);
+      setOwnerContext(nextStatus.activeBusiness, nextStatus.activeBranch);
       setNotice(noticeText);
     } catch (error) {
       logDevError("OwnerSettings.saveBranch", error);
@@ -253,9 +301,9 @@ export default function OwnerSettingsScreen() {
     setSaving(true);
     setMessage(null);
     try {
-      await setActiveBranch(branchId);
-      setActiveBranchId(branchId);
-      await refresh({ keepBusinessForm: true });
+      const nextStatus = await switchActiveBranchContext(branchId);
+      setStatus(nextStatus);
+      setOwnerContext(nextStatus.activeBusiness, nextStatus.activeBranch);
       setNotice("Active stall updated.");
     } catch (error) {
       logDevError("OwnerSettings.chooseActiveBranch", error);
@@ -263,6 +311,42 @@ export default function OwnerSettingsScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function chooseActiveBusiness(business: Business) {
+    if (saving || status?.activeBusiness?.id === business.id) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+    try {
+      const nextStatus = await switchActiveBusinessContext(business.id);
+      setStatus(nextStatus);
+      setOwnerContext(nextStatus.activeBusiness, nextStatus.activeBranch);
+      setEditingBusinessId(business.id);
+      setBusinessForm(toBusinessForm(business));
+      setBranchForm(emptyBranchForm);
+      setNotice(nextStatus.activeBranch ? `Switched to ${business.businessName}.` : `Switched to ${business.businessName}. Choose an active stall deliberately.`);
+    } catch (error) {
+      logDevError("OwnerSettings.chooseActiveBusiness", error);
+      setError(getFriendlyErrorMessage("Could not select business."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function startNewBusiness() {
+    setEditingBusinessId(null);
+    setBusinessForm(emptyBusinessForm);
+    setBranchForm(emptyBranchForm);
+    setMessage(null);
+  }
+
+  function editBusiness(business: Business) {
+    setEditingBusinessId(business.id);
+    setBusinessForm(toBusinessForm(business));
+    setMessage(null);
   }
 
   function editBranch(branch: Branch) {
@@ -388,10 +472,7 @@ export default function OwnerSettingsScreen() {
     try {
       await clearLocalPilotData();
       disableOwnerProtection();
-      setActiveBusinessId(null);
-      setActiveBranchId(null);
-      setKioskSessionBranchId(null);
-      setCurrentMode("owner");
+      resetAppContext();
       router.replace("/");
     } catch (error) {
       logDevError("OwnerSettings.clearPilotData", error);
@@ -416,7 +497,9 @@ export default function OwnerSettingsScreen() {
             <Text style={[styles.body, { color: palette.mutedText }]}>
               {status?.activeBusiness
                 ? `${status.activeBusiness.businessType} · ${status.activeBranch?.branchName ?? "No active stall"}`
-                : "Create your local business profile to start selling."}
+                : status?.businesses.length
+                  ? "Choose a saved business to manage its stalls."
+                  : "Create your local business profile to start selling."}
             </Text>
             <Text style={[styles.body, { color: palette.mutedText }]}>
               {status?.activeBusiness?.barangay ?? "Location will appear here."}
@@ -424,11 +507,44 @@ export default function OwnerSettingsScreen() {
           </View>
           <Pill label="Owner mode" tone="accent" />
         </View>
+        <SecondaryButton href="/owner/context" label="Switch Business or Stall" />
       </Card>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Business Profile</Text>
-        {!status?.activeBusiness ? (
+        <View style={styles.cloudHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Saved Businesses</Text>
+          <SmallButton disabled={saving} label="Add business" onPress={startNewBusiness} />
+        </View>
+        {status?.businesses.length ? (
+          <View style={styles.businessList}>
+            {status.businesses.map((business) => {
+              const selected = status.activeBusiness?.id === business.id;
+              const editing = editingBusinessId === business.id;
+              return (
+                <View key={business.id} style={[styles.listItem, { borderColor: selected ? palette.primary : palette.border }]}>
+                  <View style={styles.listItemHeader}>
+                    <View style={styles.listItemText}>
+                      <Text style={[styles.listItemTitle, { color: palette.text }]}>{business.businessName}</Text>
+                      <Text style={[styles.body, { color: palette.mutedText }]}>{business.businessType} | {business.barangay}</Text>
+                    </View>
+                    <Pill label={selected ? "Selected" : editing ? "Editing" : "Saved"} tone={selected ? "success" : editing ? "accent" : "neutral"} />
+                  </View>
+                  <View style={styles.inlineActions}>
+                    <SmallButton disabled={saving || editing} label="Edit" onPress={() => editBusiness(business)} />
+                    <SmallButton disabled={saving || selected} label="Use business" onPress={() => void chooseActiveBusiness(business)} />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={[styles.empty, { color: palette.mutedText }]}>No saved businesses yet.</Text>
+        )}
+      </View>
+
+      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>{editingBusinessId ? "Edit Business Profile" : "Add Business"}</Text>
+        {!status?.activeBusiness && status?.businesses.length === 0 ? (
           <Text style={[styles.empty, { color: palette.mutedText }]}>
             Create your business profile to start tracking sales and inventory.
           </Text>
@@ -473,27 +589,36 @@ export default function OwnerSettingsScreen() {
           value={businessForm.notes}
         />
 
-        <ActionButton disabled={saving} label={status?.activeBusiness ? "Save Business Profile" : "Create Business Profile"} onPress={saveBusinessProfile} />
+        <View style={styles.inlineActions}>
+          <ActionButton disabled={saving} label={editingBusinessId ? "Save Business Profile" : "Create Business"} onPress={saveBusinessProfile} />
+          {!editingBusinessId && status?.activeBusiness ? (
+            <SmallButton disabled={saving} label="Cancel" onPress={() => editBusiness(status.activeBusiness as Business)} />
+          ) : null}
+        </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Stores / Stalls</Text>
         {!status?.activeBusiness ? (
-          <Text style={[styles.empty, { color: palette.mutedText }]}>Create a business profile before adding stores or stalls.</Text>
+          <Text style={[styles.empty, { color: palette.mutedText }]}>
+            {status?.businesses.length ? "Choose a saved business before adding or editing stalls." : "Create a business profile before adding stores or stalls."}
+          </Text>
         ) : status.branches.length === 0 ? (
           <Text style={[styles.empty, { color: palette.mutedText }]}>Add your first stall or store.</Text>
         ) : null}
 
         {status?.branches.map((branch) => {
           const selected = status.activeBranch?.id === branch.id;
+          const productCount = status.products.filter((product) => product.branchId === branch.id).length;
           return (
-            <View key={branch.id} style={[styles.listItem, { borderColor: palette.border }]}>
+            <View key={branch.id} style={[styles.listItem, { borderColor: selected ? palette.primary : palette.border }]}>
               <View style={styles.listItemHeader}>
                 <View style={styles.listItemText}>
                   <Text style={[styles.listItemTitle, { color: palette.text }]}>{branch.branchName}</Text>
                   <Text style={[styles.body, { color: palette.mutedText }]}>
                     {branch.branchType} | {branch.location ?? "No location"} | {branch.active ? "active" : "inactive"}
                   </Text>
+                  <Text style={[styles.body, { color: palette.mutedText }]}>{productCount} assigned product{productCount === 1 ? "" : "s"}</Text>
                 </View>
                 <Text style={[styles.badge, { backgroundColor: selected ? palette.primary : palette.background, color: selected ? palette.kioskHeaderText : palette.mutedText }]}>
                   {selected ? "Active" : "Saved"}
@@ -502,7 +627,12 @@ export default function OwnerSettingsScreen() {
               {branch.notes ? <Text style={[styles.body, { color: palette.mutedText }]}>{branch.notes}</Text> : null}
               <View style={styles.inlineActions}>
                 <SmallButton disabled={saving} label="Edit" onPress={() => editBranch(branch)} />
-                <SmallButton disabled={saving || selected} label="Set active" onPress={() => chooseActiveBranch(branch.id)} />
+                <SmallButton disabled={saving || selected || !branch.active} label="Use as active" onPress={() => chooseActiveBranch(branch.id)} />
+                <SmallButton
+                  disabled={saving || !branch.active}
+                  label="Open Kiosk"
+                  onPress={() => router.push({ pathname: "/kiosk", params: { branchId: branch.id } })}
+                />
               </View>
             </View>
           );
@@ -844,6 +974,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.heading,
   },
+  businessList: {
+    gap: spacing.sm,
+  },
   empty: {
     ...typography.body,
   },
@@ -935,7 +1068,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     borderWidth: 1,
-    minHeight: 38,
+    justifyContent: "center",
+    minHeight: 44,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },

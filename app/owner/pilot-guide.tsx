@@ -7,12 +7,12 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 
 const walkthroughSteps = [
-  "Sa Settings, buksan ang Business & Stalls para i-set up ang negosyo at stall.",
+  "Sa Settings, buksan ang Business & Stalls para gumawa ng negosyo at stall, tapos piliin ang active context.",
   "Add grocery items sa Grocery Stock (example: Rice, 10kg, ₱650).",
   "Add your paninda sa Inventory.",
   "Create a recipe sa Recipe Cost — piliin ang mga grocery item na gamit mo.",
   "I-produce para sa stall mo sa Niluto.",
-  "Sa Owner Home, piliin ang stall at buksan ang Kiosk — subukan ang cash at GCash.",
+  "Sa Owner Home, buksan ang stall picker, piliin ang stall, at i-confirm ang Kiosk — subukan ang cash at GCash.",
   "Check Logbook para sa benta, resibo, at stock movements.",
   "Check Insights para sa kita, puhunan, at low stock.",
   "Add a bayarin (example: Stall rent, ₱3,000 monthly).",

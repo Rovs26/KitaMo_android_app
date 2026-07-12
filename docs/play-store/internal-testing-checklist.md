@@ -62,11 +62,11 @@ Build:
 
 ## Smoke test (5 minutes)
 
-1. Launch → choose Try Demo Data → Home loads with demo stall.
-2. Choose the demo stall → Open Kiosk → sell 8 Sushi Rolls → receipt shows ₱150 (bundle price).
+1. Launch → choose Try Demo Data → Home loads with the selected demo business and stall context.
+2. Enter Kiosk from Home → explicitly choose/confirm the demo stall → sell 8 Sushi Rolls → receipt shows ₱150 (bundle price).
 3. Records shows the sale; Insights shows the kita.
-4. Kill the app, reopen → data still there.
-5. Nothing overlaps the status bar or the Android navigation area.
+4. Kill the app, reopen → Owner context and data remain, but Kiosk requires stall confirmation again.
+5. Business/stall context does not overlap the status bar, bottom tabs, or large text on a 360×800 device.
 
 ## Issue reporting
 

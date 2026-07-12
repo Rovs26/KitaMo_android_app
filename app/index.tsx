@@ -13,9 +13,8 @@ import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
-  const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
-  const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
+  const setOwnerContext = useAppStore((state) => state.setOwnerContext);
+  const resetAppContext = useAppStore((state) => state.resetAppContext);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const [checking, setChecking] = useState(true);
@@ -33,11 +32,9 @@ export default function WelcomeScreen() {
           return;
         }
 
-        setActiveBusinessId(status.activeBusiness?.id ?? null);
-        setActiveBranchId(status.activeBranch?.id ?? null);
+        setOwnerContext(status.activeBusiness, status.activeBranch);
 
         if (status.firstRunComplete) {
-          setCurrentMode("owner");
           router.replace("/owner");
           return;
         }
@@ -60,7 +57,7 @@ export default function WelcomeScreen() {
     return () => {
       mounted = false;
     };
-  }, [router, setActiveBranchId, setActiveBusinessId, setCurrentMode]);
+  }, [router, setOwnerContext]);
 
   async function startFresh() {
     if (startLock.current) {
@@ -72,9 +69,7 @@ export default function WelcomeScreen() {
     setMessage("Starting with an empty local workspace.");
     try {
       await completeFreshFirstRun();
-      setActiveBusinessId(null);
-      setActiveBranchId(null);
-      setCurrentMode("owner");
+      resetAppContext();
       router.replace("/owner");
     } catch (error) {
       logDevError("Welcome.startFresh", error);
@@ -96,9 +91,7 @@ export default function WelcomeScreen() {
     try {
       await completeDemoFirstRun();
       const status = await loadOwnerSetupStatus();
-      setActiveBusinessId(status.activeBusiness?.id ?? null);
-      setActiveBranchId(status.activeBranch?.id ?? null);
-      setCurrentMode("owner");
+      setOwnerContext(status.activeBusiness, status.activeBranch);
       router.replace("/owner");
     } catch (error) {
       logDevError("Welcome.tryDemoData", error);

@@ -16,8 +16,11 @@ Work top to bottom; each scenario lists the expected result. Tick ✅/❌ and no
 
 ### A. Setup
 - [ ] Open Settings → Business & Stalls, then create a business profile → summary card shows the business.
-- [ ] Add a stall → it becomes the active stall.
-- [ ] Add a second stall → "Set active" switches between them.
+- [ ] Add a stall → it stays saved but Kiosk remains unavailable until you deliberately select it.
+- [ ] Add a second business and stall → the Business & Stall Context screen switches between businesses without mixing their stalls.
+- [ ] Select a stall with "Use as active" → the compact Owner context strip updates.
+- [ ] Switch away and back → each business restores only its last valid active stall.
+- [ ] Deactivate the selected stall → context becomes empty; no other stall is silently selected or reactivated.
 
 ### B. Grocery Pool
 - [ ] Add "Rice, Japanese brand, 10, kg, 650" → list shows the lot; cost per unit reads ₱65 per kg.
@@ -38,7 +41,9 @@ Work top to bottom; each scenario lists the expected result. Tick ✅/❌ and no
 - [ ] Cook-upon-order recipes do NOT appear in Production (they cost automatically at sale).
 
 ### E. Kiosk selling
-- [ ] From Owner Home, choose a stall → confirm `Open Selected Kiosk` → Sell opens for that stall.
+- [ ] Enter Kiosk without a stall-card shortcut → no stall is preselected.
+- [ ] From Owner Home, choose a stall → confirm `Open Selected Kiosk` → Sell opens for that stall and its Kiosk context strip stays visible.
+- [ ] Close/reopen the app while Kiosk was open → operational Kiosk routes require stall confirmation again.
 - [ ] Sell 8 of a bundle product (8-for-₱150) → cart and receipt show ₱150, not ₱160.
 - [ ] GCash without a reference → blocked; with reference → receipt shows it.
 - [ ] Double-tap Confirm Checkout fast → exactly one sale.
@@ -62,7 +67,9 @@ Work top to bottom; each scenario lists the expected result. Tick ✅/❌ and no
 
 ### I. Shell & general
 - [ ] Nothing hides under the status bar or behind the bottom tabs; save buttons reachable on long forms.
+- [ ] On a 360×800 screen and large font setting, the context strip stays compact, readable, and tappable without covering tab labels.
 - [ ] Notifications and Settings are visible in the Home header; stalls and their Open Kiosk actions are easy to find.
+- [ ] Notifications show only the selected business and filter correctly between All stalls, Business-wide, and the active stall.
 - [ ] Local Helper answers simple questions and clearly says walang AI.
 - [ ] Close and reopen the app → all data still there.
 

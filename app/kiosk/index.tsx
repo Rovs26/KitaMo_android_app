@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppTopBar, Card, EmptyState, LoadingState, Pill, PrimaryButton, ScreenScroll, SecondaryButton, SectionHeader } from "@/components/ui/KitaMoUI";
 import type { Branch } from "@/domain/types";
-import { loadOwnerSetupStatus, setActiveBranch, type OwnerSetupStatus } from "@/services/ownerSetup";
+import { loadOwnerSetupStatus, switchActiveBranchContext, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useAppStore } from "@/state/appStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
@@ -22,9 +22,8 @@ export default function KioskStallSelectionScreen() {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const openingLock = useRef(false);
-  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
-  const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
-  const setKioskSessionBranchId = useAppStore((state) => state.setKioskSessionBranchId);
+  const confirmKioskContext = useAppStore((state) => state.confirmKioskContext);
+  const clearKioskSession = useAppStore((state) => state.clearKioskSession);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const router = useRouter();
@@ -37,7 +36,7 @@ export default function KioskStallSelectionScreen() {
       const requestedBranchId = Array.isArray(params.branchId) ? params.branchId[0] : params.branchId;
       const requestedBranch = activeBranches.find((branch) => branch.id === requestedBranchId);
       setStatus(nextStatus);
-      setSelectedBranchId((current) => requestedBranch?.id ?? (activeBranches.some((branch) => branch.id === current) ? current : null));
+      setSelectedBranchId(requestedBranch?.id ?? null);
       setError(null);
     } catch (loadError) {
       logDevError("KioskStallSelection.refresh", loadError);
@@ -49,9 +48,9 @@ export default function KioskStallSelectionScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setKioskSessionBranchId(null);
+      clearKioskSession();
       void refresh();
-    }, [refresh, setKioskSessionBranchId]),
+    }, [clearKioskSession, refresh]),
   );
 
   const activeBranches = useMemo(() => status?.branches.filter((branch) => branch.active) ?? [], [status?.branches]);
@@ -66,10 +65,11 @@ export default function KioskStallSelectionScreen() {
     setOpening(true);
     setError(null);
     try {
-      await setActiveBranch(selectedBranch.id);
-      setActiveBranchId(selectedBranch.id);
-      setKioskSessionBranchId(selectedBranch.id);
-      setCurrentMode("kiosk");
+      const nextStatus = await switchActiveBranchContext(selectedBranch.id);
+      if (!nextStatus.activeBusiness || !nextStatus.activeBranch) {
+        throw new Error("Kiosk requires a valid business and active stall.");
+      }
+      confirmKioskContext(nextStatus.activeBusiness, nextStatus.activeBranch);
       router.replace("/kiosk/sell");
     } catch (openError) {
       logDevError("KioskStallSelection.openKiosk", openError);
@@ -97,8 +97,14 @@ export default function KioskStallSelectionScreen() {
 
       {!loading && !status?.activeBusiness ? (
         <Card>
-          <EmptyState description="Create the local business profile before opening Kiosk." title="Business setup needed" />
-          <SecondaryButton href="/owner/business-settings" label="Open Business & Stalls" />
+          <EmptyState
+            description={status?.businesses.length ? "Choose a saved business deliberately before opening Kiosk." : "Create the local business profile before opening Kiosk."}
+            title={status?.businesses.length ? "No business selected" : "Business setup needed"}
+          />
+          <SecondaryButton
+            href={status?.businesses.length ? "/owner/context" : "/owner/business-settings"}
+            label={status?.businesses.length ? "Choose Business" : "Open Business & Stalls"}
+          />
         </Card>
       ) : null}
 
