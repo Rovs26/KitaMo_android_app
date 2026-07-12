@@ -7,12 +7,12 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 
 const walkthroughSteps = [
-  "Set up your business at stall sa Settings.",
+  "Sa Settings, buksan ang Business & Stalls para i-set up ang negosyo at stall.",
   "Add grocery items sa Grocery Stock (example: Rice, 10kg, ₱650).",
   "Add your paninda sa Inventory.",
   "Create a recipe sa Recipe Cost — piliin ang mga grocery item na gamit mo.",
   "I-produce para sa stall mo sa Niluto.",
-  "Start Selling sa Kiosk — subukan ang cash at GCash.",
+  "Sa Owner Home, piliin ang stall at buksan ang Kiosk — subukan ang cash at GCash.",
   "Check Logbook para sa benta, resibo, at stock movements.",
   "Check Insights para sa kita, puhunan, at low stock.",
   "Add a bayarin (example: Stall rent, ₱3,000 monthly).",
@@ -34,6 +34,8 @@ const trackedItems = [
 const notYetItems = [
   "Cloud backup o sync — nasa phone na ito lang ang data",
   "Login o accounts",
+  "Remote seller approval o push notifications",
+  "Scheduled employee shifts",
   "Full Lis AI (local helper lang muna)",
   "Camera / picture ng resibo",
   "Bluetooth printing",
@@ -90,8 +92,8 @@ export default function OwnerPilotGuideScreen() {
       <Card>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Gusto mong mag-ulit ng test?</Text>
         <Text style={[styles.body, { color: palette.mutedText }]}>
-          Sa Owner Settings, gamitin ang Clear All Local Pilot Data. May confirmation bago mabura ang records, settings, at Owner
-          lock. Hindi automatic na babalik ang Demo data.
+          Sa Settings → Business & Stalls, gamitin ang Clear All Local Pilot Data. May confirmation bago mabura ang records,
+          settings, at Owner lock. Hindi automatic na babalik ang Demo data.
         </Text>
         <SecondaryButton href="/owner/settings" label="Back to Settings" />
       </Card>

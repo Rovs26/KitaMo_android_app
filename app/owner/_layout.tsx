@@ -32,6 +32,9 @@ export default function OwnerLayout() {
       <Stack.Screen name="pilot-guide" options={{ title: "Pilot Guide" }} />
       <Stack.Screen name="insights" options={{ title: "Insights" }} />
       <Stack.Screen name="settings" options={{ title: "Settings" }} />
+      <Stack.Screen name="business-settings" options={{ title: "Business & Stalls" }} />
+      <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
+      <Stack.Screen name="about" options={{ title: "About KitaMo" }} />
       </Stack>
     </OwnerAccessGate>
   );

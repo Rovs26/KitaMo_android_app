@@ -1,11 +1,13 @@
 # Local → Cloud Sync Plan (Chapter 3 — planning only)
 
-How KitaMo's on-device SQLite will eventually back up to and sync with Supabase. **No sync is implemented in this phase.** The app remains fully functional offline forever.
+How KitaMo's on-device SQLite will eventually back up to and sync with Supabase. **No sync is implemented in this phase.** The current same-device pilot remains fully local. Future authenticated seller devices must balance offline operation with time-bounded authorization and revocation.
 
 ## Principles
 
-- **SQLite stays offline-first and authoritative.** The seller can run the whole business with no internet. Supabase is an optional backup/sync/multi-device layer added on top — never a dependency for the app to open or work.
+- **SQLite stays offline-first and operationally authoritative.** After identity and access are verified, a seller can continue Kiosk work during temporary connectivity loss within the approved offline grant window.
 - **Sync is additive.** Turning cloud on must not change any local behavior, math, or Fresh/Demo mode.
+- **Authentication and authorization precede scoped sync.** A device may push or pull only businesses/stalls covered by the authenticated user's active membership, assignment, and device grant.
+- **Offline access is explicit, not permanent.** Initial sign-in, approval receipt, first assignment download, and periodic grant refresh require connectivity. The accepted offline revocation window must be decided before multi-device rollout.
 
 ## ID strategy
 
@@ -22,9 +24,10 @@ How KitaMo's on-device SQLite will eventually back up to and sync with Supabase.
 
 ## Sync flow (planned)
 
-1. **Push**: send `pending` rows (upsert by id), oldest first, respecting FK order (business → stall → products/ingredients → recipes → production → sales → children). On success mark `synced` and bump nothing; on failure mark `failed` with a retry.
-2. **Pull**: fetch rows updated since the last high-water mark for this business; upsert into SQLite.
-3. **Deletes**: soft-delete only — propagate `deleted_at`, never hard-delete a synced row.
+1. **Authorize**: validate the current cloud session plus the device's business/stall grant before any queue work.
+2. **Push**: send authorized `pending` rows (upsert by id), oldest first, respecting FK order (business → stall → products/ingredients → recipes → production → sales → children). On success mark `synced` and bump nothing; on failure mark `failed` with a retry.
+3. **Pull**: fetch only rows permitted by RLS and updated since the last high-water mark for the authorized business/stall; upsert into SQLite.
+4. **Deletes**: soft-delete only — propagate `deleted_at`, never hard-delete a synced row.
 
 ## Conflict handling (conservative)
 
@@ -34,5 +37,8 @@ How KitaMo's on-device SQLite will eventually back up to and sync with Supabase.
 
 ## Rollout
 
-- Sync is **opt-in** and gated behind configured Supabase env vars + login (Chapter 3). With no config, none of this runs.
+- Sync is **opt-in** and gated behind configured Supabase environment, authenticated identity, approved access, and a valid device grant (Chapter 3). With no configuration, none of this runs.
 - Ship behind a flag; test with one device, then two, before any real seller relies on it.
+- Test revocation while online/offline, expired grants, cross-stall queue rows, account switching on a shared phone, and queued sales created near grant expiry.
+
+See [Chapter 3 Identity and Access Plan](../roadmap/chapter-3-identity-access-plan.md) for the approved owner/seller identity and Phase C/D authorization model.

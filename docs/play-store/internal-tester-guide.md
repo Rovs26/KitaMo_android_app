@@ -17,12 +17,12 @@ You can only pick once per install; sabihan kami kung gusto mong mag-reset.
 
 ## Main test scenario (15–20 minutes)
 
-1. **Set up** — Settings: create your business and one stall.
+1. **Set up** — Settings → Business & Stalls: create your business and one stall.
 2. **Add a product** — Inventory: e.g. Sushi, ₱20, with bundle 8 for ₱150.
 3. **Add grocery items** — Grocery Pool: e.g. Rice 10 kg ₱650, Kikkoman soy sauce 1 L ₱180.
 4. **Create a recipe** — Recipes: Sushi makes 5 pcs; 100 g rice + 10 ml Kikkoman + custom Nori ₱15. Tingnan ang cost per piece.
 5. **Produce** — Production: make 10 sushi for your stall. Check that grocery stock bumaba and product stock tumaas.
-6. **Sell** — Home → Start Selling: sell 8 sushi (dapat ₱150 ang total, hindi ₱160). Try GCash — kailangan ng reference number.
+6. **Sell** — Owner Home: choose the stall, tap Open Kiosk, confirm the stall, then sell 8 sushi (dapat ₱150 ang total, hindi ₱160). Try GCash — kailangan ng reference number.
 7. **Receipt** — copy or share the receipt text.
 8. **Records** — check the sale, the Niluto entry, and stock movements.
 9. **Fixed cost** — Fixed Costs: add "Stall rent, ₱3,000, monthly". Mark paid.
@@ -48,6 +48,7 @@ Screenshot: (attach)
 
 - Walang cloud backup — kapag na-uninstall, mawawala ang data.
 - Walang login/accounts.
+- Walang remote seller approval, scheduled shifts, o push notifications; shared-device Kiosk muna.
 - Ang Helper tab ay sumasagot mula sa records ng phone mo lang — walang AI.
 - Walang camera scanning, walang Bluetooth printing.
 - Hindi ito official receipt / BIR compliance tool.

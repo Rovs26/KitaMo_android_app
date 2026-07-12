@@ -33,7 +33,7 @@ Avoid in seller-facing UI: schema, migration, queue, engine, lifecycle, debug, d
 
 ## Screens that could use final visual polish
 
-- **Home** (`app/owner/index.tsx`) — long screen; consider tightening card spacing or making Quick Add / Quick Tools more compact. Above-the-fold priority: business pill → Start Selling → Today's Money.
+- **Owner Home** (`app/owner/index.tsx`) — business and stall command center. Above-the-fold priority: business context → stall cards and local alerts → Tubo summary. Kiosk must remain explicitly stall-scoped.
 - **Kita Report** (`app/owner/reports.tsx`) — the Advanced details block could be a collapsible section.
 - **Logbook** (`app/owner/records.tsx`) — date-group headers and event rows; keep it scannable.
 - **Kiosk Sell/Checkout** (`app/kiosk/sell.tsx`, `checkout.tsx`) — cart density on small screens.

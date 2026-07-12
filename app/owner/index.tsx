@@ -194,6 +194,7 @@ export default function OwnerHomeScreen() {
   const setCurrentMode = useAppStore((state) => state.setCurrentMode);
   const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
   const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
+  const setKioskSessionBranchId = useAppStore((state) => state.setKioskSessionBranchId);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const router = useRouter();
@@ -234,6 +235,7 @@ export default function OwnerHomeScreen() {
           setFixedCostAttention({ overdue: fixedOverview.overdueCount, dueSoon: fixedOverview.dueSoonCount });
           setActiveBusinessId(businessId);
           setActiveBranchId(nextStatus.activeBranch?.id ?? null);
+          setKioskSessionBranchId(null);
           setCurrentMode("owner");
           setError(null);
         } catch (loadError) {
@@ -249,7 +251,7 @@ export default function OwnerHomeScreen() {
       return () => {
         active = false;
       };
-    }, [setActiveBranchId, setActiveBusinessId, setCurrentMode]),
+    }, [setActiveBranchId, setActiveBusinessId, setCurrentMode, setKioskSessionBranchId]),
   );
 
   async function resolveAlert(alert: OwnerAlert) {
@@ -307,32 +309,129 @@ export default function OwnerHomeScreen() {
       <AppTopBar
         right={
           <View style={styles.topRightRow}>
-            <Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />
             <Pressable
+              accessibilityLabel="Notifications"
+              hitSlop={8}
+              onPress={() => router.push("/owner/notifications")}
+              style={[styles.headerIconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            >
+              <Ionicons color={palette.primary} name="notifications-outline" size={20} />
+              {alerts.length > 0 ? (
+                <View style={[styles.notificationBadge, { backgroundColor: palette.danger }]}>
+                  <Text style={[styles.notificationBadgeText, { color: palette.kioskHeaderText }]}>{Math.min(alerts.length, 9)}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Settings"
               hitSlop={8}
               onPress={() => router.push("/owner/settings")}
-              style={[styles.gearButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              style={[styles.headerIconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
             >
               <Ionicons color={palette.primary} name="settings-outline" size={20} />
             </Pressable>
           </View>
         }
-        subtitle={setupComplete ? `${activeBusiness} · ${activeBranch}` : "Magandang araw!"}
-        title="Home"
+        subtitle="Business and stall command center"
+        title="Owner Home"
       />
 
       {error ? <Text style={[styles.error, { color: palette.danger }]}>{error}</Text> : null}
 
-      <Pressable onPress={() => router.push("/kiosk")} style={[styles.startSellingButton, { backgroundColor: palette.primary }]}>
-        <View style={[styles.startSellingIcon, { backgroundColor: palette.softAccent }]}>
-          <Ionicons color={palette.primary} name="storefront" size={24} />
+      <Card>
+        <View style={styles.businessHubHeader}>
+          <IconBadge icon="business-outline" size="lg" tone="primary" />
+          <View style={styles.businessHubCopy}>
+            <Text numberOfLines={1} style={[styles.businessHubTitle, { color: palette.text }]}>{activeBusiness}</Text>
+            <Text style={[styles.body, { color: palette.mutedText }]}>
+              {status?.activeBusiness
+                ? `${status.stallCount} stall${status.stallCount === 1 ? "" : "s"} · Last used Kiosk: ${activeBranch}`
+                : "Create a local business profile to begin."}
+            </Text>
+          </View>
+          <Pill label={status?.mode === "demo" ? "Demo" : "Fresh"} tone={status?.mode === "demo" ? "accent" : "success"} />
         </View>
-        <View style={styles.startSellingText}>
-          <Text style={[styles.startSellingTitle, { color: palette.kioskHeaderText }]}>Start Selling</Text>
-          <Text style={[styles.startSellingSub, { color: palette.softAccent }]}>Buksan ang Kiosk</Text>
+        <View style={styles.businessHubActions}>
+          <View style={styles.businessHubAction}>
+            <SecondaryButton href="/owner/business-settings" label="Manage business & stalls" />
+          </View>
+          {status?.branches.some((branch) => branch.active) ? (
+            <View style={styles.businessHubAction}>
+              <SecondaryButton href="/kiosk" label="Choose Kiosk stall" />
+            </View>
+          ) : null}
         </View>
-        <Ionicons color={palette.kioskHeaderText} name="chevron-forward" size={22} />
-      </Pressable>
+      </Card>
+
+      {!status ? (
+        <Card>
+          <SectionHeader title={error ? "Please try again" : "Loading"} />
+          <Text style={[styles.body, { color: palette.mutedText }]}>
+            {error ? "Hindi ma-load ang workspace. Balikan ang Home para subukan ulit." : "Checking your local workspace."}
+          </Text>
+        </Card>
+      ) : !setupComplete ? (
+        <Card>
+          <SectionHeader action={<SecondaryButton href="/owner/business-settings" label="Continue" />} title="Finish setup" />
+          <View style={styles.setupRows}>
+            <SetupRow label="Business profile" ready={Boolean(status.activeBusiness)} />
+            <SetupRow label="Store or stall" ready={status.stallCount > 0} />
+            <SetupRow label="Paninda" ready={status.productCount > 0} value={`${status.productCount} saved`} />
+          </View>
+        </Card>
+      ) : null}
+
+      <Card>
+        <SectionHeader action={<SecondaryButton href="/owner/business-settings" label="Manage" />} title="Your Stalls" />
+        <Text style={[styles.body, { color: palette.mutedText }]}>Choose a stall before opening its shared-device Kiosk.</Text>
+        {stallReports.length > 0 ? (
+          <View style={styles.stallList}>
+            {stallReports.map((stall) => {
+              const branch = status?.branches.find((item) => item.id === stall.branchId);
+              return (
+                <StallFinanceCard
+                  enabled={branch?.active ?? true}
+                  isSelected={status?.activeBranch?.id === stall.branchId}
+                  key={stall.branchId}
+                  stall={stall}
+                />
+              );
+            })}
+          </View>
+        ) : (
+          <EmptyState description="Add a stall in Business & Stalls before opening Kiosk." title="No stalls yet" />
+        )}
+      </Card>
+
+      {alerts.length > 0 ? (
+        <Card>
+          <SectionHeader action={<SecondaryButton href="/owner/notifications" label="View all" />} title="Local Alerts" />
+          <Text style={[styles.body, { color: palette.mutedText }]}>{alerts.length} active alert{alerts.length === 1 ? "" : "s"} on this phone.</Text>
+          <View style={styles.alertList}>
+            {alerts.slice(0, 2).map((alert) => (
+              <View key={alert.id} style={[styles.alertRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
+                <View style={styles.alertHeader}>
+                  <Text style={[styles.alertTitle, { color: palette.text }]}>{alert.title}</Text>
+                  <Pill label={severityLabels[alert.severity]} tone={severityTones[alert.severity]} />
+                </View>
+                <Text style={[styles.body, { color: palette.mutedText }]}>{alert.message}</Text>
+                <View style={styles.alertFooter}>
+                  <Text style={[styles.alertTime, { color: palette.mutedText }]}>{formatAlertTime(alert.createdAt)}</Text>
+                  <Pressable
+                    disabled={resolvingAlertId !== null}
+                    onPress={() => resolveAlert(alert)}
+                    style={[styles.resolveButton, { borderColor: palette.border, opacity: resolvingAlertId !== null ? 0.55 : 1 }]}
+                  >
+                    <Text style={[styles.resolveButtonText, { color: palette.primary }]}>
+                      {resolvingAlertId === alert.id ? "Resolving..." : "Resolve"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        </Card>
+      ) : null}
 
       <HeroCard>
         <View style={styles.heroTop}>
@@ -410,35 +509,6 @@ export default function OwnerHomeScreen() {
         </View>
       </Card>
 
-      {!status ? (
-        <Card>
-          <SectionHeader title={error ? "Please try again" : "Loading"} />
-          <Text style={[styles.body, { color: palette.mutedText }]}>
-            {error ? "Hindi ma-load ang workspace. Balikan ang Home para subukan ulit." : "Checking your local workspace."}
-          </Text>
-        </Card>
-      ) : !setupComplete ? (
-        <Card>
-          <SectionHeader title="Finish setup" />
-          <View style={styles.setupRows}>
-            <SetupRow label="Business profile" ready={Boolean(status.activeBusiness)} />
-            <SetupRow label="Store or stall" ready={status.stallCount > 0} />
-            <SetupRow label="Paninda" ready={status.productCount > 0} value={`${status.productCount} saved`} />
-          </View>
-        </Card>
-      ) : null}
-
-      {stallReports.length > 0 ? (
-        <Card>
-          <SectionHeader action={<SecondaryButton href="/owner/reports" label="Kita Report" />} title="Stall Performance" />
-          <View style={styles.stallList}>
-            {stallReports.map((stall) => (
-              <StallFinanceCard key={stall.branchId} stall={stall} />
-            ))}
-          </View>
-        </Card>
-      ) : null}
-
       {nextAction ? (
         <Card>
           <SectionHeader title="Next action" />
@@ -477,35 +547,6 @@ export default function OwnerHomeScreen() {
         </Card>
       )}
 
-      {alerts.length > 0 ? (
-        <Card>
-          <SectionHeader action={<Pill label={`${alerts.length} active`} tone="warning" />} title="Stock alerts" />
-          <View style={styles.alertList}>
-            {alerts.slice(0, 3).map((alert) => (
-              <View key={alert.id} style={[styles.alertRow, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                <View style={styles.alertHeader}>
-                  <Text style={[styles.alertTitle, { color: palette.text }]}>{alert.title}</Text>
-                  <Pill label={severityLabels[alert.severity]} tone={severityTones[alert.severity]} />
-                </View>
-                <Text style={[styles.body, { color: palette.mutedText }]}>{alert.message}</Text>
-                <View style={styles.alertFooter}>
-                  <Text style={[styles.alertTime, { color: palette.mutedText }]}>{formatAlertTime(alert.createdAt)}</Text>
-                  <Pressable
-                    disabled={resolvingAlertId !== null}
-                    onPress={() => resolveAlert(alert)}
-                    style={[styles.resolveButton, { borderColor: palette.border, opacity: resolvingAlertId !== null ? 0.55 : 1 }]}
-                  >
-                    <Text style={[styles.resolveButtonText, { color: palette.primary }]}>
-                      {resolvingAlertId === alert.id ? "Resolving..." : "Resolve"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-          </View>
-        </Card>
-      ) : null}
-
       <Card>
         <SectionHeader action={<SecondaryButton href="/owner/records" label="Logbook" />} title="Recent benta" />
         {recentOrders.length === 0 ? (
@@ -530,20 +571,20 @@ export default function OwnerHomeScreen() {
   );
 }
 
-function StallFinanceCard({ stall }: { stall: StallReport }) {
+function StallFinanceCard({ stall, enabled, isSelected }: { stall: StallReport; enabled: boolean; isSelected: boolean }) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const stallStatus = getStallStatus(stall);
   const router = useRouter();
 
   return (
-    <Pressable
-      onPress={() => router.push(`/owner/reports?stallId=${stall.branchId}` as Href)}
-      style={[styles.stallCard, { backgroundColor: palette.background, borderColor: palette.border }]}
-    >
+    <View style={[styles.stallCard, { backgroundColor: palette.background, borderColor: isSelected ? palette.primary : palette.border }]}>
         <View style={styles.stallCardHeader}>
-          <Text style={[styles.stallName, { color: palette.text }]}>{stall.branchName}</Text>
-          <Pill label={stallStatusLabel(stallStatus)} tone={stallStatusTone(stallStatus)} />
+          <View style={styles.stallTitleWrap}>
+            <Text style={[styles.stallName, { color: palette.text }]}>{stall.branchName}</Text>
+            {isSelected ? <Text style={[styles.selectedStallLabel, { color: palette.primary }]}>Last used in Kiosk</Text> : null}
+          </View>
+          <Pill label={enabled ? stallStatusLabel(stallStatus) : "Inactive"} tone={enabled ? stallStatusTone(stallStatus) : "neutral"} />
         </View>
         <View style={styles.stallMetrics}>
           <View style={styles.stallMetric}>
@@ -565,7 +606,24 @@ function StallFinanceCard({ stall }: { stall: StallReport }) {
           {stall.transactionCount} benta today
           {stall.bestSellerName ? ` · Best: ${stall.bestSellerName}` : ""}
         </Text>
-      </Pressable>
+        <View style={styles.stallActions}>
+          <Pressable
+            onPress={() => router.push(`/owner/reports?stallId=${stall.branchId}` as Href)}
+            style={[styles.stallSecondaryAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          >
+            <Ionicons color={palette.primary} name="stats-chart-outline" size={17} />
+            <Text style={[styles.stallActionText, { color: palette.primary }]}>View report</Text>
+          </Pressable>
+          <Pressable
+            disabled={!enabled}
+            onPress={() => router.push({ pathname: "/kiosk", params: { branchId: stall.branchId } })}
+            style={[styles.stallPrimaryAction, { backgroundColor: palette.primary, opacity: enabled ? 1 : 0.5 }]}
+          >
+            <Ionicons color={palette.kioskHeaderText} name="storefront-outline" size={17} />
+            <Text style={[styles.stallActionText, { color: palette.kioskHeaderText }]}>{enabled ? "Open Kiosk" : "Inactive"}</Text>
+          </Pressable>
+        </View>
+      </View>
   );
 }
 
@@ -721,9 +779,17 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     justifyContent: "space-between",
   },
+  stallTitleWrap: {
+    flex: 1,
+    gap: 2,
+  },
   stallName: {
     ...typography.button,
-    flex: 1,
+  },
+  selectedStallLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 14,
   },
   stallMetrics: {
     flexDirection: "row",
@@ -747,6 +813,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 16,
+  },
+  stallActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  stallSecondaryAction: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
+    justifyContent: "center",
+    minHeight: 42,
+    paddingHorizontal: spacing.sm,
+  },
+  stallPrimaryAction: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    flex: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
+    justifyContent: "center",
+    minHeight: 42,
+    paddingHorizontal: spacing.sm,
+  },
+  stallActionText: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
   },
   nextActionRow: {
     alignItems: "center",
@@ -780,44 +876,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
   },
-  gearButton: {
+  headerIconButton: {
     alignItems: "center",
     borderRadius: 8,
     borderWidth: 1,
     height: 36,
     justifyContent: "center",
+    position: "relative",
     width: 36,
   },
-  startSellingButton: {
+  notificationBadge: {
     alignItems: "center",
-    borderRadius: radius.lg,
-    elevation: 3,
-    flexDirection: "row",
-    gap: spacing.md,
-    minHeight: 62,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-  },
-  startSellingIcon: {
-    alignItems: "center",
-    borderRadius: radius.md,
-    height: 42,
+    borderRadius: radius.pill,
+    height: 17,
     justifyContent: "center",
-    width: 42,
+    position: "absolute",
+    right: -5,
+    top: -5,
+    width: 17,
   },
-  startSellingText: {
-    flex: 1,
-    gap: 1,
-  },
-  startSellingTitle: {
-    fontSize: 18,
+  notificationBadgeText: {
+    fontSize: 10,
     fontWeight: "900",
-    lineHeight: 23,
+    lineHeight: 13,
   },
-  startSellingSub: {
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 17,
+  businessHubHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  businessHubCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  businessHubTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    lineHeight: 22,
+  },
+  businessHubActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  businessHubAction: {
+    flexBasis: "47%",
+    flexGrow: 1,
   },
   recentList: {
     gap: spacing.sm,

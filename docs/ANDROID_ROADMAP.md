@@ -62,3 +62,22 @@ Status: In progress.
 - Customer Mode.
 - LGU Mode.
 - Play Store production.
+
+## Chapter 3: Future Phase C/D Identity and Multi-Device Access
+
+Status: Approved architecture direction only. Not implemented in the current local pilot.
+
+### Phase C: Identity, enrollment, and approval
+
+- Owners authenticate with Google and manage their businesses and staff access.
+- Sellers authenticate with a KitaMo username/password; Gmail is not required.
+- QR codes, short codes, and owner invitations initiate access requests but never authenticate or grant access by themselves.
+- Owner approval creates one or more stall assignments protected by RLS and audit history.
+
+### Phase D: Shifts, offline grants, and multi-device operation
+
+- Multiple stalls and shifts per seller.
+- Active-shift Kiosk eligibility and least-privilege seller views.
+- Time-bounded offline device grants, scoped cloud sync, revocation handling, and later push notifications.
+
+See [Chapter 3 Identity and Access Plan](roadmap/chapter-3-identity-access-plan.md) for the recommended architecture, data model, security boundaries, and detailed backlog.

@@ -8,14 +8,14 @@ For friendly testers running the local-first pilot on a real Android phone. All 
 2. On the dev machine: `npm install`, then `npm run start -- --lan --port 8081` (phone and computer on the same Wi-Fi).
 3. Scan the QR code with Expo Go.
 4. On first launch choose **Start Fresh Business** (real test) or **Try Demo Data** (pre-made stall with three products).
-5. The in-app **Pilot Guide** (Settings → Data & Privacy → Open Pilot Guide) has the same walkthrough as below.
+5. The in-app **Pilot Guide** (Settings → Pilot Guide) has the same walkthrough as below.
 
 ## Scenario checklist
 
 Work top to bottom; each scenario lists the expected result. Tick ✅/❌ and note anything odd.
 
 ### A. Setup
-- [ ] Create business profile in Settings → summary card shows the business.
+- [ ] Open Settings → Business & Stalls, then create a business profile → summary card shows the business.
 - [ ] Add a stall → it becomes the active stall.
 - [ ] Add a second stall → "Set active" switches between them.
 
@@ -38,6 +38,7 @@ Work top to bottom; each scenario lists the expected result. Tick ✅/❌ and no
 - [ ] Cook-upon-order recipes do NOT appear in Production (they cost automatically at sale).
 
 ### E. Kiosk selling
+- [ ] From Owner Home, choose a stall → confirm `Open Selected Kiosk` → Sell opens for that stall.
 - [ ] Sell 8 of a bundle product (8-for-₱150) → cart and receipt show ₱150, not ₱160.
 - [ ] GCash without a reference → blocked; with reference → receipt shows it.
 - [ ] Double-tap Confirm Checkout fast → exactly one sale.
@@ -61,7 +62,7 @@ Work top to bottom; each scenario lists the expected result. Tick ✅/❌ and no
 
 ### I. Shell & general
 - [ ] Nothing hides under the status bar or behind the bottom tabs; save buttons reachable on long forms.
-- [ ] Start Selling and Settings visible on Home without scrolling.
+- [ ] Notifications and Settings are visible in the Home header; stalls and their Open Kiosk actions are easy to find.
 - [ ] Local Helper answers simple questions and clearly says walang AI.
 - [ ] Close and reopen the app → all data still there.
 

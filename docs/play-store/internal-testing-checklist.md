@@ -63,7 +63,7 @@ Build:
 ## Smoke test (5 minutes)
 
 1. Launch → choose Try Demo Data → Home loads with demo stall.
-2. Tap Start Selling → sell 8 Sushi Rolls → receipt shows ₱150 (bundle price).
+2. Choose the demo stall → Open Kiosk → sell 8 Sushi Rolls → receipt shows ₱150 (bundle price).
 3. Records shows the sale; Insights shows the kita.
 4. Kill the app, reopen → data still there.
 5. Nothing overlaps the status bar or the Android navigation area.

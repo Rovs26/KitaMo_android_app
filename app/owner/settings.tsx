@@ -1,945 +1,205 @@
-import { useFocusEffect, useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
-import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
-import { AppTopBar, Card, IconBadge, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
-import { showLocalDataVerificationPanel } from "@/config/devTools";
-import {
-  createBranch,
-  createBusiness,
-  updateBranch,
-  updateBusiness,
-} from "@/db/repositories";
-import type { Branch, BusinessType } from "@/domain/types";
-import { loadOwnerSetupStatus, setActiveBranch, setActiveBusiness, type OwnerSetupStatus } from "@/services/ownerSetup";
-import {
-  clearOwnerAccess,
-  getOwnerAccessStatus,
-  isValidOwnerPin,
-  saveOwnerPin,
-  setOwnerBiometricEnabled,
-  type OwnerAccessStatus,
-  verifyOwnerPin,
-} from "@/services/ownerAccess";
-import { clearLocalPilotData } from "@/services/pilotData";
-import { useAppStore } from "@/state/appStore";
-import { useOwnerAccessStore } from "@/state/ownerAccessStore";
+import { AppTopBar, Card, IconBadge, LoadingState, Pill, ScreenScroll, SectionHeader } from "@/components/ui/KitaMoUI";
+import { getOwnerAccessStatus, type OwnerAccessStatus } from "@/services/ownerAccess";
+import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
+import { radius } from "@/theme/radius";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
-const businessTypes: BusinessType[] = [
-  "sari-sari store",
-  "karinderia",
-  "street food",
-  "kiosk",
-  "school canteen",
-  "small booth",
-  "other",
-];
-
-const branchTypes = ["stall", "branch", "booth", "home kitchen", "pop-up"] as const;
-
-type BranchTypeOption = (typeof branchTypes)[number];
-
-type BusinessForm = {
-  businessName: string;
-  businessType: BusinessType;
-  ownerName: string;
-  contactNumber: string;
-  barangay: string;
-  notes: string;
+type SettingsRowProps = {
+  title: string;
+  description: string;
+  href: Href;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone?: "primary" | "accent" | "warning";
 };
 
-type BranchForm = {
-  id: string | null;
-  branchName: string;
-  location: string;
-  branchType: BranchTypeOption;
-  active: boolean;
-  notes: string;
-};
-
-const emptyBusinessForm: BusinessForm = {
-  businessName: "",
-  businessType: "sari-sari store",
-  ownerName: "",
-  contactNumber: "",
-  barangay: "",
-  notes: "",
-};
-
-const emptyBranchForm: BranchForm = {
-  id: null,
-  branchName: "",
-  location: "",
-  branchType: "stall",
-  active: true,
-  notes: "",
-};
-
-export default function OwnerSettingsScreen() {
+export default function OwnerSettingsIndexScreen() {
   const [status, setStatus] = useState<OwnerSetupStatus | null>(null);
-  const [businessForm, setBusinessForm] = useState<BusinessForm>(emptyBusinessForm);
-  const [branchForm, setBranchForm] = useState<BranchForm>(emptyBranchForm);
-  const [saving, setSaving] = useState(false);
-  const [securitySaving, setSecuritySaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageIsError, setMessageIsError] = useState(false);
   const [ownerAccess, setOwnerAccess] = useState<OwnerAccessStatus | null>(null);
-  const [currentPin, setCurrentPin] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
-  const setActiveBusinessId = useAppStore((state) => state.setActiveBusinessId);
-  const setActiveBranchId = useAppStore((state) => state.setActiveBranchId);
-  const setCurrentMode = useAppStore((state) => state.setCurrentMode);
-  const enableOwnerProtection = useOwnerAccessStore((state) => state.enableProtection);
-  const disableOwnerProtection = useOwnerAccessStore((state) => state.disableProtection);
-  const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-  const router = useRouter();
 
-  function setNotice(text: string) {
-    setMessage(text);
-    setMessageIsError(false);
-  }
-
-  function setError(text: string) {
-    setMessage(text);
-    setMessageIsError(true);
-  }
-
-  const refresh = useCallback(
-    async (options?: { keepBusinessForm?: boolean }) => {
-      const nextStatus = await loadOwnerSetupStatus();
-      const nextOwnerAccess = await getOwnerAccessStatus();
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [nextStatus, nextOwnerAccess] = await Promise.all([loadOwnerSetupStatus(), getOwnerAccessStatus()]);
       setStatus(nextStatus);
       setOwnerAccess(nextOwnerAccess);
-      setActiveBusinessId(nextStatus.activeBusiness?.id ?? null);
-      setActiveBranchId(nextStatus.activeBranch?.id ?? null);
-
-      if (nextStatus.activeBusiness && !options?.keepBusinessForm) {
-        setBusinessForm({
-          businessName: nextStatus.activeBusiness.businessName,
-          businessType: nextStatus.activeBusiness.businessType,
-          ownerName: nextStatus.activeBusiness.ownerName,
-          contactNumber: nextStatus.activeBusiness.contactNumber ?? "",
-          barangay: nextStatus.activeBusiness.barangay,
-          notes: nextStatus.activeBusiness.notes ?? "",
-        });
-      }
-    },
-    [setActiveBranchId, setActiveBusinessId],
-  );
+      setError(null);
+    } catch (loadError) {
+      logDevError("OwnerSettingsIndex.refresh", loadError);
+      setError(getFriendlyErrorMessage("Could not load settings."));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-
-      refresh().catch((error) => {
-        logDevError("OwnerSettings.refresh", error);
-        if (active) {
-          setMessage(getFriendlyErrorMessage("Could not load settings."));
-          setMessageIsError(true);
-        }
-      });
-
-      return () => {
-        active = false;
-      };
+      void refresh();
     }, [refresh]),
   );
 
-  async function saveBusinessProfile() {
-    const businessName = businessForm.businessName.trim();
-    const ownerName = businessForm.ownerName.trim();
-    const barangay = businessForm.barangay.trim();
-
-    if (!businessName || !ownerName || !barangay) {
-      setError("Business name, owner/contact name, and address/location are required.");
-      return;
-    }
-
-    setSaving(true);
-    setMessage(null);
-    try {
-      const payload = {
-        businessName,
-        businessType: businessForm.businessType,
-        ownerName,
-        barangay,
-        contactNumber: businessForm.contactNumber.trim() || null,
-        notes: businessForm.notes.trim() || null,
-        preferredLanguage: "Taglish" as const,
-      };
-
-      const savedBusiness = status?.activeBusiness
-        ? await updateBusiness(status.activeBusiness.id, payload)
-        : await createBusiness(payload);
-
-      await setActiveBusiness(savedBusiness.id);
-      setActiveBusinessId(savedBusiness.id);
-      await refresh();
-      setNotice(status?.activeBusiness ? "Business profile updated." : "Business profile created.");
-    } catch (error) {
-      logDevError("OwnerSettings.saveBusinessProfile", error);
-      setError(getFriendlyErrorMessage("Could not save business profile."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveBranch() {
-    if (!status?.activeBusiness) {
-      setError("Create your business profile before adding a stall or store.");
-      return;
-    }
-
-    const branchName = branchForm.branchName.trim();
-    if (!branchName) {
-      setError("Stall or branch name is required.");
-      return;
-    }
-
-    setSaving(true);
-    setMessage(null);
-    try {
-      const payload = {
-        branchName,
-        location: branchForm.location.trim() || null,
-        branchType: branchForm.branchType,
-        active: branchForm.active,
-        notes: branchForm.notes.trim() || null,
-      };
-      const savedBranch = branchForm.id
-        ? await updateBranch(branchForm.id, payload)
-        : await createBranch({
-            ...payload,
-            businessId: status.activeBusiness.id,
-          });
-
-      let noticeText = branchForm.id ? "Store or stall updated." : "Store or stall added.";
-
-      if (savedBranch.active || !status.activeBranch) {
-        await setActiveBranch(savedBranch.id);
-        setActiveBranchId(savedBranch.id);
-      } else if (!savedBranch.active && status.activeBranch?.id === savedBranch.id) {
-        const fallbackBranch = status.branches.find((branch) => branch.active && branch.id !== savedBranch.id);
-        if (fallbackBranch) {
-          await setActiveBranch(fallbackBranch.id);
-          setActiveBranchId(fallbackBranch.id);
-          noticeText = `Store or stall updated. ${fallbackBranch.branchName} is now the active stall.`;
-        }
-      }
-
-      setBranchForm(emptyBranchForm);
-      await refresh({ keepBusinessForm: true });
-      setNotice(noticeText);
-    } catch (error) {
-      logDevError("OwnerSettings.saveBranch", error);
-      setError(getFriendlyErrorMessage("Could not save store or stall."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function chooseActiveBranch(branchId: string) {
-    setSaving(true);
-    setMessage(null);
-    try {
-      await setActiveBranch(branchId);
-      setActiveBranchId(branchId);
-      await refresh({ keepBusinessForm: true });
-      setNotice("Active stall updated.");
-    } catch (error) {
-      logDevError("OwnerSettings.chooseActiveBranch", error);
-      setError(getFriendlyErrorMessage("Could not select active stall."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function editBranch(branch: Branch) {
-    setBranchForm({
-      id: branch.id,
-      branchName: branch.branchName,
-      location: branch.location ?? "",
-      branchType: branch.branchType === "kiosk" ? "stall" : branch.branchType,
-      active: branch.active,
-      notes: branch.notes ?? "",
-    });
-  }
-
-  async function savePin() {
-    if (!isValidOwnerPin(newPin)) {
-      setError("Use a 4 to 6 digit Owner PIN.");
-      return;
-    }
-
-    if (newPin !== confirmPin) {
-      setError("The new PIN and confirmation do not match.");
-      return;
-    }
-
-    setSecuritySaving(true);
-    setMessage(null);
-    try {
-      if (ownerAccess?.hasPin && !(await verifyOwnerPin(currentPin))) {
-        setError("Current Owner PIN is incorrect.");
-        return;
-      }
-
-      await saveOwnerPin(newPin);
-      enableOwnerProtection();
-      setCurrentPin("");
-      setNewPin("");
-      setConfirmPin("");
-      setOwnerAccess(await getOwnerAccessStatus());
-      setNotice(ownerAccess?.hasPin ? "Owner PIN updated." : "Owner Mode protection is now on.");
-    } catch (error) {
-      logDevError("OwnerSettings.savePin", error);
-      setError(getFriendlyErrorMessage("Could not save the Owner PIN."));
-    } finally {
-      setSecuritySaving(false);
-    }
-  }
-
-  async function toggleBiometrics(enabled: boolean) {
-    setSecuritySaving(true);
-    setMessage(null);
-    try {
-      await setOwnerBiometricEnabled(enabled);
-      setOwnerAccess(await getOwnerAccessStatus());
-      setNotice(enabled ? "Biometric Owner unlock enabled." : "Biometric Owner unlock disabled.");
-    } catch (error) {
-      logDevError("OwnerSettings.toggleBiometrics", error);
-      setError(error instanceof Error ? error.message : "Could not update biometric unlock.");
-    } finally {
-      setSecuritySaving(false);
-    }
-  }
-
-  function confirmRemoveOwnerLock() {
-    if (!ownerAccess?.hasPin) {
-      return;
-    }
-
-    Alert.alert("Remove Owner lock?", "Owner-only reports and settings will be accessible without a PIN on this phone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove lock",
-        style: "destructive",
-        onPress: () => {
-          void removeOwnerLock();
-        },
-      },
-    ]);
-  }
-
-  async function removeOwnerLock() {
-    setSecuritySaving(true);
-    setMessage(null);
-    try {
-      if (!(await verifyOwnerPin(currentPin))) {
-        setError("Enter the current Owner PIN before removing the lock.");
-        return;
-      }
-      await clearOwnerAccess();
-      disableOwnerProtection();
-      setOwnerAccess(await getOwnerAccessStatus());
-      setCurrentPin("");
-      setNewPin("");
-      setConfirmPin("");
-      setNotice("Owner Mode protection removed.");
-    } catch (error) {
-      logDevError("OwnerSettings.removeOwnerLock", error);
-      setError(getFriendlyErrorMessage("Could not remove the Owner lock."));
-    } finally {
-      setSecuritySaving(false);
-    }
-  }
-
-  function confirmClearPilotData() {
-    Alert.alert(
-      "Clear all local KitaMo data?",
-      "This permanently removes businesses, products, sales, receipts, costs, settings, and the Owner lock from this phone. Demo data will not return automatically.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear local data",
-          style: "destructive",
-          onPress: () => {
-            void clearPilotData();
-          },
-        },
-      ],
-    );
-  }
-
-  async function clearPilotData() {
-    setSaving(true);
-    setMessage(null);
-    try {
-      await clearLocalPilotData();
-      disableOwnerProtection();
-      setActiveBusinessId(null);
-      setActiveBranchId(null);
-      setCurrentMode("owner");
-      router.replace("/");
-    } catch (error) {
-      logDevError("OwnerSettings.clearPilotData", error);
-      setError(getFriendlyErrorMessage("Could not clear local data."));
-      setSaving(false);
-    }
-  }
-
   return (
     <ScreenScroll bottomNav>
-      <AppTopBar subtitle="Negosyo, stalls, at app status." title="Business Profile" />
+      <AppTopBar subtitle="Business, access, privacy, and app information" title="Settings" />
 
-      {message ? <Text style={[styles.message, { color: messageIsError ? palette.danger : palette.text }]}>{message}</Text> : null}
+      {error ? <Text style={[styles.message, { color: palette.danger }]}>{error}</Text> : null}
+      {loading && !status ? <LoadingState label="Loading local settings..." /> : null}
+
+      {status ? (
+        <Card>
+          <View style={styles.contextRow}>
+            <IconBadge icon="business-outline" size="lg" tone="primary" />
+            <View style={styles.contextCopy}>
+              <Text numberOfLines={1} style={[styles.contextTitle, { color: palette.text }]}>
+                {status.activeBusiness?.businessName ?? "No business profile yet"}
+              </Text>
+              <Text style={[styles.body, { color: palette.mutedText }]}>
+                {status.activeBusiness
+                  ? `${status.activeBranch?.branchName ?? "No active stall"} · ${status.stallCount} stall${status.stallCount === 1 ? "" : "s"}`
+                  : "Set up a business and stall before opening Kiosk."}
+              </Text>
+            </View>
+            <Pill label={status.mode === "demo" ? "Demo" : "Local"} tone={status.mode === "demo" ? "accent" : "success"} />
+          </View>
+        </Card>
+      ) : null}
 
       <Card>
-        <View style={styles.summaryCard}>
-          <IconBadge label="S" tone="primary" size="lg" />
-          <View style={styles.summaryText}>
-            <Text style={[styles.summaryTitle, { color: palette.text }]}>
-              {status?.activeBusiness?.businessName ?? "No business profile yet"}
-            </Text>
-            <Text style={[styles.body, { color: palette.mutedText }]}>
-              {status?.activeBusiness
-                ? `${status.activeBusiness.businessType} · ${status.activeBranch?.branchName ?? "No active stall"}`
-                : "Create your local business profile to start selling."}
-            </Text>
-            <Text style={[styles.body, { color: palette.mutedText }]}>
-              {status?.activeBusiness?.barangay ?? "Location will appear here."}
-            </Text>
-          </View>
-          <Pill label="Owner mode" tone="accent" />
-        </View>
+        <SectionHeader title="Business & Access" />
+        <SettingsRow
+          description="Business profile, stores, stalls, and the active Kiosk stall"
+          href="/owner/business-settings"
+          icon="storefront-outline"
+          title="Business & Stalls"
+        />
+        <SettingsRow
+          description={ownerAccess?.hasPin ? "Owner PIN is on; manage PIN and device biometrics" : "Protect Owner Mode on a shared device"}
+          href="/owner/business-settings"
+          icon="shield-checkmark-outline"
+          title="Owner Access & Security"
+          tone={ownerAccess?.hasPin ? "primary" : "warning"}
+        />
       </Card>
 
-      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Business Profile</Text>
-        {!status?.activeBusiness ? (
-          <Text style={[styles.empty, { color: palette.mutedText }]}>
-            Create your business profile to start tracking sales and inventory.
-          </Text>
-        ) : null}
+      <Card>
+        <SectionHeader title="Alerts & Data" />
+        <SettingsRow
+          description="Active and resolved alerts saved locally on this phone"
+          href="/owner/notifications"
+          icon="notifications-outline"
+          title="Local Notifications"
+          tone="warning"
+        />
+        <SettingsRow
+          description="How KitaMo stores and handles local business records"
+          href="/privacy"
+          icon="lock-closed-outline"
+          title="Privacy Policy"
+        />
+      </Card>
 
-        <FormField
-          label="Business name"
-          onChangeText={(businessName) => setBusinessForm((form) => ({ ...form, businessName }))}
-          placeholder="Example: Aling Nena's Store"
-          value={businessForm.businessName}
+      <Card>
+        <SectionHeader title="App & Help" />
+        <SettingsRow
+          description="Version, package, pilot scope, and app information"
+          href="/owner/about"
+          icon="information-circle-outline"
+          title="About KitaMo"
+          tone="accent"
         />
-        <OptionGroup
-          label="Business type"
-          onSelect={(businessType) => setBusinessForm((form) => ({ ...form, businessType }))}
-          options={businessTypes}
-          selected={businessForm.businessType}
+        <SettingsRow
+          description="A guided local seller pilot walkthrough"
+          href="/owner/pilot-guide"
+          icon="help-circle-outline"
+          title="Pilot Guide"
         />
-        <FormField
-          label="Owner/contact name"
-          onChangeText={(ownerName) => setBusinessForm((form) => ({ ...form, ownerName }))}
-          placeholder="Owner or staff contact"
-          value={businessForm.ownerName}
-        />
-        <FormField
-          keyboardType="phone-pad"
-          label="Phone/contact number"
-          onChangeText={(contactNumber) => setBusinessForm((form) => ({ ...form, contactNumber }))}
-          placeholder="Optional"
-          value={businessForm.contactNumber}
-        />
-        <FormField
-          label="Address/location"
-          onChangeText={(barangay) => setBusinessForm((form) => ({ ...form, barangay }))}
-          placeholder="Barangay, market, mall, or route"
-          value={businessForm.barangay}
-        />
-        <FormField
-          label="Notes/description"
-          multiline
-          onChangeText={(notes) => setBusinessForm((form) => ({ ...form, notes }))}
-          placeholder="Optional local notes"
-          value={businessForm.notes}
-        />
-
-        <ActionButton disabled={saving} label={status?.activeBusiness ? "Save Business Profile" : "Create Business Profile"} onPress={saveBusinessProfile} />
-      </View>
-
-      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Stores / Stalls</Text>
-        {!status?.activeBusiness ? (
-          <Text style={[styles.empty, { color: palette.mutedText }]}>Create a business profile before adding stores or stalls.</Text>
-        ) : status.branches.length === 0 ? (
-          <Text style={[styles.empty, { color: palette.mutedText }]}>Add your first stall or store.</Text>
-        ) : null}
-
-        {status?.branches.map((branch) => {
-          const selected = status.activeBranch?.id === branch.id;
-          return (
-            <View key={branch.id} style={[styles.listItem, { borderColor: palette.border }]}>
-              <View style={styles.listItemHeader}>
-                <View style={styles.listItemText}>
-                  <Text style={[styles.listItemTitle, { color: palette.text }]}>{branch.branchName}</Text>
-                  <Text style={[styles.body, { color: palette.mutedText }]}>
-                    {branch.branchType} | {branch.location ?? "No location"} | {branch.active ? "active" : "inactive"}
-                  </Text>
-                </View>
-                <Text style={[styles.badge, { backgroundColor: selected ? palette.primary : palette.background, color: selected ? palette.kioskHeaderText : palette.mutedText }]}>
-                  {selected ? "Active" : "Saved"}
-                </Text>
-              </View>
-              {branch.notes ? <Text style={[styles.body, { color: palette.mutedText }]}>{branch.notes}</Text> : null}
-              <View style={styles.inlineActions}>
-                <SmallButton disabled={saving} label="Edit" onPress={() => editBranch(branch)} />
-                <SmallButton disabled={saving || selected} label="Set active" onPress={() => chooseActiveBranch(branch.id)} />
-              </View>
-            </View>
-          );
-        })}
-
-        <Text style={[styles.subheading, { color: palette.text }]}>{branchForm.id ? "Edit stall/store" : "Add stall/store"}</Text>
-        <FormField
-          editable={Boolean(status?.activeBusiness)}
-          label="Stall/branch name"
-          onChangeText={(branchName) => setBranchForm((form) => ({ ...form, branchName }))}
-          placeholder="Example: Main stall"
-          value={branchForm.branchName}
-        />
-        <FormField
-          editable={Boolean(status?.activeBusiness)}
-          label="Location"
-          onChangeText={(location) => setBranchForm((form) => ({ ...form, location }))}
-          placeholder="Optional"
-          value={branchForm.location}
-        />
-        <OptionGroup
-          disabled={!status?.activeBusiness}
-          label="Type"
-          onSelect={(branchType) => setBranchForm((form) => ({ ...form, branchType }))}
-          options={branchTypes}
-          selected={branchForm.branchType}
-        />
-        <OptionGroup
-          disabled={!status?.activeBusiness}
-          label="Status"
-          onSelect={(activeLabel) => setBranchForm((form) => ({ ...form, active: activeLabel === "active" }))}
-          options={["active", "inactive"] as const}
-          selected={branchForm.active ? "active" : "inactive"}
-        />
-        <FormField
-          editable={Boolean(status?.activeBusiness)}
-          label="Notes"
-          multiline
-          onChangeText={(notes) => setBranchForm((form) => ({ ...form, notes }))}
-          placeholder="Optional"
-          value={branchForm.notes}
-        />
-        <View style={styles.inlineActions}>
-          <ActionButton disabled={saving || !status?.activeBusiness} label={branchForm.id ? "Save Store/Stall" : "Add Store/Stall"} onPress={saveBranch} />
-          {branchForm.id ? <SmallButton disabled={saving} label="Cancel edit" onPress={() => setBranchForm(emptyBranchForm)} /> : null}
-        </View>
-      </View>
-
-      {status ? <PilotStatusCard status={status} /> : null}
-
-      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <View style={styles.cloudHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Owner Access</Text>
-          <Pill label={ownerAccess?.hasPin ? "Protected" : "Not locked"} tone={ownerAccess?.hasPin ? "success" : "warning"} />
-        </View>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Protect reports, costs, and settings when this phone is shared with Kiosk staff.</Text>
-        {ownerAccess?.hasPin ? (
-          <FormField
-            keyboardType="numeric"
-            label="Current PIN"
-            onChangeText={(value) => setCurrentPin(value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="Required to change or remove lock"
-            secureTextEntry
-            value={currentPin}
-          />
-        ) : null}
-        <View style={styles.securityPinRow}>
-          <FormField
-            keyboardType="numeric"
-            label={ownerAccess?.hasPin ? "New PIN" : "Create PIN"}
-            onChangeText={(value) => setNewPin(value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="4 to 6 digits"
-            secureTextEntry
-            value={newPin}
-          />
-          <FormField
-            keyboardType="numeric"
-            label="Confirm PIN"
-            onChangeText={(value) => setConfirmPin(value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="Repeat PIN"
-            secureTextEntry
-            value={confirmPin}
-          />
-        </View>
-        <ActionButton
-          disabled={securitySaving}
-          label={securitySaving ? "Saving..." : ownerAccess?.hasPin ? "Change Owner PIN" : "Turn On Owner Lock"}
-          onPress={savePin}
-        />
-        {ownerAccess?.hasPin ? (
-          <>
-            <View style={[styles.securityToggleRow, { borderColor: palette.border }]}>
-              <View style={styles.securityToggleCopy}>
-                <Text style={[styles.listItemTitle, { color: palette.text }]}>Fingerprint or face unlock</Text>
-                <Text style={[styles.body, { color: palette.mutedText }]}>
-                  {ownerAccess.biometricAvailable ? "Use this phone's enrolled device unlock." : "Set up biometrics in Android settings first."}
-                </Text>
-              </View>
-              <Switch
-                disabled={securitySaving || !ownerAccess.biometricAvailable}
-                onValueChange={toggleBiometrics}
-                thumbColor={palette.surface}
-                trackColor={{ false: palette.border, true: palette.primary }}
-                value={ownerAccess.biometricEnabled}
-              />
-            </View>
-            <View style={styles.inlineActions}>
-              <SmallButton disabled={securitySaving} label="Lock Owner Mode now" onPress={lockOwnerAccess} />
-              <Pressable disabled={securitySaving} onPress={confirmRemoveOwnerLock} style={styles.dangerTextButton}>
-                <Text style={[styles.smallButtonText, { color: palette.danger }]}>Remove lock</Text>
-              </Pressable>
-            </View>
-          </>
-        ) : null}
-      </View>
-
-      <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Data & Privacy</Text>
-        <Text style={[styles.body, { color: palette.mutedText }]}>Business data stays in KitaMo on this phone. Cloud sync is not active, and Android backup is disabled.</Text>
-        <SecondaryButton href="/privacy" label="Privacy Policy" />
-        <SecondaryButton href="/owner/pilot-guide" label="Open Pilot Guide" />
-        <Pressable disabled={saving} onPress={confirmClearPilotData} style={[styles.clearDataButton, { borderColor: palette.danger }]}>
-          <Text style={[styles.smallButtonText, { color: palette.danger }]}>Clear All Local Pilot Data</Text>
-        </Pressable>
-      </View>
-
-      {__DEV__ && showLocalDataVerificationPanel ? <LocalDataVerificationPanel /> : null}
+      </Card>
     </ScreenScroll>
   );
 }
 
-type FormFieldProps = {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  keyboardType?: "default" | "phone-pad" | "numeric" | "decimal-pad";
-  editable?: boolean;
-  secureTextEntry?: boolean;
-};
-
-function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  multiline = false,
-  keyboardType = "default",
-  editable = true,
-  secureTextEntry = false,
-}: FormFieldProps) {
+function SettingsRow({ title, description, href, icon, tone = "primary" }: SettingsRowProps) {
+  const router = useRouter();
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const iconBackground = tone === "accent" ? palette.softAccent : tone === "warning" ? palette.softWarning : palette.softPrimary;
+  const iconColor = tone === "accent" ? palette.accent : tone === "warning" ? palette.warning : palette.primary;
 
   return (
-    <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: palette.text }]}>{label}</Text>
-      <TextInput
-        editable={editable}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={palette.mutedText}
-        secureTextEntry={secureTextEntry}
-        style={[
-          styles.input,
-          multiline ? styles.multilineInput : null,
-          {
-            backgroundColor: editable ? palette.background : palette.surface,
-            borderColor: palette.border,
-            color: palette.text,
-            opacity: editable ? 1 : 0.65,
-          },
-        ]}
-        value={value}
-      />
-    </View>
-  );
-}
-
-type OptionGroupProps<T extends string> = {
-  label: string;
-  options: readonly T[];
-  selected: T;
-  onSelect: (value: T) => void;
-  disabled?: boolean;
-};
-
-function OptionGroup<T extends string>({ label, options, selected, onSelect, disabled = false }: OptionGroupProps<T>) {
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-
-  return (
-    <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: palette.text }]}>{label}</Text>
-      <View style={styles.optionWrap}>
-        {options.map((option) => {
-          const isSelected = option === selected;
-          return (
-            <Pressable
-              disabled={disabled}
-              key={option}
-              onPress={() => onSelect(option)}
-              style={[
-                styles.option,
-                {
-                  backgroundColor: isSelected ? palette.primary : palette.background,
-                  borderColor: isSelected ? palette.primary : palette.border,
-                  opacity: disabled ? 0.6 : 1,
-                },
-              ]}
-            >
-              <Text style={[styles.optionText, { color: isSelected ? palette.kioskHeaderText : palette.text }]}>{option}</Text>
-            </Pressable>
-          );
-        })}
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push(href)}
+      style={({ pressed }) => [styles.settingsRow, { borderColor: palette.border, opacity: pressed ? 0.72 : 1 }]}
+    >
+      <View style={[styles.rowIcon, { backgroundColor: iconBackground }]}>
+        <Ionicons color={iconColor} name={icon} size={21} />
       </View>
-    </View>
-  );
-}
-
-type ButtonProps = {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-};
-
-function ActionButton({ label, onPress, disabled = false }: ButtonProps) {
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.actionButton, { backgroundColor: palette.primary, opacity: disabled ? 0.6 : 1 }]}
-    >
-      <Text style={[styles.actionButtonText, { color: palette.kioskHeaderText }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function SmallButton({ label, onPress, disabled = false }: ButtonProps) {
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
-
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.smallButton, { borderColor: palette.border, opacity: disabled ? 0.55 : 1 }]}
-    >
-      <Text style={[styles.smallButtonText, { color: palette.primary }]}>{label}</Text>
+      <View style={styles.rowCopy}>
+        <Text style={[styles.rowTitle, { color: palette.text }]}>{title}</Text>
+        <Text style={[styles.rowDescription, { color: palette.mutedText }]}>{description}</Text>
+      </View>
+      <Ionicons color={palette.mutedText} name="chevron-forward" size={20} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    gap: spacing.md,
-    padding: spacing.md,
+  message: {
+    ...typography.body,
   },
-  summaryCard: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  cloudHeaderRow: {
+  contextRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
-    justifyContent: "space-between",
   },
-  securityPinRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  securityToggleRow: {
-    alignItems: "center",
-    borderTopWidth: 1,
-    flexDirection: "row",
-    gap: spacing.md,
-    paddingTop: spacing.md,
-  },
-  securityToggleCopy: {
+  contextCopy: {
     flex: 1,
     gap: 2,
   },
-  dangerTextButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: spacing.sm,
-  },
-  clearDataButton: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
-  },
-  summaryText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  summaryTitle: {
-    fontSize: 20,
+  contextTitle: {
+    fontSize: 17,
     fontWeight: "900",
-    lineHeight: 25,
-  },
-  header: {
-    gap: spacing.xs,
-    paddingTop: spacing.sm,
-  },
-  eyebrow: {
-    ...typography.label,
-  },
-  title: {
-    ...typography.title,
+    lineHeight: 22,
   },
   body: {
     ...typography.body,
   },
-  message: {
-    ...typography.body,
-  },
-  section: {
-    borderRadius: 8,
-    borderWidth: 1,
-    elevation: 1,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.heading,
-  },
-  empty: {
-    ...typography.body,
-  },
-  subheading: {
-    fontSize: 16,
-    fontWeight: "700",
-    lineHeight: 22,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  fieldLabel: {
-    ...typography.button,
-  },
-  input: {
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 15,
-    lineHeight: 20,
-    minHeight: 44,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  multilineInput: {
-    minHeight: 88,
-    textAlignVertical: "top",
-  },
-  optionWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  option: {
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  optionText: {
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 18,
-  },
-  actionButton: {
+  settingsRow: {
     alignItems: "center",
-    borderRadius: 8,
-    minHeight: 44,
-    minWidth: 152,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  actionButtonText: {
-    ...typography.button,
-  },
-  listItem: {
     borderTopWidth: 1,
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-  },
-  listItemHeader: {
-    alignItems: "flex-start",
     flexDirection: "row",
-    gap: spacing.md,
-    justifyContent: "space-between",
+    gap: spacing.sm,
+    minHeight: 64,
+    paddingTop: spacing.sm,
   },
-  listItemText: {
+  rowIcon: {
+    alignItems: "center",
+    borderRadius: radius.md,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
+  rowCopy: {
     flex: 1,
-    gap: spacing.xs,
+    gap: 2,
   },
-  listItemTitle: {
+  rowTitle: {
     ...typography.button,
   },
-  badge: {
-    borderRadius: 8,
+  rowDescription: {
     fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 16,
-    overflow: "hidden",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  inlineActions: {
-    alignItems: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  smallButton: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    minHeight: 38,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  smallButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 18,
+    lineHeight: 17,
   },
 });

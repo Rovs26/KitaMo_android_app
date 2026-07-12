@@ -25,6 +25,15 @@ The Android app is the seller-product source of truth. The original PWA is froze
 - Owner-only screens can be protected with a salted local PIN and optional Android biometric confirmation. Secure data is stored with Expo SecureStore.
 - Checkout uses an exclusive SQLite transaction plus a unique checkout token, so retries cannot decrement stock or create receipts twice.
 
+### Owner hub and shared-device Kiosk
+
+- Owner Home is the business and stall command center. The upper-right actions open the local Notification Center and Settings.
+- Existing `owner_alerts` records appear in a local active/resolved Notification Center. These are same-device alerts only; there are no push notifications or remote seller pings.
+- Stalls are prominent on Home with today's revenue, sold cost, net profit, report access, and an `Open Kiosk` action.
+- Every Owner-to-Kiosk entry requires an active stall selection and confirmation. Direct Kiosk operational routes are returned to the stall picker unless the current app session has confirmed a stall.
+- Kiosk remains a shared-device pilot mode. There are no seller accounts, join codes, remote approvals, scheduled shifts, or multi-device assignments in this release.
+- Settings is now an index for Business & Stalls, Owner Access & Security, local alerts, privacy, Pilot Guide, and About KitaMo. Existing business, security, and local-data controls remain on the Business & Stalls screen.
+
 ### Profit contract
 
 ```text
@@ -91,6 +100,7 @@ versionName `0.1.0`, versionCode `1`, `permissions: []`, Expo SDK 54 → target 
 - [`docs/release/play-console-app-content-checklist.md`](docs/release/play-console-app-content-checklist.md) — Data Safety, App Access (no login), permissions, financial-category REVIEW
 - [`docs/release/tester-plan.md`](docs/release/tester-plan.md) — 5–10 seller testers, 12–15 total, 2-month night-market pilot
 - [`docs/roadmap/chapter-3-supabase-plan.md`](docs/roadmap/chapter-3-supabase-plan.md) — high-level backend direction (not implemented)
+- [`docs/roadmap/chapter-3-identity-access-plan.md`](docs/roadmap/chapter-3-identity-access-plan.md) — approved future owner/seller identity, approval, assignment, shift, and multi-device model (not implemented)
 
 ## Previous Phase
 
@@ -163,7 +173,7 @@ The app is now pilot-ready: full-engine QA pass, seller-facing pilot guide, test
 
 ### Seller pilot readiness (Phase 15)
 
-- In-app **Pilot Guide** (Settings → Data & Privacy → Open Pilot Guide): what KitaMo tracks, a 10-step walkthrough, what is not in the pilot, and the privacy note "This pilot stores data on this device only."
+- In-app **Pilot Guide** (Settings → Pilot Guide): what KitaMo tracks, a 10-step walkthrough, what is not in the pilot, and the privacy note "This pilot stores data on this device only."
 - Tester document: [`docs/pilot/android-seller-pilot-checklist.md`](docs/pilot/android-seller-pilot-checklist.md) — setup, scenario checklist with expected results, feedback questions, and a bug-report format.
 
 ### Android build readiness (Phase 16)
