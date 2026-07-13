@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { OwnerContextBar, OWNER_CONTEXT_BAR_HEIGHT } from "@/components/owner/OwnerContextBar";
+import { OwnerContextBar } from "@/components/owner/OwnerContextBar";
 import { GabiText } from "@/components/gabi/GabiText";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes, type ThemePalette } from "@/theme/colors";
@@ -62,17 +62,19 @@ export function ScreenScroll({
   children,
   bottomNav = false,
   kioskNav = false,
-}: PropsWithChildren<{ bottomNav?: boolean; kioskNav?: boolean }>) {
+  floatingFooter,
+}: PropsWithChildren<{ bottomNav?: boolean; kioskNav?: boolean; floatingFooter?: ReactNode }>) {
   const palette = usePalette();
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 10);
   const hasNav = bottomNav || kioskNav;
+  const floatingFooterHeight = floatingFooter ? 72 : 0;
   const bottomPadding = hasNav
-    ? BOTTOM_NAV_BASE_HEIGHT + (kioskNav ? OWNER_CONTEXT_BAR_HEIGHT : 0) + bottomInset + spacing.lg
-    : bottomInset + spacing.lg;
+    ? BOTTOM_NAV_BASE_HEIGHT + floatingFooterHeight + bottomInset + spacing.lg
+    : floatingFooterHeight + bottomInset + spacing.lg;
   const content = Children.toArray(children);
-  const ownerHeader = bottomNav ? content[0] : null;
-  const ownerContent = bottomNav ? content.slice(1) : content;
+  const contextHeader = hasNav ? content[0] : null;
+  const screenContent = hasNav ? content.slice(1) : content;
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
@@ -80,10 +82,21 @@ export function ScreenScroll({
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.sm, paddingBottom: bottomPadding }]}
         keyboardShouldPersistTaps="handled"
       >
-        {ownerHeader}
+        {contextHeader}
         {bottomNav ? <OwnerContextBar mode="owner" /> : null}
-        {ownerContent}
+        {kioskNav ? <OwnerContextBar mode="kiosk" /> : null}
+        {screenContent}
       </ScrollView>
+      {floatingFooter ? (
+        <View
+          style={[
+            styles.floatingFooter,
+            { bottom: hasNav ? BOTTOM_NAV_BASE_HEIGHT + bottomInset + spacing.xs : bottomInset + spacing.xs },
+          ]}
+        >
+          {floatingFooter}
+        </View>
+      ) : null}
       {bottomNav ? <OwnerBottomNav /> : null}
       {kioskNav ? <KioskBottomNav /> : null}
     </View>
@@ -469,42 +482,81 @@ function OwnerNavItem({ href, label, icon, activeIcon, active }: { href: Href; l
 function KioskBottomNav() {
   const pathname = usePathname();
   const palette = usePalette();
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const extended = extendedThemePalettes[themeMode === "dark" ? "dark" : "light"];
+  const gradients = gabiGradients[themeMode === "dark" ? "dark" : "light"];
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const tabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
-    { href: "/kiosk/sell", label: "Sell", icon: "cart-outline", activeIcon: "cart", active: pathname.includes("/kiosk/sell") || pathname.includes("/kiosk/checkout") },
+  const leftTabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
     { href: "/kiosk/orders", label: "Orders", icon: "receipt-outline", activeIcon: "receipt", active: pathname.includes("/kiosk/orders") },
     { href: "/kiosk/stock", label: "Stock", icon: "cube-outline", activeIcon: "cube", active: pathname.includes("/kiosk/stock") },
-    { href: "/kiosk/shift", label: "Shift", icon: "time-outline", activeIcon: "time", active: pathname.includes("/kiosk/shift") },
   ];
+  const rightTabs: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }[] = [
+    { href: "/kiosk/shift", label: "Shift", icon: "time-outline", activeIcon: "time", active: pathname.includes("/kiosk/shift") },
+    { href: "/kiosk", label: "Isara", icon: "lock-closed-outline", activeIcon: "lock-closed", active: false },
+  ];
+  const bentaActive = pathname.includes("/kiosk/sell") || pathname.includes("/kiosk/checkout");
 
   return (
     <View
       style={[
-        styles.bottomNav,
-        { backgroundColor: palette.surface, borderColor: palette.border, paddingBottom: Math.max(insets.bottom, 10) },
+        styles.kioskBottomNav,
+        {
+          backgroundColor: themeMode === "dark" ? extended.raised : palette.surface,
+          borderColor: palette.border,
+          bottom: Math.max(insets.bottom, 8),
+        },
+        themeMode === "dark" ? null : shadows.raised,
       ]}
     >
-      <OwnerContextBar mode="kiosk" />
-      <View style={styles.bottomNavTabs}>
-        {tabs.map((tab) => (
-          <Pressable key={tab.label} onPress={() => router.replace(tab.href)} style={styles.bottomNavItem}>
-            <View style={[styles.bottomNavIconWrap, tab.active ? { backgroundColor: palette.softPrimary } : null]}>
-              <Ionicons color={tab.active ? palette.primary : palette.mutedText} name={tab.active ? tab.activeIcon : tab.icon} size={19} />
-            </View>
-            <Text style={[styles.bottomNavText, { color: tab.active ? palette.primary : palette.mutedText, fontWeight: tab.active ? "800" : "600" }]}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.ownerBottomNavTabs}>
+        {leftTabs.map((tab) => <KioskNavItem key={tab.label} {...tab} />)}
+        <Pressable
+          accessibilityLabel="BENTA"
+          accessibilityRole="button"
+          onPress={() => router.replace("/kiosk/sell")}
+          style={styles.bentaNavItem}
+        >
+          <LinearGradient
+            colors={gradients.primaryButton}
+            style={[
+              styles.bentaOrb,
+              { borderColor: palette.background },
+              bentaActive ? { shadowColor: palette.primary, shadowOpacity: 0.34, shadowRadius: 10 } : null,
+            ]}
+          >
+            <Ionicons color={palette.kioskHeaderText} name="storefront" size={23} />
+          </LinearGradient>
+          <GabiText tone="primary" variant="caption">BENTA</GabiText>
+        </Pressable>
+        {rightTabs.map((tab) => <KioskNavItem key={tab.label} {...tab} />)}
       </View>
     </View>
+  );
+}
+
+function KioskNavItem({ href, label, icon, activeIcon, active }: { href: Href; label: string; icon: IoniconName; activeIcon: IoniconName; active: boolean }) {
+  const palette = usePalette();
+  const router = useRouter();
+  return (
+    <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={() => router.replace(href)} style={styles.bottomNavItem}>
+      <View style={[styles.bottomNavIconWrap, active ? { backgroundColor: palette.softPrimary } : null]}>
+        <Ionicons color={active ? palette.primary : palette.mutedText} name={active ? activeIcon : icon} size={20} />
+      </View>
+      <GabiText tone={active ? "primary" : "muted"} variant="caption">{label}</GabiText>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  floatingFooter: {
+    left: spacing.md,
+    position: "absolute",
+    right: spacing.md,
+    zIndex: 4,
   },
   scrollContent: {
     flexGrow: 1,
@@ -750,6 +802,15 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     right: 0,
+  },
+  kioskBottomNav: {
+    borderRadius: 26,
+    borderWidth: StyleSheet.hairlineWidth,
+    left: 10,
+    minHeight: 66,
+    paddingHorizontal: 6,
+    position: "absolute",
+    right: 10,
   },
   ownerBottomNav: {
     borderRadius: 26,

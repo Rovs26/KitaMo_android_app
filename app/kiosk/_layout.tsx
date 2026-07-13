@@ -1,8 +1,15 @@
-import { Redirect, Stack, usePathname } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { GabiPrimaryButton } from "@/components/gabi/GabiButton";
+import { GabiText } from "@/components/gabi/GabiText";
 import { useOwnerAccessStore } from "@/state/ownerAccessStore";
 import { useAppStore } from "@/state/appStore";
+import { spacing } from "@/theme/spacing";
+import { useGabiTheme } from "@/theme/useGabiTheme";
 
 export default function KioskLayout() {
   const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
@@ -19,7 +26,7 @@ export default function KioskLayout() {
     pathname !== "/kiosk" &&
     (!activeBusinessId || !activeBranchId || !kioskSessionBranchId || activeBranchId !== kioskSessionBranchId)
   ) {
-    return <Redirect href="/kiosk" />;
+    return <ExpiredKioskSession />;
   }
 
   return (
@@ -38,3 +45,58 @@ export default function KioskLayout() {
     </Stack>
   );
 }
+
+function ExpiredKioskSession() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { palette } = useGabiTheme();
+
+  useEffect(() => {
+    const timer = setTimeout(() => router.replace("/kiosk"), 1100);
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      style={[
+        styles.expiredScreen,
+        {
+          backgroundColor: palette.background,
+          paddingBottom: insets.bottom + spacing.lg,
+          paddingTop: insets.top + spacing.lg,
+        },
+      ]}
+    >
+      <View style={[styles.expiredIcon, { backgroundColor: palette.softPrimary }]}>
+        <Ionicons color={palette.primary} name="lock-closed" size={30} />
+      </View>
+      <View style={styles.expiredCopy}>
+        <GabiText variant="h1">Natapos ang Kiosk session</GabiText>
+        <GabiText tone="muted" variant="body">
+          Nagbago ang stall context. Pumili at kumpirmahin ulit ang stall.
+        </GabiText>
+      </View>
+      <GabiPrimaryButton icon="storefront-outline" label="Pumili ng stall" onPress={() => router.replace("/kiosk")} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  expiredScreen: {
+    flex: 1,
+    gap: spacing.lg,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xl,
+  },
+  expiredIcon: {
+    alignItems: "center",
+    borderRadius: 22,
+    height: 68,
+    justifyContent: "center",
+    width: 68,
+  },
+  expiredCopy: {
+    gap: spacing.sm,
+  },
+});

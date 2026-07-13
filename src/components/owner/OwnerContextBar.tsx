@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
+    marginHorizontal: -spacing.md,
     minHeight: OWNER_CONTEXT_BAR_HEIGHT,
     paddingHorizontal: spacing.md,
     paddingVertical: 5,
