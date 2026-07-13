@@ -21,6 +21,8 @@
     "check:migrations": "tsc src/db/migrations/001_initial_schema.ts src/db/migrations/002_owner_setup_fields.ts src/db/migrations/003_owner_alert_fields.ts src/db/migrations/004_grocery_pool.ts src/db/migrations/005_recipes.ts src/db/migrations/006_production.ts src/db/migrations/007_selling_cogs.ts src/db/migrations/008_fixed_costs.ts src/db/migrations/009_checkout_idempotency.ts --outDir node_modules/.cache/kitamo-migration-check --module commonjs --target es2020 --strict --skipLibCheck && node scripts/check-migrations.js"
   },
   "dependencies": {
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/vector-icons": "15.0.3",
     "expo": "^54.0.0",
     "expo-clipboard": "~8.0.8",
@@ -28,6 +30,7 @@
     "expo-crypto": "~15.0.9",
     "expo-font": "~14.0.12",
     "expo-haptics": "~15.0.8",
+    "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
     "expo-local-authentication": "~17.0.8",
     "expo-network": "~8.0.8",
