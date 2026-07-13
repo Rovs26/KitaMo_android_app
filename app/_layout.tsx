@@ -14,10 +14,8 @@ export default function RootLayout() {
       <StatusBar style={themeMode === "dark" ? "light" : "dark"} backgroundColor={palette.background} />
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: palette.background },
-          headerStyle: { backgroundColor: palette.surface },
-          headerTintColor: palette.text,
-          headerTitleStyle: { fontWeight: "700" },
+          contentStyle: { backgroundColor: "transparent" },
+          headerShown: false,
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />

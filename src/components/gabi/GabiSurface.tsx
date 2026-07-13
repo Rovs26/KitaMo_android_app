@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import type { ComponentProps, PropsWithChildren, ReactNode } from "react";
-import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { radius } from "@/theme/radius";
 import { shadows } from "@/theme/shadows";
@@ -23,7 +23,7 @@ function toneColors(tone: Tone, palette: ReturnType<typeof useGabiTheme>["palett
   return { background: extended.violetChipBg, foreground: extended.violetChipText };
 }
 
-export function GabiCard({ children, style, raised = false }: PropsWithChildren<{ style?: ViewStyle; raised?: boolean }>) {
+export function GabiCard({ children, style, raised = false }: PropsWithChildren<{ style?: StyleProp<ViewStyle>; raised?: boolean }>) {
   const { palette, extended, isDark } = useGabiTheme();
   return (
     <View
@@ -42,7 +42,7 @@ export function GabiCard({ children, style, raised = false }: PropsWithChildren<
   );
 }
 
-export function GabiHeroCard({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) {
+export function GabiHeroCard({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
   const { gradients, isDark } = useGabiTheme();
   return (
     <LinearGradient

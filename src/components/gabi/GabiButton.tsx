@@ -20,6 +20,7 @@ type GabiButtonProps = {
   loading?: boolean;
   accessibilityHint?: string;
   testID?: string;
+  compact?: boolean;
 };
 
 export function GabiPrimaryButton({
@@ -30,6 +31,7 @@ export function GabiPrimaryButton({
   loading = false,
   accessibilityHint,
   testID,
+  compact = false,
 }: GabiButtonProps) {
   const { palette, extended, gradients, isDark } = useGabiTheme();
   const unavailable = disabled || loading;
@@ -55,14 +57,14 @@ export function GabiPrimaryButton({
           }
           end={{ x: 1, y: 1 }}
           start={{ x: 0, y: 0 }}
-          style={[styles.primary, !unavailable && !isDark ? shadows.primaryGlow : null]}
+          style={[styles.primary, compact ? styles.compact : null, !unavailable && !isDark ? shadows.primaryGlow : null]}
         >
           {loading ? (
             <ActivityIndicator color={unavailable ? extended.disabledText : palette.kioskHeaderText} size="small" />
           ) : icon ? (
-            <Ionicons color={unavailable ? extended.disabledText : palette.kioskHeaderText} name={icon} size={20} />
+            <Ionicons color={unavailable ? extended.disabledText : palette.kioskHeaderText} name={icon} size={compact ? 17 : 20} />
           ) : null}
-          <GabiText style={{ color: unavailable ? extended.disabledText : palette.kioskHeaderText }} variant="buttonLg">
+          <GabiText style={{ color: unavailable ? extended.disabledText : palette.kioskHeaderText }} variant={compact ? "buttonSm" : "buttonLg"}>
             {label}
           </GabiText>
         </LinearGradient>
@@ -71,7 +73,7 @@ export function GabiPrimaryButton({
   );
 }
 
-export function GabiSoftButton({ label, onPress, icon, disabled = false, loading = false, accessibilityHint, testID }: GabiButtonProps) {
+export function GabiSoftButton({ label, onPress, icon, disabled = false, loading = false, accessibilityHint, testID, compact = false }: GabiButtonProps) {
   const { palette, extended } = useGabiTheme();
   const unavailable = disabled || loading;
 
@@ -85,6 +87,7 @@ export function GabiSoftButton({ label, onPress, icon, disabled = false, loading
       onPress={onPress}
       style={({ pressed }) => [
         styles.soft,
+        compact ? styles.compact : null,
         {
           backgroundColor: unavailable ? extended.disabledBg : pressed ? extended.violetChipBg : palette.softPrimary,
           borderColor: unavailable ? extended.disabledBg : palette.border,
@@ -95,7 +98,7 @@ export function GabiSoftButton({ label, onPress, icon, disabled = false, loading
       {loading ? (
         <ActivityIndicator color={extended.disabledText} size="small" />
       ) : icon ? (
-        <Ionicons color={unavailable ? extended.disabledText : extended.violetChipText} name={icon} size={19} />
+        <Ionicons color={unavailable ? extended.disabledText : extended.violetChipText} name={icon} size={compact ? 17 : 19} />
       ) : null}
       <GabiText style={{ color: unavailable ? extended.disabledText : extended.violetChipText }} variant="buttonSm">
         {label}
@@ -133,5 +136,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: spacing.sm,
+  },
+  compact: {
+    borderRadius: 14,
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
 });

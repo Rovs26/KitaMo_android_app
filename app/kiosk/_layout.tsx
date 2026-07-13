@@ -3,16 +3,12 @@ import { useEffect } from "react";
 
 import { useOwnerAccessStore } from "@/state/ownerAccessStore";
 import { useAppStore } from "@/state/appStore";
-import { useThemeStore } from "@/state/themeStore";
-import { themePalettes } from "@/theme/colors";
 
 export default function KioskLayout() {
   const lockOwnerAccess = useOwnerAccessStore((state) => state.lock);
   const activeBusinessId = useAppStore((state) => state.activeBusinessId);
   const activeBranchId = useAppStore((state) => state.activeBranchId);
   const kioskSessionBranchId = useAppStore((state) => state.kioskSessionBranchId);
-  const themeMode = useThemeStore((state) => state.themeMode);
-  const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
   const pathname = usePathname();
 
   useEffect(() => {
@@ -29,11 +25,8 @@ export default function KioskLayout() {
   return (
     <Stack
       screenOptions={{
-        contentStyle: { backgroundColor: palette.background },
+        contentStyle: { backgroundColor: "transparent" },
         headerShown: false,
-        headerStyle: { backgroundColor: palette.kioskHeader },
-        headerTintColor: palette.kioskHeaderText,
-        headerTitleStyle: { fontWeight: "700" },
       }}
     >
       <Stack.Screen name="index" options={{ title: "Kiosk" }} />
