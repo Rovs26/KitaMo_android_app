@@ -42,6 +42,7 @@ export default function OwnerLayout() {
         <Stack.Screen name="inventory" options={{ title: "Paninda" }} />
         <Stack.Screen name="grocery" options={{ title: "Grocery Stock" }} />
         <Stack.Screen name="recipes" options={{ title: "Recipe Cost" }} />
+        <Stack.Screen name="recipe-detail" options={{ title: "Recipe Detail" }} />
         <Stack.Screen name="production" options={{ title: "Niluto" }} />
         <Stack.Screen name="transfers" options={{ title: "Lipat" }} />
         <Stack.Screen name="fixed-costs" options={{ title: "Bayarin" }} />
