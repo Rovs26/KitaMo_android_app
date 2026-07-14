@@ -2,10 +2,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
-import { LocalDataVerificationPanel } from "@/components/common/LocalDataVerificationPanel";
 import { PilotStatusCard } from "@/components/owner/PilotStatusCard";
 import { AppTopBar, Card, IconBadge, Pill, ScreenScroll, SecondaryButton } from "@/components/ui/KitaMoUI";
-import { showLocalDataVerificationPanel } from "@/config/devTools";
 import {
   createBranch,
   createBusiness,
@@ -35,6 +33,7 @@ import { useOwnerAccessStore } from "@/state/ownerAccessStore";
 import { useThemeStore } from "@/state/themeStore";
 import { themePalettes } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
+import { extendedThemePalettes } from "@/theme/tokens";
 import { typography } from "@/theme/typography";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
@@ -758,8 +757,6 @@ export default function OwnerSettingsScreen() {
           <Text style={[styles.smallButtonText, { color: palette.danger }]}>Clear All Local Pilot Data</Text>
         </Pressable>
       </View>
-
-      {__DEV__ && showLocalDataVerificationPanel ? <LocalDataVerificationPanel /> : null}
     </ScreenScroll>
   );
 }
@@ -787,6 +784,7 @@ function FormField({
 }: FormFieldProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const extended = extendedThemePalettes[themeMode];
 
   return (
     <View style={styles.field}>
@@ -803,10 +801,9 @@ function FormField({
           styles.input,
           multiline ? styles.multilineInput : null,
           {
-            backgroundColor: editable ? palette.background : palette.surface,
-            borderColor: palette.border,
-            color: palette.text,
-            opacity: editable ? 1 : 0.65,
+            backgroundColor: editable ? palette.background : extended.disabledBg,
+            borderColor: editable ? palette.border : extended.disabledBg,
+            color: editable ? palette.text : extended.disabledText,
           },
         ]}
         value={value}
@@ -826,6 +823,7 @@ type OptionGroupProps<T extends string> = {
 function OptionGroup<T extends string>({ label, options, selected, onSelect, disabled = false }: OptionGroupProps<T>) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const extended = extendedThemePalettes[themeMode];
 
   return (
     <View style={styles.field}>
@@ -841,13 +839,12 @@ function OptionGroup<T extends string>({ label, options, selected, onSelect, dis
               style={[
                 styles.option,
                 {
-                  backgroundColor: isSelected ? palette.primary : palette.background,
-                  borderColor: isSelected ? palette.primary : palette.border,
-                  opacity: disabled ? 0.6 : 1,
+                  backgroundColor: disabled ? extended.disabledBg : isSelected ? palette.primary : palette.background,
+                  borderColor: disabled ? extended.disabledBg : isSelected ? palette.primary : palette.border,
                 },
               ]}
             >
-              <Text style={[styles.optionText, { color: isSelected ? palette.kioskHeaderText : palette.text }]}>{option}</Text>
+              <Text style={[styles.optionText, { color: disabled ? extended.disabledText : isSelected ? palette.kioskHeaderText : palette.text }]}>{option}</Text>
             </Pressable>
           );
         })}
@@ -865,14 +862,15 @@ type ButtonProps = {
 function ActionButton({ label, onPress, disabled = false }: ButtonProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const extended = extendedThemePalettes[themeMode];
 
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={[styles.actionButton, { backgroundColor: palette.primary, opacity: disabled ? 0.6 : 1 }]}
+      style={[styles.actionButton, { backgroundColor: disabled ? extended.disabledBg : palette.primary }]}
     >
-      <Text style={[styles.actionButtonText, { color: palette.kioskHeaderText }]}>{label}</Text>
+      <Text style={[styles.actionButtonText, { color: disabled ? extended.disabledText : palette.kioskHeaderText }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -880,14 +878,15 @@ function ActionButton({ label, onPress, disabled = false }: ButtonProps) {
 function SmallButton({ label, onPress, disabled = false }: ButtonProps) {
   const themeMode = useThemeStore((state) => state.themeMode);
   const palette = themePalettes[themeMode === "dark" ? "dark" : "light"];
+  const extended = extendedThemePalettes[themeMode];
 
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={[styles.smallButton, { borderColor: palette.border, opacity: disabled ? 0.55 : 1 }]}
+      style={[styles.smallButton, { backgroundColor: disabled ? extended.disabledBg : palette.surface, borderColor: disabled ? extended.disabledBg : palette.border }]}
     >
-      <Text style={[styles.smallButtonText, { color: palette.primary }]}>{label}</Text>
+      <Text style={[styles.smallButtonText, { color: disabled ? extended.disabledText : palette.primary }]}>{label}</Text>
     </Pressable>
   );
 }

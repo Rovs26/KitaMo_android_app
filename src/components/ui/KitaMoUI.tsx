@@ -32,8 +32,8 @@ const toneStyles = {
   primary: (palette: ThemePalette) => ({ backgroundColor: palette.softPrimary, color: palette.primary, borderColor: palette.border }),
   accent: (palette: ThemePalette) => ({ backgroundColor: palette.softAccent, color: palette.accent, borderColor: palette.border }),
   success: (palette: ThemePalette) => ({ backgroundColor: palette.softSuccess, color: palette.success, borderColor: palette.border }),
-  warning: (palette: ThemePalette) => ({ backgroundColor: palette.softWarning, color: palette.warning, borderColor: "#F0D8A7" }),
-  danger: (palette: ThemePalette) => ({ backgroundColor: palette.softDanger, color: palette.danger, borderColor: "#F2C8BD" }),
+  warning: (palette: ThemePalette) => ({ backgroundColor: palette.softWarning, color: palette.warning, borderColor: palette.border }),
+  danger: (palette: ThemePalette) => ({ backgroundColor: palette.softDanger, color: palette.danger, borderColor: palette.border }),
   neutral: (palette: ThemePalette) => ({ backgroundColor: palette.surface, color: palette.mutedText, borderColor: palette.border }),
 };
 
@@ -275,36 +275,42 @@ type ButtonProps = {
 // an explicit onPress instead.
 export function PrimaryButton({ label, onPress, href, disabled = false }: ButtonProps) {
   const palette = usePalette();
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const extended = extendedThemePalettes[themeMode];
   const router = useRouter();
   const handlePress = href ? () => router.push(href) : onPress;
   return (
     <Pressable
       disabled={disabled}
       onPress={handlePress}
-      style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: disabled ? 0.6 : 1 }]}
+      style={[styles.primaryButton, { backgroundColor: disabled ? extended.disabledBg : palette.primary }]}
     >
-      <Text style={[styles.primaryButtonText, { color: palette.kioskHeaderText }]}>{label}</Text>
+      <Text style={[styles.primaryButtonText, { color: disabled ? extended.disabledText : palette.kioskHeaderText }]}>{label}</Text>
     </Pressable>
   );
 }
 
 export function SecondaryButton({ label, onPress, href, disabled = false }: ButtonProps) {
   const palette = usePalette();
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const extended = extendedThemePalettes[themeMode];
   const router = useRouter();
   const handlePress = href ? () => router.push(href) : onPress;
   return (
     <Pressable
       disabled={disabled}
       onPress={handlePress}
-      style={[styles.secondaryButton, { backgroundColor: palette.surface, borderColor: palette.border, opacity: disabled ? 0.58 : 1 }]}
+      style={[styles.secondaryButton, { backgroundColor: disabled ? extended.disabledBg : palette.surface, borderColor: disabled ? extended.disabledBg : palette.border }]}
     >
-      <Text style={[styles.secondaryButtonText, { color: palette.primary }]}>{label}</Text>
+      <Text style={[styles.secondaryButtonText, { color: disabled ? extended.disabledText : palette.primary }]}>{label}</Text>
     </Pressable>
   );
 }
 
 export function FormInput({ label, style, ...inputProps }: TextInputProps & { label: string }) {
   const palette = usePalette();
+  const themeMode = useThemeStore((state) => state.themeMode);
+  const extended = extendedThemePalettes[themeMode];
   const editable = inputProps.editable !== false;
 
   return (
@@ -316,10 +322,9 @@ export function FormInput({ label, style, ...inputProps }: TextInputProps & { la
         style={[
           styles.input,
           {
-            backgroundColor: editable ? palette.surface : palette.softPrimary,
-            borderColor: palette.border,
-            color: palette.text,
-            opacity: editable ? 1 : 0.7,
+            backgroundColor: editable ? palette.surface : extended.disabledBg,
+            borderColor: editable ? palette.border : extended.disabledBg,
+            color: editable ? palette.text : extended.disabledText,
           },
           style,
         ]}
@@ -427,7 +432,7 @@ function OwnerBottomNav() {
       label: "Kita",
       icon: "receipt-outline",
       activeIcon: "receipt",
-      active: ["/owner/reports", "/owner/records", "/owner/fixed-costs", "/owner/insights"].some((path) => pathname.includes(path)),
+      active: ["/owner/reports", "/owner/records", "/owner/fixed-costs"].some((path) => pathname.includes(path)),
     },
     {
       href: "/owner/settings",

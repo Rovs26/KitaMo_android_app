@@ -49,7 +49,7 @@ export default function KioskCheckoutScreen() {
   const [messageIsError, setMessageIsError] = useState(false);
   const [completedSale, setCompletedSale] = useState<CompletedKioskSale | null>(null);
   const [completedItems, setCompletedItems] = useState<KioskCartItem[]>([]);
-  const { palette, isDark } = useGabiTheme();
+  const { palette } = useGabiTheme();
   const router = useRouter();
 
   function setNotice(text: string) {
@@ -315,7 +315,7 @@ export default function KioskCheckoutScreen() {
               value={cashReceived}
             />
             {change !== null ? (
-              <View style={[styles.changeCard, { backgroundColor: isDark ? "#16352A" : palette.softSuccess }]}>
+              <View style={[styles.changeCard, { backgroundColor: palette.softSuccess }]}>
                 <View style={styles.changeCopy}>
                   <GabiText tone="success" variant="eyebrow">SUKLI</GabiText>
                   <GabiText tone="muted" variant="caption">{formatPeso(parsedCashTender ?? 0)} - {formatPeso(total)}</GabiText>

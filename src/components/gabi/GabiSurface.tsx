@@ -95,7 +95,7 @@ export function GabiIconButton({
       <Ionicons color={palette.primary} name={icon} size={21} />
       {badgeCount > 0 ? (
         <View style={[styles.badge, { backgroundColor: palette.danger }]}>
-          <GabiText style={styles.badgeText} variant="caption">
+      <GabiText style={[styles.badgeText, { color: palette.kioskHeaderText }]} variant="caption">
             {badgeCount > 9 ? "9+" : badgeCount}
           </GabiText>
         </View>
@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
     top: -5,
   },
   badgeText: {
-    color: "#FFFFFF",
     fontSize: 8,
     lineHeight: 10,
   },

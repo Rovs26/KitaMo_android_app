@@ -169,7 +169,7 @@ function countProductsForBranch(status: OwnerSetupStatus | null, branchId: strin
 }
 
 function KioskStallOption({ branch, productCount, selected, onSelect }: { branch: Branch; productCount: number; selected: boolean; onSelect: () => void }) {
-  const { palette, extended, isDark } = useGabiTheme();
+  const { palette, extended } = useGabiTheme();
   return (
     <Pressable
       accessibilityLabel={branch.branchName}
@@ -179,7 +179,7 @@ function KioskStallOption({ branch, productCount, selected, onSelect }: { branch
       style={({ pressed }) => [
         styles.stallOption,
         {
-          backgroundColor: selected ? (isDark ? palette.softPrimary : "#F8F6FE") : pressed ? palette.softPrimary : palette.surface,
+          backgroundColor: selected || pressed ? palette.softPrimary : palette.surface,
           borderColor: selected ? palette.primary : palette.border,
         },
       ]}

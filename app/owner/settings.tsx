@@ -10,8 +10,9 @@ import { AppTopBar, ScreenScroll } from "@/components/ui/KitaMoUI";
 import { getOwnerAccessStatus, type OwnerAccessStatus } from "@/services/ownerAccess";
 import { loadOwnerSetupStatus, type OwnerSetupStatus } from "@/services/ownerSetup";
 import { useThemeStore } from "@/state/themeStore";
-import type { ResolvedThemeMode } from "@/theme/colors";
+import { themePalettes, type ResolvedThemeMode } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
+import { extendedThemePalettes } from "@/theme/tokens";
 import { useGabiTheme } from "@/theme/useGabiTheme";
 import { getFriendlyErrorMessage, logDevError } from "@/utils/errors";
 
@@ -71,6 +72,8 @@ export default function OwnerSettingsIndexScreen() {
   }
 
   const selectedTheme = themePreference === "system" ? resolvedTheme : themePreference;
+  const previewPalette = themePalettes[selectedTheme];
+  const previewExtended = extendedThemePalettes[selectedTheme];
 
   return (
     <ScreenScroll bottomNav>
@@ -87,8 +90,8 @@ export default function OwnerSettingsIndexScreen() {
 
       <GabiCard>
         <View style={styles.themeHeader}>
-          <View style={[styles.largeIcon, { backgroundColor: selectedTheme === "dark" ? "#2A2348" : "#FFF2D6" }]}>
-            <Ionicons color={selectedTheme === "dark" ? "#B3A0F8" : "#E08700"} name={selectedTheme === "dark" ? "moon" : "sunny"} size={23} />
+          <View style={[styles.largeIcon, { backgroundColor: selectedTheme === "dark" ? previewExtended.field : previewPalette.softAccent }]}>
+            <Ionicons color={selectedTheme === "dark" ? previewPalette.primary : previewPalette.warning} name={selectedTheme === "dark" ? "moon" : "sunny"} size={23} />
           </View>
           <View style={styles.themeCopy}>
             <GabiText variant="cardTitle">Itsura ng app</GabiText>

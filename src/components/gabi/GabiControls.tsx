@@ -67,7 +67,7 @@ export function GabiRadioRow({
   selected: boolean;
   onPress: () => void;
 }) {
-  const { palette, extended, isDark } = useGabiTheme();
+  const { palette, extended } = useGabiTheme();
   return (
     <Pressable
       accessibilityLabel={title}
@@ -77,7 +77,7 @@ export function GabiRadioRow({
       style={({ pressed }) => [
         styles.radioRow,
         {
-          backgroundColor: selected ? (isDark ? palette.softPrimary : "#F8F6FE") : pressed ? palette.softPrimary : palette.surface,
+          backgroundColor: selected || pressed ? palette.softPrimary : palette.surface,
           borderColor: selected ? palette.primary : palette.border,
         },
       ]}

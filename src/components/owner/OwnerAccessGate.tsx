@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 24,
     fontWeight: "800",
-    letterSpacing: 8,
+    letterSpacing: 0,
     minHeight: 54,
     paddingHorizontal: spacing.md,
     textAlign: "center",
