@@ -47,7 +47,9 @@ export function GabiPrimaryButton({
       testID={testID}
     >
       {({ pressed }) => (
+        // Keep Expo's native gradient host stable when loading children change under Fabric.
         <LinearGradient
+          collapsable={false}
           colors={
             unavailable
               ? ([extended.disabledBg, extended.disabledBg] as const)
