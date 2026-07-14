@@ -87,6 +87,10 @@ export function ScreenScroll({
         {kioskNav ? <OwnerContextBar mode="kiosk" /> : null}
         {screenContent}
       </ScrollView>
+      <View
+        pointerEvents="none"
+        style={[styles.statusBarMask, { backgroundColor: palette.background, height: insets.top }]}
+      />
       {floatingFooter ? (
         <View
           style={[
@@ -551,6 +555,13 @@ function KioskNavItem({ href, label, icon, activeIcon, active }: { href: Href; l
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  statusBarMask: {
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 3,
   },
   floatingFooter: {
     left: spacing.md,

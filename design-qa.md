@@ -77,3 +77,76 @@ Design deviations:
 Remaining visual issues: none at P0, P1, or P2.
 
 final result: passed
+
+## Stage 4: Inventory and Product Management
+
+Reference sources:
+
+- `KitaMo Redesign.dc.html`, Tindahan and Paninda sections from the approved Turn 4 package
+- `KitaMo Prototype.dc.html` from the approved Turn 4 package
+- `handoff/kitamo-tokens.json` version 3.1.0
+- `handoff/codex-migration-notes.md`, Grocery-to-Production terminology and protected-engine notes
+
+Test target:
+
+- Android API 35 16 KB emulator
+- 360 x 800 logical viewport
+- Araw and Gabi themes
+- 100% and 130% system font scales
+
+Compared states:
+
+- Tindahan tabs and Paninda overview
+- active Owner business and stall context
+- stock summaries, search, filters, product rows, and bundle status
+- product action sheet, edit form, manual cooked-stock form, and spoilage form
+- Kiosk Stock after explicit stall selection and confirmation
+- local network and pending-save status
+
+Verified:
+
+- Paninda, Grocery, and Recipes remain distinct destinations within Tindahan
+- the active business and stall are visible before Owner stock actions
+- product quantities, thresholds, costs, prices, bundle labels, and Kiosk Stock all read the existing local contracts
+- no capacity meter or product photography is shown without a real source field
+- product actions remain reachable above the Owner dock and Android gesture area in a modal bottom sheet
+- manual cooked stock is explicitly labeled as no-recipe stock-in and points recipe-based work to Niluto
+- spoilage remains an explicit destructive stock-out flow with the existing validation and service
+- edit, manual stock-in, and spoilage forms open without an automatic mutation; QA did not save test changes
+- Kiosk Stock is reachable only inside a confirmed stall-specific Kiosk session
+- Araw and Gabi contrast, card hierarchy, controls, and financial values remain readable at 360 x 800
+- 130% text preserves tab labels, summaries, product names, price/cost values, action labels, and touch targets
+- scrolled content is masked behind the transparent Android status bar to prevent text/icon overlap
+- normal Inventory scrolling and action-sheet interaction produced no React Native, Expo, or Android runtime errors in focused logcat
+
+Automated gates:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run check:owner-context`
+- `npm run check:pricing`
+- `npm run check:recipes`
+- `npm run check:production`
+- `npm run check:cogs`
+- `npm run check:fixedcosts`
+- `npm run check:pilot`
+- `npm run check:migrations`
+- Expo Doctor: 18/18 checks passed
+- production Android export with Expo; Hermes bundle 3.99 MB
+
+Approved implementation constraints retained:
+
+- no product photography because the local product contract has no image source
+- no capacity meter because the local product contract has no capacity field
+- no schema, migration, repository, stock-service, or protected business-engine changes
+- no seller accounts, remote alerts, cloud sync, or other non-pilot capability
+
+Design deviations:
+
+- source photography and capacity meters are omitted because the required data is unavailable
+- exact product actions use a bottom sheet instead of expanding inline so every control remains reachable on 360 x 800 and at 130% text
+- Kiosk low-stock pings remain local SQLite Owner alerts on the same device
+
+Remaining visual issues: none at P0, P1, or P2.
+
+final result: passed
