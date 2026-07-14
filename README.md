@@ -380,7 +380,7 @@ Phase 7 added the operational layer for food sellers: local-only owner alerts, N
 - Bundle pricing regression (unit 20, bundle 8-for-150): qty 7/8/9/16/17 = 140/150/170/300/320 through the shared pricing helper used by cart, checkout, sale rows, receipts, and Records/Insights totals. Run `npm run check:pricing` to re-verify.
 - Sale, cook, and spoilage writes are each one SQLite transaction; negative stock is blocked at the SQL level (`stock_qty >= ?` guards); duplicate submissions are blocked by synchronous tap locks on checkout, cook, spoilage, notify, resolve, and first-run actions.
 - Fresh mode starts empty; demo data appears only after Try Demo Data; Clear Local Data returns to the first-run choice.
-- The dev verification panel stays hidden (`__DEV__` + a flag that is hard-coded off); no SQLite/migration/queue wording appears in seller-facing screens.
+- No SQLite, migration, or queue implementation wording appears in seller-facing screens.
 
 ### Known limitations (honest)
 
@@ -437,7 +437,6 @@ npm run android
 - Spoilage/Nasayang flow in Owner Inventory that decreases stock and logs a spoilage inventory movement with negative-stock protection.
 - Online / Offline local-mode indicator using Expo Network.
 - Pending offline queue visibility in Owner and Kiosk flows.
-- Development-only local data verification panel hidden behind a disabled local dev flag.
 - Shared KitaMo UI primitives for screen shells, cards, metric cards, pills, buttons, empty states, list rows, and icon-based bottom navigation.
 - Theme token foundation with light, dark, and system-ready mode support.
 - Zustand stores for app, kiosk, and theme state.
@@ -657,19 +656,6 @@ Cart contents remain lightweight Zustand state and are not expected to survive a
 
 For SDK 54, owner status and local count reads are performed sequentially on the SQLite handle to avoid native prepared-statement lifecycle errors during settings load.
 
-## Sale Integrity Check
-
-`verifySaleIntegrity()` in `src/services/kioskSales.ts` checks the latest or selected local sale for:
-
-- sale items
-- receipt record
-- stock-out inventory movements
-- offline queue row
-- movement quantity matching sale item quantity
-- nonnegative product stock
-
-This is for local development verification only. It does not send telemetry.
-
 ## Receipts
 
 Receipts are generated from structured local sale data and include business, stall, transaction number, sale ID, date/time, items, subtotal, discount, total, payment method, reference number when present, and a local/offline note.
@@ -686,7 +672,7 @@ The Phase 5.8 polish is UI-only. It does not change business logic, the SQLite s
 
 `clearLocalPilotData()` clears local KitaMo SQLite tables, including businesses, branches, products, sales, sale items, inventory movements, recipe batches, owner alerts, receipt records, offline queue rows, and app settings.
 
-Because `app_settings` is cleared, the first-run choice appears again when the app starts from the root. Demo data is not recreated unless Try Demo Data is selected again. The local verification panel remains in code for development, but it is hidden by default with `showLocalDataVerificationPanel = false`.
+Because `app_settings` is cleared, the first-run choice appears again when the app starts from the root. Demo data is not recreated unless Try Demo Data is selected again.
 
 ## Intentionally Deferred
 
