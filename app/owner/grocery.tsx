@@ -49,6 +49,7 @@ const emptyGroceryForm: GroceryForm = {
 };
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const groceryGroupRenderBatch = 20;
 
 function isValidIsoDate(value: string) {
   if (!isoDatePattern.test(value)) {
@@ -95,6 +96,7 @@ export default function OwnerGroceryScreen() {
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formIsError, setFormIsError] = useState(false);
   const [filter, setFilter] = useState("");
+  const [groupRenderLimit, setGroupRenderLimit] = useState(groceryGroupRenderBatch);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -171,6 +173,9 @@ export default function OwnerGroceryScreen() {
 
     return `${formatPeso(costPerUnit)} bawat ${form.unit}. ${comparison}`;
   }, [form.ingredientName, form.quantity, form.totalCost, form.unit, snapshot?.lots]);
+
+  const renderedGroups = filteredGroups.slice(0, groupRenderLimit);
+  const remainingGroupCount = Math.max(0, filteredGroups.length - renderedGroups.length);
 
   async function saveGroceryPurchase() {
     if (saveLock.current) {
@@ -318,7 +323,10 @@ export default function OwnerGroceryScreen() {
           {hasLots ? (
             <GabiField
               label="Hanapin"
-              onChangeText={setFilter}
+              onChangeText={(value) => {
+                setFilter(value);
+                setGroupRenderLimit(groceryGroupRenderBatch);
+              }}
               placeholder="Sangkap, brand, o pinagbilhan"
               value={filter}
             />
@@ -340,13 +348,16 @@ export default function OwnerGroceryScreen() {
                 actionLabel="I-clear ang search"
                 icon="search-outline"
                 message="Walang lot na tumutugma sa ingredient, brand, o source."
-                onAction={() => setFilter("")}
+                onAction={() => {
+                  setFilter("");
+                  setGroupRenderLimit(groceryGroupRenderBatch);
+                }}
                 title="Walang nahanap"
               />
             </GabiCard>
           ) : (
             <View style={styles.groupList}>
-              {filteredGroups.map((group) => (
+              {renderedGroups.map((group) => (
                 <View key={group.ingredientId} style={styles.groupSection}>
                   <View style={styles.groupHeader}>
                     <View style={styles.groupTitle}>
@@ -367,6 +378,13 @@ export default function OwnerGroceryScreen() {
                   ))}
                 </View>
               ))}
+              {remainingGroupCount > 0 ? (
+                <GabiSoftButton
+                  icon="chevron-down"
+                  label={`Ipakita pa (${remainingGroupCount} sangkap)`}
+                  onPress={() => setGroupRenderLimit((current) => current + groceryGroupRenderBatch)}
+                />
+              ) : null}
             </View>
           )}
         </>

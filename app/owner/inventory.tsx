@@ -56,6 +56,7 @@ const emptyProductForm: ProductForm = {
 };
 
 const numbersOnlyMessage = "Numbers only, like 1500 or 12.5. Walang comma.";
+const productRenderBatch = 30;
 
 type CookForm = {
   productId: string | null;
@@ -89,6 +90,7 @@ export default function OwnerInventoryScreen() {
   const [spoilageSaving, setSpoilageSaving] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
+  const [productRenderLimit, setProductRenderLimit] = useState(productRenderBatch);
   const [openProductActionsId, setOpenProductActionsId] = useState<string | null>(null);
   const [stockAction, setStockAction] = useState<"cook" | "spoilage" | null>(null);
   const cookLock = useRef(false);
@@ -360,6 +362,8 @@ export default function OwnerInventoryScreen() {
       (stockFilter === "out" ? product.stockQty <= 0 : product.stockQty > 0 && product.stockQty <= product.lowStockThreshold);
     return matchesSearch && matchesStock;
   });
+  const renderedProducts = visibleProducts.slice(0, productRenderLimit);
+  const remainingProductCount = Math.max(0, visibleProducts.length - renderedProducts.length);
   const actionProduct = products.find((product) => product.id === openProductActionsId) ?? null;
 
   const openProductForm = () => {
@@ -430,7 +434,10 @@ export default function OwnerInventoryScreen() {
               <>
                 <GabiField
                   label="Hanapin"
-                  onChangeText={setProductSearch}
+                  onChangeText={(value) => {
+                    setProductSearch(value);
+                    setProductRenderLimit(productRenderBatch);
+                  }}
                   placeholder="Pangalan o category"
                   value={productSearch}
                 />
@@ -445,7 +452,10 @@ export default function OwnerInventoryScreen() {
                       active={stockFilter === option}
                       key={option}
                       label={option === "all" ? "Lahat" : option === "low" ? "Paubos" : "Ubos na"}
-                      onPress={() => setStockFilter(option)}
+                      onPress={() => {
+                        setStockFilter(option);
+                        setProductRenderLimit(productRenderBatch);
+                      }}
                     />
                   ))}
                 </ScrollView>
@@ -468,12 +478,13 @@ export default function OwnerInventoryScreen() {
                 onAction={() => {
                   setProductSearch("");
                   setStockFilter("all");
+                  setProductRenderLimit(productRenderBatch);
                 }}
                 title="Walang nahanap"
               />
             ) : (
               <View style={styles.productList}>
-                {visibleProducts.map((product) => (
+                {renderedProducts.map((product) => (
                   <InventoryProductRow
                     actionsOpen={openProductActionsId === product.id}
                     disabled={saving}
@@ -482,6 +493,13 @@ export default function OwnerInventoryScreen() {
                     product={product}
                   />
                 ))}
+                {remainingProductCount > 0 ? (
+                  <GabiSoftButton
+                    icon="chevron-down"
+                    label={`Ipakita pa (${remainingProductCount})`}
+                    onPress={() => setProductRenderLimit((current) => current + productRenderBatch)}
+                  />
+                ) : null}
               </View>
             )}
           </GabiCard>
