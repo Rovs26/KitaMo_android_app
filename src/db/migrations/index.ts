@@ -34,6 +34,13 @@ type MigrationRow = {
   applied_at: string;
 };
 
+type MigrationResult = {
+  appliedMigrationIds: string[];
+  newlyAppliedMigrationIds: string[];
+};
+
+const migrationQueues = new WeakMap<SQLiteDatabase, Promise<void>>();
+
 async function ensureMigrationTable(db: SQLiteDatabase) {
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -48,7 +55,7 @@ export async function getAppliedMigrations(db = openKitamoDatabase()) {
   return db.getAllAsync<MigrationRow>("SELECT id, applied_at FROM schema_migrations ORDER BY id ASC");
 }
 
-export async function runMigrations(db = openKitamoDatabase()) {
+async function runMigrationsNow(db: SQLiteDatabase): Promise<MigrationResult> {
   await ensureMigrationTable(db);
 
   const appliedRows = await getAppliedMigrations(db);
@@ -75,4 +82,23 @@ export async function runMigrations(db = openKitamoDatabase()) {
     appliedMigrationIds: [...appliedIds, ...newlyApplied],
     newlyAppliedMigrationIds: newlyApplied,
   };
+}
+
+export function runMigrations(db = openKitamoDatabase()): Promise<MigrationResult> {
+  const previous = migrationQueues.get(db) ?? Promise.resolve();
+  const operation = previous.then(
+    () => runMigrationsNow(db),
+    () => runMigrationsNow(db),
+  );
+
+  // Keep concurrent startup consumers from entering overlapping transactions.
+  migrationQueues.set(
+    db,
+    operation.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+
+  return operation;
 }
