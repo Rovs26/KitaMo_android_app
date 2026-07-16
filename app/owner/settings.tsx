@@ -168,6 +168,19 @@ export default function OwnerSettingsIndexScreen() {
 
       <SettingsGroup title="App at Tulong">
         <SettingsRow
+          description="I-save sa phone ang problema at sanitized app info"
+          href={"/owner/report-problem" as Href}
+          icon="chatbox-ellipses-outline"
+          title="Report Problem"
+          tone="warning"
+        />
+        <SettingsRow
+          description="Buksan, kopyahin, o i-share ang local reports"
+          href={"/owner/problem-reports" as Href}
+          icon="documents-outline"
+          title="My Problem Reports"
+        />
+        <SettingsRow
           description="Version, package, pilot scope, at app information"
           href="/owner/about"
           icon="information-circle-outline"

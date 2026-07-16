@@ -439,7 +439,7 @@ function OwnerBottomNav() {
       label: "Ako",
       icon: "person-outline",
       activeIcon: "person",
-      active: ["/owner/settings", "/owner/about", "/owner/business-settings", "/owner/context", "/owner/notifications", "/owner/pilot-guide"].some((path) => pathname.includes(path)),
+      active: ["/owner/settings", "/owner/about", "/owner/business-settings", "/owner/context", "/owner/notifications", "/owner/pilot-guide", "/owner/report-problem", "/owner/problem-reports"].some((path) => pathname.includes(path)),
     },
   ];
 

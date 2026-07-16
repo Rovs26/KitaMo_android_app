@@ -54,6 +54,8 @@ export default function OwnerLayout() {
         <Stack.Screen name="business-settings" options={{ title: "Business & Stalls" }} />
         <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
         <Stack.Screen name="about" options={{ title: "About KitaMo" }} />
+        <Stack.Screen name="report-problem" options={{ title: "Report Problem" }} />
+        <Stack.Screen name="problem-reports" options={{ title: "My Problem Reports" }} />
       </Stack>
     </OwnerAccessGate>
   );

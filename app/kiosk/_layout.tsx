@@ -42,6 +42,9 @@ export default function KioskLayout() {
       <Stack.Screen name="orders" options={{ title: "Orders" }} />
       <Stack.Screen name="stock" options={{ title: "Stock" }} />
       <Stack.Screen name="shift" options={{ title: "Shift" }} />
+      <Stack.Screen name="help" options={{ title: "Help & Reports" }} />
+      <Stack.Screen name="report-problem" options={{ title: "Report Problem" }} />
+      <Stack.Screen name="problem-reports" options={{ title: "My Problem Reports" }} />
     </Stack>
   );
 }

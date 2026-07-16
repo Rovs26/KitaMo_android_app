@@ -1,13 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { NetworkStatusBadge } from "@/components/common/NetworkStatusBadge";
 import { GabiSoftButton } from "@/components/gabi/GabiButton";
 import { GabiEmptyState, GabiNotice, GabiSkeleton } from "@/components/gabi/GabiFeedback";
-import { GabiCard, GabiChip, GabiSectionHeader } from "@/components/gabi/GabiSurface";
+import { GabiCard, GabiChip, GabiIconButton, GabiSectionHeader } from "@/components/gabi/GabiSurface";
 import { GabiText } from "@/components/gabi/GabiText";
 import { AppTopBar, ScreenScroll, formatPeso } from "@/components/ui/KitaMoUI";
 import { isLowStock } from "@/domain/inventory";
@@ -173,7 +173,12 @@ export default function KioskSellScreen() {
 
   return (
     <ScreenScroll floatingFooter={cartBar} kioskNav>
-      <AppTopBar eyebrow="BENTA" subtitle="Tap paninda para idagdag sa cart" title={context?.activeBranch?.branchName ?? "Benta"} />
+      <AppTopBar
+        eyebrow="BENTA"
+        right={<GabiIconButton accessibilityLabel="Kiosk help at problem reports" icon="help-circle-outline" onPress={() => router.push("/kiosk/help" as Href)} />}
+        subtitle="Tap paninda para idagdag sa cart"
+        title={context?.activeBranch?.branchName ?? "Benta"}
+      />
 
       {message ? (
         <GabiNotice
