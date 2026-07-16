@@ -1,6 +1,6 @@
 # KitaMo Android Release Engineering Environment
 
-Last verified: 2026-07-11 (Asia/Manila)
+Last verified: 2026-07-14 (Asia/Manila)
 
 This document records the workstation and account prerequisites for the `1.0.0 (1)` Internal Testing candidate. It contains no passwords, tokens, keystore material, or Play credentials.
 
@@ -39,7 +39,12 @@ These support constrained-device and 16 KB compatibility checks. A real low-end 
 - `production` profile: Android App Bundle for Google Play.
 - No EAS environment variables are configured for preview or production. This is intentional for the local-only release.
 - Preview build complete: `f3b64c64-04d0-4f71-ac54-1ceba8029403`.
-- Production AAB: pending; the build command must be resumed after the desktop execution approval quota resets.
+- Final production AAB complete: `362a9631-f557-4ac4-9b0c-b770c10ea637`, built from commit `376b2f12598d36939d25dd8cd61398ab7bb93746` with the EAS-managed upload keystore.
+- Final build page: `https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android/builds/362a9631-f557-4ac4-9b0c-b770c10ea637`.
+- Final artifact URL: `https://expo.dev/artifacts/eas/TgXP3hkOEQ2gZrfJ_4IgV_XpcWMsm9TKFIaH0fnNGr4.aab`.
+- Downloaded ignored artifact: `release-artifacts/KitaMo-1.0.0-production-eas-376b2f1.aab`.
+- SHA-256: `51c515df2b9da82687f68fd553e4f4936801c77bea650c44190ae4538fa6efcd`.
+- Validation passed: bundletool structure/config, EAS AAB upload-key signature, package `ph.kitamo.app`, version `1.0.0 (1)`, min API 24, target API 36, `allowBackup=false`, approved permission set with no Internet/camera/microphone/storage/location/Bluetooth permission, QA universal-APK v2/v3 signatures, clean emulator install/launch, APK 16 KB zip alignment, and ELF load-segment alignment across all 40 arm64/x86_64 libraries.
 
 ## Human-owned prerequisites before Play upload
 
@@ -60,12 +65,11 @@ Do not put Play Console credentials, Google service-account JSON, passwords, or 
 
 Downloaded APK/AAB files belong under ignored `release-artifacts/`. Validate their package, version, permissions, signature, and 16 KB alignment, but do not commit binaries or signing material.
 
-Resume in this order:
+Inspect the completed release artifacts with:
 
 ```sh
-mkdir -p release-artifacts
 eas build:view f3b64c64-04d0-4f71-ac54-1ceba8029403
-eas build --platform android --profile production --wait
+eas build:view 362a9631-f557-4ac4-9b0c-b770c10ea637
 ```
 
-Download the completed APK/AAB from the EAS build pages into `release-artifacts/`, then run the artifact checks in `final-release-readiness.md`. Do not run `eas submit` until the Play Console app, privacy URL, support email, and owner-approved Data Safety answers exist.
+The exact final AAB is ready for an Internal Testing upload. Do not run `eas submit` until the Play Console app, privacy URL, support email, tester list, and owner-approved Data Safety answers exist.

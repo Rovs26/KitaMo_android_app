@@ -5,7 +5,7 @@ Goal: get the first internal-testing build into a small trusted tester group's h
 ## Prerequisites
 
 - [ ] Real-phone QA pass complete (see `docs/pilot/android-seller-pilot-checklist.md`).
-- [x] All local checks green: `typecheck`, `lint`, Expo Doctor 17/17, seven regression commands including `check:migrations`, Metro start, and production Android export.
+- [x] All local checks green: `typecheck`, `lint`, Expo Doctor 18/18, eight regression commands including `check:owner-context` and `check:migrations`, and production Android export.
 - [x] App icon, adaptive icon, splash, Play icon, and feature graphic added and visually checked.
 - [ ] Privacy policy hosted at a public URL (draft: `privacy-policy-draft.md`; Play Console requires a URL, not a document).
 - [ ] Final support email supplied and added to the listing/privacy policy.
@@ -38,9 +38,9 @@ Build:
 
 - [x] Standalone preview APK built with the EAS-managed keystore (`f3b64c64-04d0-4f71-ac54-1ceba8029403`).
 - [ ] Download/install that EAS APK and complete the full physical-device regression.
-- [ ] Internal Play AAB: `eas build -p android --profile production` (app-bundle, required by Play).
-- [ ] Download the `.aab` artifact from the EAS dashboard.
-- [ ] Verify APK/AAB permissions and 16 KB native-library alignment.
+- [x] Final Internal Play AAB built from `376b2f1` with the EAS-managed upload keystore: `362a9631-f557-4ac4-9b0c-b770c10ea637`.
+- [x] Exact final AAB downloaded to ignored release storage; SHA-256 `51c515df2b9da82687f68fd553e4f4936801c77bea650c44190ae4538fa6efcd`.
+- [x] Verified package/version, merged permissions, backup policy, EAS AAB signature, QA universal-APK v2/v3 signatures and clean install, bundle configuration, and 16 KB alignment for all 40 arm64/x86_64 native libraries.
 
 ## Upload to internal testing
 

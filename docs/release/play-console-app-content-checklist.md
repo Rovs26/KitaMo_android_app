@@ -32,10 +32,13 @@ Every item in Play Console → App content must be complete and accurate before 
 
 ## Permissions declaration
 
-- Declared in `app.json`: `permissions: []`.
-- Framework-added at build time: `INTERNET` (unused by app features at runtime), `ACCESS_NETWORK_STATE` (online/offline badge), `VIBRATE` (haptics).
+- Declared in `app.json`: `USE_BIOMETRIC` and `USE_FINGERPRINT` for the optional local Owner unlock.
+- Blocked in `app.json`: `INTERNET`, legacy external storage, and system overlay.
+- Verified final framework permissions: `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, and `VIBRATE` for the local status badge and haptics.
+- The final AAB also contains the expected app-local signature receiver permission; it is not accessible to unrelated apps.
 - **None** of: camera, location, contacts, microphone, Bluetooth, broad storage/photos, SMS/Call Log.
-- [ ] **REVIEW** the final `.aab`'s permission list in the Play pre-launch report; if anything beyond the three above appears, investigate the source before submitting. No sensitive-permission declaration form should be required for these.
+- [x] Local final-AAB permission inspection matches the set above and contains no `INTERNET` permission.
+- [ ] **REVIEW** Play's detected permission list in the pre-launch report; investigate any difference before submitting. No sensitive-permission declaration form should be required for the verified set.
 
 ## Financial features / regulated category
 

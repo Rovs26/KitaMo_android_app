@@ -75,7 +75,7 @@ eas build -p android --profile preview
 eas build -p android --profile production
 ```
 
-EAS is authenticated and linked to [`@kitamoandroidapp/kitamo-android`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android). The EAS-managed keystore and standalone preview APK were created successfully in build [`f3b64c64-04d0-4f71-ac54-1ceba8029403`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android/builds/f3b64c64-04d0-4f71-ac54-1ceba8029403). The production AAB still needs to be run and validated. Play upload additionally requires the final support email, hosted privacy-policy URL, real-device screenshots, and access to the app's Play Console entry.
+EAS is authenticated and linked to [`@kitamoandroidapp/kitamo-android`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android). The EAS-managed preview APK is build [`f3b64c64-04d0-4f71-ac54-1ceba8029403`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android/builds/f3b64c64-04d0-4f71-ac54-1ceba8029403). The final signed `1.0.0 (1)` production AAB is build [`362a9631-f557-4ac4-9b0c-b770c10ea637`](https://expo.dev/accounts/kitamoandroidapp/projects/kitamo-android/builds/362a9631-f557-4ac4-9b0c-b770c10ea637), built from `376b2f1`. Its package, version, upload-key signature, permissions, backup policy, installability, and 16 KB alignment have been validated. Play upload still requires the final support email, hosted privacy-policy URL, tester list, and access to KitaMo's Play Console entry.
 
 Workstation setup, AVDs, EAS ownership, and human-owned prerequisites are recorded in [`docs/release/release-engineering-environment.md`](docs/release/release-engineering-environment.md).
 
